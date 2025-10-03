@@ -30,6 +30,55 @@ const XIcon = (props) => (
 
 const API_BASE_URL = 'https://britbooks-api-production.up.railway.app/api';
 
+// Helper function to capitalize status
+const capitalizeStatus = (status) => {
+  if (!status) return '';
+  return status.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+};
+
+// Helper function to map tracking from backend data
+const mapTracking = (fetchedOrder) => {
+  const history = fetchedOrder.history || [];
+  const historyMap = new Map(history.map(h => [h.status, h.updatedAt]));
+  const statusOrder = {
+    ordered: 0,
+    processing: 1,
+    dispatched: 2,
+    in_transit: 3,
+    out_for_delivery: 4,
+    delivered: 5,
+  };
+  const currentStatus = fetchedOrder.status;
+  const currentLevel = statusOrder[currentStatus] !== undefined ? statusOrder[currentStatus] : -1;
+  const trackingSteps = [
+    { status: 'Ordered', backend: 'ordered', location: 'Order placed online' },
+    { status: 'Processing', backend: 'processing', location: 'Warehouse' },
+    { status: 'Dispatched', backend: 'dispatched', location: 'Sorting Facility' },
+    { status: 'In Transit', backend: 'in_transit', location: 'En route to delivery hub' },
+    { status: 'Out for Delivery', backend: 'out_for_delivery', location: 'Local Delivery Hub' },
+    { status: 'Delivered', backend: 'delivered', location: 'Delivered to address' },
+  ];
+  return trackingSteps.map(step => {
+    const stepLevel = statusOrder[step.backend];
+    const completed = stepLevel !== undefined && stepLevel <= currentLevel;
+    let date = null;
+    if (completed) {
+      // Use the specific updatedAt when this status was ticked
+      date = historyMap.get(step.backend);
+      // Fallback for ordered if no history entry (use creation date)
+      if (!date && step.backend === 'ordered') {
+        date = fetchedOrder.createdAt;
+      }
+    }
+    return {
+      status: step.status,
+      date: date ? new Date(date).toISOString() : null,
+      location: step.location,
+      completed,
+    };
+  });
+};
+
 // --- ItemDetails Component ---
 const ItemDetails = ({ orders }) => {
   const { orderId, itemIndex } = useParams();
@@ -102,23 +151,17 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
 
         if (response.data.success && response.data.order) {
           const fetchedOrder = response.data.order;
-          const now = new Date();
-          const orderDate = new Date(fetchedOrder.createdAt);
-          const oneMinuteAfterOrder = new Date(orderDate.getTime() + 60 * 1000);
-          const isProcessingCompleted = now >= oneMinuteAfterOrder;
-          const isConfirmedOrCompleted = fetchedOrder.status.toLowerCase() === 'confirmed' || fetchedOrder.status.toLowerCase() === 'completed';
-
           const mappedOrder = {
             id: fetchedOrder._id,
             date: fetchedOrder.createdAt,
             total: fetchedOrder.total,
-            status: fetchedOrder.status.charAt(0).toUpperCase() + fetchedOrder.status.slice(1),
+            status: capitalizeStatus(fetchedOrder.status),
             hasDetails: fetchedOrder.items.length > 0,
             items: fetchedOrder.items.map((item) => ({
-              title: item.title || 'Unknown Item',
+              title: item.listing?.title || 'Unknown Item',
               quantity: item.quantity,
               priceAtPurchase: item.priceAtPurchase,
-              author: item.author || 'Unknown',
+              author: item.listing?.author || 'Unknown',
             })),
             shippingAddress: {
               name: fetchedOrder.shippingAddress.fullName,
@@ -128,37 +171,10 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
               country: fetchedOrder.shippingAddress.country,
             },
             paymentDetails: {
-              method: fetchedOrder.payment.method.charAt(0).toUpperCase() + fetchedOrder.payment.method.slice(1),
-              status: 'Paid', // Hardcode as Paid since order is placed
+              method: capitalizeStatus(fetchedOrder.payment.method),
+              status: capitalizeStatus(fetchedOrder.payment.status),
             },
-            tracking: [
-              { status: 'Ordered', date: fetchedOrder.createdAt, location: 'Order placed online', completed: true },
-              {
-                status: 'Processing',
-                date: isProcessingCompleted ? new Date(orderDate.getTime() + 60 * 1000).toISOString() : null,
-                location: 'Warehouse',
-                completed: isProcessingCompleted,
-              },
-              {
-                status: 'Dispatched',
-                date: isConfirmedOrCompleted ? new Date(orderDate.getTime() + 2 * 60 * 1000).toISOString() : null,
-                location: 'Sorting Facility',
-                completed: isConfirmedOrCompleted,
-              },
-              {
-                status: 'In Transit',
-                date: isConfirmedOrCompleted ? new Date(orderDate.getTime() + 3 * 60 * 1000).toISOString() : null,
-                location: 'En route to delivery hub',
-                completed: isConfirmedOrCompleted,
-              },
-              { status: 'Out for Delivery', date: null, location: 'Local Delivery Hub', completed: false },
-              {
-                status: 'Delivered',
-                date: fetchedOrder.status.toLowerCase() === 'completed' ? new Date(orderDate.getTime() + 4 * 60 * 1000).toISOString() : null,
-                location: 'Delivered to address',
-                completed: fetchedOrder.status.toLowerCase() === 'completed',
-              },
-            ],
+            tracking: mapTracking(fetchedOrder),
           };
           setOrder(mappedOrder);
           console.log('Order details loaded successfully.');
@@ -234,16 +250,14 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
   }
 
   const getStatusClass = (status) => {
-    switch (status) {
-      case 'Pending':
-        return 'bg-amber-100 text-amber-800';
-      case 'Confirmed':
-        return 'bg-blue-100 text-blue-800';
-      case 'Completed':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const lower = status.toLowerCase();
+    if (lower.includes('order') || lower === 'pending') return 'bg-yellow-100 text-yellow-800';
+    if (lower === 'processing') return 'bg-blue-100 text-blue-800';
+    if (lower === 'dispatched' || lower.includes('transit')) return 'bg-indigo-100 text-indigo-800';
+    if (lower.includes('deliver')) return 'bg-purple-100 text-purple-800';
+    if (lower === 'delivered') return 'bg-green-100 text-green-800';
+    if (lower === 'cancelled') return 'bg-red-100 text-red-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -345,6 +359,17 @@ const MainContent = ({ setOrders }) => {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
 
+  const statusOptions = [
+    { value: 'All', label: 'All Statuses' },
+    { value: 'Ordered', backend: 'ordered', label: 'Ordered' },
+    { value: 'Processing', backend: 'processing', label: 'Processing' },
+    { value: 'Dispatched', backend: 'dispatched', label: 'Dispatched' },
+    { value: 'In Transit', backend: 'in_transit', label: 'In Transit' },
+    { value: 'Out for Delivery', backend: 'out_for_delivery', label: 'Out for Delivery' },
+    { value: 'Delivered', backend: 'delivered', label: 'Delivered' },
+    { value: 'Cancelled', backend: 'cancelled', label: 'Cancelled' },
+  ];
+
   // Fetch orders from API with pagination
   useEffect(() => {
     const fetchOrders = async () => {
@@ -360,8 +385,15 @@ const MainContent = ({ setOrders }) => {
         const queryParams = new URLSearchParams({
           page: currentPage,
           limit: ordersPerPage,
-          ...(statusFilter !== 'All' && { status: statusFilter.toLowerCase() }),
         });
+        if (statusFilter !== 'All') {
+          const selectedOption = statusOptions.find(o => o.value === statusFilter);
+          if (selectedOption?.backend) {
+            queryParams.append('status', selectedOption.backend);
+          } else {
+            queryParams.append('status', statusFilter.toLowerCase().replace(/ /g, '_'));
+          }
+        }
 
         const response = await axios.get(
           `${API_BASE_URL}/orders/user/${userId}?${queryParams.toString()}`,
@@ -373,17 +405,11 @@ const MainContent = ({ setOrders }) => {
         if (response.data.success) {
           const fetchedOrders = response.data.orders;
           const mappedOrders = fetchedOrders.map((order) => {
-            const now = new Date();
-            const orderDate = new Date(order.createdAt);
-            const oneMinuteAfterOrder = new Date(orderDate.getTime() + 60 * 1000);
-            const isProcessingCompleted = now >= oneMinuteAfterOrder;
-            const isConfirmedOrCompleted = order.status.toLowerCase() === 'confirmed' || order.status.toLowerCase() === 'completed';
-
             return {
               id: order._id,
               date: order.createdAt,
               total: order.total,
-              status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
+              status: capitalizeStatus(order.status),
               hasDetails: order.items.length > 0,
               items: order.items.map((item) => ({
                 title: item.listing?.title || 'Unknown Item',
@@ -398,37 +424,10 @@ const MainContent = ({ setOrders }) => {
                 country: order.shippingAddress.country,
               },
               paymentDetails: {
-                method: order.payment.method.charAt(0).toUpperCase() + order.payment.method.slice(1),
-                status: 'Paid',
+                method: capitalizeStatus(order.payment.method),
+                status: capitalizeStatus(order.payment.status),
               },
-              tracking: [
-                { status: 'Ordered', date: order.createdAt, location: 'Order placed online', completed: true },
-                {
-                  status: 'Processing',
-                  date: isProcessingCompleted ? new Date(orderDate.getTime() + 60 * 1000).toISOString() : null,
-                  location: 'Warehouse',
-                  completed: isProcessingCompleted,
-                },
-                {
-                  status: 'Dispatched',
-                  date: isConfirmedOrCompleted ? new Date(orderDate.getTime() + 2 * 60 * 1000).toISOString() : null,
-                  location: 'Sorting Facility',
-                  completed: isConfirmedOrCompleted,
-                },
-                {
-                  status: 'In Transit',
-                  date: isConfirmedOrCompleted ? new Date(orderDate.getTime() + 3 * 60 * 1000).toISOString() : null,
-                  location: 'En route to delivery hub',
-                  completed: isConfirmedOrCompleted,
-                },
-                { status: 'Out for Delivery', date: null, location: 'Local Delivery Hub', completed: false },
-                {
-                  status: 'Delivered',
-                  date: order.status.toLowerCase() === 'completed' ? new Date(orderDate.getTime() + 4 * 60 * 1000).toISOString() : null,
-                  location: 'Delivered to address',
-                  completed: order.status.toLowerCase() === 'completed',
-                },
-              ],
+              tracking: mapTracking(order),
             };
           });
 
@@ -471,16 +470,14 @@ const MainContent = ({ setOrders }) => {
   };
 
   const getStatusClass = (status) => {
-    switch (status) {
-      case 'Pending':
-        return 'bg-amber-100 text-amber-800';
-      case 'Confirmed':
-        return 'bg-blue-100 text-blue-800';
-      case 'Completed':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const lower = status.toLowerCase();
+    if (lower.includes('order') || lower === 'pending') return 'bg-yellow-100 text-yellow-800';
+    if (lower === 'processing') return 'bg-blue-100 text-blue-800';
+    if (lower === 'dispatched' || lower.includes('transit')) return 'bg-indigo-100 text-indigo-800';
+    if (lower.includes('deliver')) return 'bg-purple-100 text-purple-800';
+    if (lower === 'delivered') return 'bg-green-100 text-green-800';
+    if (lower === 'cancelled') return 'bg-red-100 text-red-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
   const formatItems = (items, orderId, hasDetails) => {
@@ -529,10 +526,11 @@ const MainContent = ({ setOrders }) => {
                 }}
                 className="w-full sm:w-48 p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 transition-all duration-200"
               >
-                <option value="All">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Completed">Completed</option>
+                {statusOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label || opt.value}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
