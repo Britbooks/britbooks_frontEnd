@@ -340,15 +340,15 @@ const Homepage = () => {
           </section>
 
           {/* Welcome Section */}
-          <div className="max-w-7xl mx-auto py-8 sm:py-16 px-4 sm:px-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-16">
+          <div className="max-w-7xl mx-auto py-9 sm:py-1 px-4 sm:px-69 flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-16">
             <div className="w-full sm:w-1/2 flex justify-center sm:justify-start">
               <img
                 src="https://media.istockphoto.com/id/185266132/photo/portrait-of-a-cute-teenage-girl.jpg?s=612x612&w=0&k=20&c=7oyxKo75xTGO_k5v2zsCBeu7GWG-7eryUyyu42o8Ra0="
                 alt="Woman Reading"
-                className="w-full max-w-md sm:max-w-lg object-contain"
-              />
+                className="w-full max-w-4xl sm:max-w-3xl object-contain"
+                />
             </div>
-            <div className="w-full sm:w-1/2">
+            <div className="w-full sm:w-1/2 sm:py-10">
               <h2 className="text-3xl sm:text-5xl font-light leading-tight mb-4 sm:mb-6">
                 Welcome to <span className="font-bold text-blue-900">brit</span>
                 <span className="font-bold text-red-600">books </span>

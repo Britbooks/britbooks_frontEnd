@@ -127,11 +127,11 @@ const ItemDetails = ({ orders }) => {
 };
 
 // --- OrderDetailsSidebar Component ---
-const OrderDetailsSidebar = ({ isOpen, onClose }) => {
-  const { id } = useParams();
+const OrderDetailsSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const { id } = useParams<{ id: string }>();
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -139,8 +139,7 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
 
     const fetchOrderDetails = async () => {
       if (!auth.token) {
-        console.error('No auth token. Redirecting to login.');
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
@@ -150,45 +149,49 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
         });
 
         if (response.data.success && response.data.order) {
-          const fetchedOrder = response.data.order;
+          const o = response.data.order;
+
           const mappedOrder = {
-            id: fetchedOrder._id,
-            date: fetchedOrder.createdAt,
-            total: fetchedOrder.total,
-            status: capitalizeStatus(fetchedOrder.status),
-            hasDetails: fetchedOrder.items.length > 0,
-            items: fetchedOrder.items.map((item) => ({
-              title: item.listing?.title || 'Unknown Item',
+            id: o._id,
+            date: o.createdAt,
+            total: o.total,
+            status: capitalizeStatus(o.status),
+            items: o.items.map((item: any) => ({
+              title: item.title,
+              author: item.author,
               quantity: item.quantity,
               priceAtPurchase: item.priceAtPurchase,
-              author: item.listing?.author || 'Unknown',
             })),
             shippingAddress: {
-              name: fetchedOrder.shippingAddress.fullName,
-              street: fetchedOrder.shippingAddress.addressLine1,
-              city: fetchedOrder.shippingAddress.city,
-              postalCode: fetchedOrder.shippingAddress.postalCode,
-              country: fetchedOrder.shippingAddress.country,
+              name: o.shippingAddress.fullName,
+              street: o.shippingAddress.addressLine2
+                ? `${o.shippingAddress.addressLine1}, ${o.shippingAddress.addressLine2}`
+                : o.shippingAddress.addressLine1,
+              city: o.shippingAddress.city,
+              state: o.shippingAddress.state || "",
+              postalCode: o.shippingAddress.postalCode,
+              country: o.shippingAddress.country,
             },
             paymentDetails: {
-              method: capitalizeStatus(fetchedOrder.payment.method),
-              status: capitalizeStatus(fetchedOrder.payment.status),
+              method: capitalizeStatus(o.payment.method),
+              status: capitalizeStatus(o.payment.status),
+              transactionId: o.payment.transactionId,
+              paidAt: o.payment.paidAt,
             },
-            tracking: mapTracking(fetchedOrder),
+            tracking: o.tracking.map((t: any) => ({
+              status: capitalizeStatus(t.status),
+              location: t.location,
+              completed: t.completed,
+              date: t.date,
+            })),
           };
+
           setOrder(mappedOrder);
-          console.log('Order details loaded successfully.');
-        } else {
-          console.error('Failed to load order details.');
         }
-      } catch (err) {
-        console.error('Fetch order details error:', err);
+      } catch (err: any) {
         if (err.response?.status === 401) {
-          console.error('Session expired. Redirecting to login.');
           logout();
-          navigate('/login');
-        } else {
-          console.error('Failed to load order details. Please try again.');
+          navigate("/login");
         }
       } finally {
         setLoading(false);
@@ -198,17 +201,28 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
     fetchOrderDetails();
   }, [isOpen, id, auth.token, navigate, logout]);
 
+  const getStatusClass = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === "ordered" || s === "pending") return "bg-yellow-100 text-yellow-800";
+    if (s === "processing") return "bg-blue-100 text-blue-800";
+    if (s === "dispatched" || s === "in transit") return "bg-indigo-100 text-indigo-800";
+    if (s === "out for delivery") return "bg-purple-100 text-purple-800";
+    if (s === "delivered") return "bg-green-100 text-green-800";
+    if (s === "cancelled") return "bg-red-100 text-red-800";
+    return "bg-gray-100 text-gray-800";
+  };
+
   if (loading) {
     return (
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+          isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-xl font-semibold text-gray-900">Loading...</h2>
-            <Link to="/orders" onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
+            <Link to="/orders" onClick={onClose} className="text-gray-500 hover:text-gray-700">
               <XIcon className="w-6 h-6" />
             </Link>
           </div>
@@ -220,17 +234,17 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
     );
   }
 
-  if (!order || !order.hasDetails) {
+  if (!order) {
     return (
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+          isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-xl font-semibold text-gray-900">Order Not Found</h2>
-            <Link to="/orders" onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
+            <Link to="/orders" onClick={onClose} className="text-gray-500 hover:text-gray-700">
               <XIcon className="w-6 h-6" />
             </Link>
           </div>
@@ -239,7 +253,7 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
             <Link
               to="/orders"
               onClick={onClose}
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium"
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
             >
               Back to Orders
             </Link>
@@ -249,97 +263,145 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
     );
   }
 
-  const getStatusClass = (status) => {
-    const lower = status.toLowerCase();
-    if (lower.includes('order') || lower === 'pending') return 'bg-yellow-100 text-yellow-800';
-    if (lower === 'processing') return 'bg-blue-100 text-blue-800';
-    if (lower === 'dispatched' || lower.includes('transit')) return 'bg-indigo-100 text-indigo-800';
-    if (lower.includes('deliver')) return 'bg-purple-100 text-purple-800';
-    if (lower === 'delivered') return 'bg-green-100 text-green-800';
-    if (lower === 'cancelled') return 'bg-red-100 text-red-800';
-    return 'bg-gray-100 text-gray-800';
-  };
-
   return (
     <div
       className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
+        isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >
       <div className="flex flex-col h-full">
+        {/* Header */}
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Order #{order.id}</h2>
-          <Link to="/orders" onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
+          <h2 className="text-xl font-semibold text-gray-900">Order #......{order.id.slice(-15)}</h2>
+          <Link to="/orders" onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <XIcon className="w-6 h-6" />
           </Link>
         </div>
+
+        {/* Scrollable Content */}
         <div className="flex-1 p-6 overflow-y-auto space-y-8">
+          {/* Order Summary */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
             <div className="text-gray-600 space-y-3">
-              <p><span className="font-medium">Order Date:</span> {new Date(order.date).toLocaleDateString('en-GB')}</p>
-              <p><span className="font-medium">Total:</span> £{order.total.toFixed(2)}</p>
               <p>
-                <span className="font-medium">Status:</span>{' '}
-                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}>
+                <span className="font-medium">Order Date:</span>{" "}
+                {new Date(order.date).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+              <p>
+                <span className="font-medium">Total:</span> £{order.total.toFixed(2)}
+              </p>
+              <p>
+                <span className="font-medium">Status:</span>{" "}
+                <span
+                  className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(
+                    order.status
+                  )}`}
+                >
                   {order.status}
                 </span>
               </p>
             </div>
           </div>
+
+          {/* Items */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Items</h3>
             <div className="space-y-4">
-              {order.items.map((item, index) => (
-                <div key={index} className="flex justify-between items-center border-b border-gray-200 pb-4">
+              {order.items.map((item: any, index: number) => (
+                <div key={index} className="flex justify-between items-start border-b border-gray-200 pb-4">
                   <div>
                     <p className="text-gray-900 font-medium">{item.title}</p>
-                    <p className="text-sm text-gray-500">Author: {item.author}</p>
-                    <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                    <p className="text-sm text-gray-500">by {item.author}</p>
+                    <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                   </div>
-                  <p className="text-gray-900 font-medium">£{(item.priceAtPurchase * item.quantity).toFixed(2)}</p>
+                  <p className="text-gray-900 font-medium">
+                    £{(item.priceAtPurchase * item.quantity).toFixed(2)}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Shipping Address */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Shipping Address</h3>
-            <p className="text-gray-600">
-              {order.shippingAddress.name}<br />
-              {order.shippingAddress.street}<br />
-              {order.shippingAddress.city}, {order.shippingAddress.postalCode}<br />
+            <p className="text-gray-600 leading-relaxed">
+              {order.shippingAddress.name}
+              <br />
+              {order.shippingAddress.street}
+              {order.shippingAddress.state && `, ${order.shippingAddress.state}`}
+              <br />
+              {order.shippingAddress.city}, {order.shippingAddress.postalCode}
+              <br />
               {order.shippingAddress.country}
             </p>
           </div>
+
+          {/* Payment Details */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Details</h3>
-            <p className="text-gray-600">
-              <span className="font-medium">Method:</span> {order.paymentDetails.method}<br />
-              <span className="font-medium">Status:</span> {order.paymentDetails.status}
-            </p>
+            <div className="text-gray-600 space-y-2">
+              <p>
+                <span className="font-medium">Method:</span> {order.paymentDetails.method}
+              </p>
+              <p>
+                <span className="font-medium">Status:</span> {order.paymentDetails.status}
+              </p>
+              <p>
+                <span className="font-medium">Paid At:</span>{" "}
+                {new Date(order.paymentDetails.paidAt).toLocaleString("en-GB")}
+              </p>
+              <p className="text-xs text-gray-500 break-all">
+                Transaction ID: {order.paymentDetails.transactionId}
+              </p>
+            </div>
           </div>
+
+          {/* Tracking */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Shipping Tracker</h3>
             <div className="relative pl-8">
               <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-              {order.tracking.map((step, index) => (
+              {order.tracking.map((step: any, index: number) => (
                 <div key={index} className="flex items-start mb-6 relative">
                   <div className="absolute left-0 transform -translate-x-1/2">
-                    <CheckCircleIcon
-                      className={`w-6 h-6 ${step.completed ? 'text-green-600' : 'text-gray-400'}`}
-                    />
+                    {step.completed ? (
+                      <CheckCircleIcon className="w-6 h-6 text-green-600" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full border-2 border-gray-400 bg-white" />
+                    )}
                   </div>
                   <div className="ml-6">
-                    <p className="text-gray-900 font-medium">{step.status}</p>
+                    <p className={`font-medium ${step.completed ? "text-gray-900" : "text-gray-500"}`}>
+                      {step.status}
+                    </p>
                     <p className="text-sm text-gray-500">{step.location}</p>
-                    <p className="text-sm text-gray-400">
-                      {step.date ? new Date(step.date).toLocaleString('en-GB') : 'Pending'}
+                    <p className="text-xs text-gray-400">
+                      {step.date
+                        ? new Date(step.date).toLocaleString("en-GB")
+                        : "Not started"}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Footer Button */}
+        <div className="p-6 border-t border-gray-200">
+          <Link
+            to="/orders"
+            onClick={onClose}
+            className="w-full block text-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+          >
+            Back to Orders
+          </Link>
         </div>
       </div>
     </div>

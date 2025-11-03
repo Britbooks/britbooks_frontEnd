@@ -1,7 +1,16 @@
+"use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, X, CreditCard, Lock } from "lucide-react";
+import {
+  Check,
+  X,
+  CreditCard,
+  Lock,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+} from "lucide-react";
 import { MD5 } from "crypto-js";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
@@ -11,11 +20,13 @@ import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { Addresses, AddressFormModal } from "./Addresses";
+import { Addresses } from "./Addresses";
+import toast, { Toaster } from "react-hot-toast";
+import { Book, fetchBooks } from "../data/books";
+import ReactDOM from "react-dom";
 
-// Initialize Stripe with Vite environment variable
+// Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-
 const API_BASE_URL = "https://britbooks-api-production.up.railway.app/api";
 
 // --- Helper Function for Placeholder Images ---
@@ -44,6 +55,188 @@ const generatePlaceholderImage = (book: { title: string; isbn: string; genre: st
   };
   const genreKey = genreColors[book.genre] || genreColors.default;
   return `https://picsum.photos/seed/${hash}-${genreKey}/300/450`;
+};
+
+// --- SVG Star Icon ---
+const StarIcon = ({ filled, rating }: { filled: boolean; rating: number }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill={filled ? "currentColor" : "none"}
+    stroke={filled ? "#facc15" : "#d1d5db"}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={filled ? "text-yellow-400" : "text-gray-300"}
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+// --- Book Card Component ---
+const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: Book & { price: string }) => {
+  const { addToCart } = useCart();
+  const [imageError, setImageError] = useState(false);
+  const numericPrice = typeof price === "string" ? parseFloat(price.replace("£", "")) : price;
+
+  const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
+  const displayImage = imageError
+    ? fallbackImage
+    : imageUrl || generatePlaceholderImage({ title, isbn, genre });
+
+  const handleAddToCart = () => {
+    addToCart({
+      id,
+      imageUrl: displayImage,
+      title,
+      author,
+      price: `£${numericPrice.toFixed(2)}`,
+      quantity: 1,
+    });
+    toast.success(`${title} added to your basket!`);
+  };
+
+  return (
+    <div className="group relative flex-shrink-0 w-[180px] text-left p-2">
+      <div className="relative">
+        <Link to={`/browse/${id}`}>
+          <img
+            src={displayImage}
+            alt={title}
+            className="w-full h-48 object-cover mb-2 rounded-md transition-transform duration-300 group-hover:scale-105"
+            onError={() => setImageError(true)}
+            loading="lazy"
+          />
+        </Link>
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
+          <Link to={`/browse/${id}`}>
+            <button className="bg-white text-gray-900 px-2 sm:px-4 py-1 sm:py-2 rounded-md text-xs sm:text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-300 hover:bg-gray-200">
+              QUICK VIEW
+            </button>
+          </Link>
+        </div>
+      </div>
+      <div className="p-2 flex flex-col items-start">
+        <h3 className="font-semibold text-sm truncate mt-1">{title}</h3>
+        <p className="text-gray-500 text-xs mb-1">{author}</p>
+        <div className="flex items-center text-gray-300 mb-1">
+          {[...Array(5)].map((_, i) => (
+            <StarIcon key={i} filled={i < Math.round(rating || 0)} rating={rating || 0} />
+          ))}
+        </div>
+        <p className="text-lg font-bold text-gray-900">£{numericPrice.toFixed(2)}</p>
+        <button
+          onClick={handleAddToCart}
+          className="bg-red-600 text-white font-medium px-3 py-1 rounded-md text-xs w-full transition-colors hover:bg-red-700 mt-2"
+        >
+          ADD TO BASKET
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- BookShelf Component ---
+const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetchParams: any; currentBookId: string }) => {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const booksPerPage = 5;
+  const maxPages = 20;
+
+  useEffect(() => {
+    const fetchShelfBooks = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { books: fetchedBooks } = await fetchBooks({
+          page: 1,
+          limit: 10,
+          ...fetchParams,
+        });
+        const filteredBooks = fetchedBooks.filter((book) => book.id !== currentBookId);
+        setBooks(filteredBooks);
+        setIsLoading(false);
+      } catch (err) {
+        setError(`Failed to load ${title.toLowerCase()}. Please try again.`);
+        setIsLoading(false);
+        console.error(`Failed to fetch ${title}:`, err instanceof Error ? err.message : err);
+      }
+    };
+    fetchShelfBooks();
+  }, [fetchParams, title, currentBookId]);
+
+  const totalPages = Math.min(Math.ceil(books.length / booksPerPage), maxPages);
+  const startIndex = (currentPage - 1) * booksPerPage;
+  const paginatedBooks = books.slice(startIndex, startIndex + booksPerPage);
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-6">
+        <h2 className="text-xl font-bold text-blue-800 mb-4">{title}</h2>
+        <p className="text-gray-500 text-center">Loading {title.toLowerCase()}...</p>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-6">
+        <h2 className="text-xl font-bold text-blue-800 mb-4">{title}</h2>
+        <p className="text-red-500 text-center">{error}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-blue-800">{title}</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+            className="px-2 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className="px-2 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        {paginatedBooks.map((book) => (
+          <BookCard
+            key={book.id}
+            {...book}
+            price={`£${book.price.toFixed(2)}`}
+          />
+        ))}
+      </div>
+      {paginatedBooks.length === 0 && (
+        <p className="text-center text-gray-500 py-4">No {title.toLowerCase()} available.</p>
+      )}
+    </section>
+  );
 };
 
 // --- Checkout Stepper Component ---
@@ -101,132 +294,149 @@ const ShoppingCartView = ({
   const total = subtotal + shipping;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 animate-on-scroll">
-      <div className="lg:col-span-2">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Your Cart</h2>
-        {cartItems.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-600 text-lg">Your cart is empty.</p>
-            <Link to="/category" className="text-red-600 hover:underline mt-4 inline-block">
-              Continue Shopping
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">PRODUCT</th>
-                    <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">PRICE</th>
-                    <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">QUANTITY</th>
-                    <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">TOTAL</th>
-                    <th className="p-3 sm:p-4"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cartItems.map((item) => {
-                    const [imageError, setImageError] = useState(false);
-                    const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
-                    const displayImage = imageError
-                      ? fallbackImage
-                      : item.imageUrl || generatePlaceholderImage({ title: item.title, isbn: item.isbn || "", genre: item.genre || "default" });
-
-                    return (
-                      <tr key={item.id} className="border-b border-gray-200">
-                        <td className="p-3 sm:p-4">
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <img
-                              src={displayImage}
-                              alt={item.title}
-                              className="w-16 sm:w-20 h-20 sm:h-24 object-cover rounded"
-                              onError={() => setImageError(true)}
-                              loading="lazy"
-                            />
-                            <div>
-                              <p className="font-semibold text-sm sm:text-base text-gray-800">{item.title}</p>
-                              <p className="text-xs text-gray-500">{item.author}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4 font-semibold text-sm sm:text-base text-gray-800">{item.price}</td>
-                        <td className="p-3 sm:p-4">
-                          <div className="flex items-center border border-gray-300 rounded-md">
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="px-2 sm:px-3 py-1 text-sm sm:text-base font-bold text-gray-700"
-                            >
-                              -
-                            </button>
-                            <span className="px-3 sm:px-4 py-1 border-l border-r border-gray-300 text-sm sm:text-base">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="px-2 sm:px-3 py-1 text-sm sm:text-base font-bold text-gray-700"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4 font-bold text-sm sm:text-base text-gray-800">
-                          £{(parseFloat(item.price.replace("£", "")) * item.quantity).toFixed(2)}
-                        </td>
-                        <td className="p-3 sm:p-4">
-                          <button onClick={() => removeFromCart(item.id)} className="text-gray-400 hover:text-red-500">
-                            <X size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
-              <Link
-                to="/category"
-                className="bg-gray-200 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-md text-center text-sm sm:text-base hover:bg-gray-300"
-              >
-                CONTINUE SHOPPING
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 animate-on-scroll">
+        <div className="lg:col-span-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Your Cart</h2>
+          {cartItems.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600 text-lg">Your cart is empty.</p>
+              <Link to="/category" className="text-red-600 hover:underline mt-4 inline-block">
+                Continue Shopping
               </Link>
-              <button
-                onClick={clearCart}
-                className="bg-gray-200 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-md text-sm sm:text-base hover:bg-gray-300"
-              >
-                CLEAR SHOPPING CART
-              </button>
             </div>
-          </>
-        )}
-      </div>
-      <div className="lg:col-span-1">
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md sticky top-20 sm:top-28">
-          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">Order Summary</h3>
-          <div className="space-y-3 sm:space-y-4 text-gray-700 text-sm sm:text-base">
-            <div className="flex justify-between">
-              <p>Subtotal</p>
-              <p>£{subtotal.toFixed(2)}</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">PRODUCT</th>
+                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">PRICE</th>
+                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">QUANTITY</th>
+                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">TOTAL</th>
+                      <th className="p-3 sm:p-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cartItems.map((item) => {
+                      const [imageError, setImageError] = useState(false);
+                      const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
+                      const displayImage = imageError
+                        ? fallbackImage
+                        : item.imageUrl || generatePlaceholderImage({ title: item.title, isbn: item.isbn || "", genre: item.genre || "default" });
+
+                      return (
+                        <tr key={item.id} className="border-b border-gray-200">
+                          <td className="p-3 sm:p-4">
+                            <div className="flex items-center gap-3 sm:gap-4">
+                              <img
+                                src={displayImage}
+                                alt={item.title}
+                                className="w-16 sm:w-20 h-20 sm:h-24 object-cover rounded"
+                                onError={() => setImageError(true)}
+                                loading="lazy"
+                              />
+                              <div>
+                                <p className="font-semibold text-sm sm:text-base text-gray-800">{item.title}</p>
+                                <p className="text-xs text-gray-500">{item.author}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3 sm:p-4 font-semibold text-sm sm:text-base text-gray-800">{item.price}</td>
+                          <td className="p-3 sm:p-4">
+                            <div className="flex items-center border border-gray-300 rounded-md">
+                              <button
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                className="px-2 sm:px-3 py-1 text-sm sm:text-base font-bold text-gray-700"
+                              >
+                                -
+                              </button>
+                              <span className="px-3 sm:px-4 py-1 border-l border-r border-gray-300 text-sm sm:text-base">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="px-2 sm:px-3 py-1 text-sm sm:text-base font-bold text-gray-700"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                          <td className="p-3 sm:p-4 font-bold text-sm sm:text-base text-gray-800">
+                            £{(parseFloat(item.price.replace("£", "")) * item.quantity).toFixed(2)}
+                          </td>
+                          <td className="p-3 sm:p-4">
+                            <button onClick={() => removeFromCart(item.id)} className="text-gray-400 hover:text-red-500">
+                              <X size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+                <Link
+                  to="/category"
+                  className="bg-gray-200 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-md text-center text-sm sm:text-base hover:bg-gray-300"
+                >
+                  CONTINUE SHOPPING
+                </Link>
+                <button
+                  onClick={clearCart}
+                  className="bg-gray-200 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-md text-sm sm:text-base hover:bg-gray-300"
+                >
+                  CLEAR SHOPPING CART
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="lg:col-span-1">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md sticky top-20 sm:top-28">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">Order Summary</h3>
+            <div className="space-y-3 sm:space-y-4 text-gray-700 text-sm sm:text-base">
+              <div className="flex justify-between">
+                <p>Subtotal</p>
+                <p>£{subtotal.toFixed(2)}</p>
+              </div>
+              <div className="flex justify-between">
+                <p>Shipping</p>
+                <p>£{shipping.toFixed(2)}</p>
+              </div>
+              <div className="border-t pt-3 sm:pt-4 flex justify-between font-bold text-base sm:text-lg text-gray-800">
+                <p>TOTAL</p>
+                <p>£{total.toFixed(2)}</p>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <p>Shipping</p>
-              <p>£{shipping.toFixed(2)}</p>
-            </div>
-            <div className="border-t pt-3 sm:pt-4 flex justify-between font-bold text-base sm:text-lg text-gray-800">
-              <p>TOTAL</p>
-              <p>£{total.toFixed(2)}</p>
-            </div>
+            <button
+              onClick={goToNextStep}
+              className="w-full mt-6 sm:mt-8 bg-red-600 text-white py-2 sm:py-3 rounded-md font-semibold text-sm sm:text-base hover:bg-red-700 transition-colors"
+              disabled={cartItems.length === 0}
+            >
+              PROCEED TO CHECKOUT
+            </button>
           </div>
-          <button
-            onClick={goToNextStep}
-            className="w-full mt-6 sm:mt-8 bg-red-600 text-white py-2 sm:py-3 rounded-md font-semibold text-sm sm:text-base hover:bg-red-700 transition-colors"
-            disabled={cartItems.length === 0}
-          >
-            PROCEED TO CHECKOUT
-          </button>
         </div>
       </div>
-    </div>
+
+      {cartItems.length > 0 && (
+        <div className="mt-12 w-full max-w-7xl mx-auto">
+          <BookShelf
+            title="You may also like"
+            fetchParams={{
+              filters: { genre: cartItems[0].genre || "Fiction" },
+              sort: "rating",
+              order: "desc",
+            }}
+            currentBookId={cartItems[0].id}
+          />
+        </div>
+      )}
+    </>
   );
 };
 
@@ -493,21 +703,38 @@ const ReviewOrder = ({
   goToPreviousStep,
   paymentData,
   setPaymentData,
+  setOrderId,
+  setReceiptUrl,
+  setSuccessData,
 }: {
   cartItems: any[];
   goToPreviousStep: () => void;
   paymentData: any;
   setPaymentData: (data: any) => void;
+  setOrderId: (id: string | null) => void;
+  setReceiptUrl: (url: string | null) => void;
 }) => {
   const navigate = useNavigate();
   const { auth, logout } = useAuth();
   const { clearCart } = useCart();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const subtotal = cartItems.reduce((sum, item) => sum + parseFloat(item.price.replace("£", "")) * item.quantity, 0);
   const shipping = 5.0;
   const total = subtotal + shipping;
+
+  if (!paymentData || !paymentData.shippingAddress) {
+    return (
+      <div className="max-w-3xl mx-auto text-center py-12">
+        <p className="text-gray-600">Loading payment details...</p>
+        <button onClick={goToPreviousStep} className="mt-4 text-red-600 hover:underline">
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   const handlePlaceOrder = async () => {
     if (!auth.token) {
@@ -524,20 +751,19 @@ const ReviewOrder = ({
     try {
       const decoded = jwtDecode<{ userId: string }>(auth.token);
       const userId = decoded.userId;
-      const orderId = `ORDER_${Date.now()}`;
+      const newOrderId = `ORDER_${Date.now()}`;
       const items = cartItems.map((item) => ({
         title: item.title,
         quantity: item.quantity,
         price: parseFloat(item.price.replace("£", "")),
       }));
 
-      console.log("Sending Token to Backend:", paymentData.token);
       const response = await axios.post(
         `${API_BASE_URL}/payments/create-payment`,
         {
           userId,
           email: auth.user.email,
-          orderId,
+          orderId: newOrderId,
           shippingAddress: paymentData.shippingAddress,
           items,
           subtotal,
@@ -551,72 +777,73 @@ const ReviewOrder = ({
         }
       );
 
-      console.log("Create Payment Response:", response.data);
-      const { clientSecret, reference, status, requiresAction, nextAction, receiptUrl } = response.data;
+      const { clientSecret, reference, status, requiresAction, receiptUrl: receipt } = response.data;
 
       if (requiresAction) {
         const stripe = await stripePromise;
         const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret);
 
         if (confirmError) {
-          setError(confirmError.message);
+          setError(confirmError.message || "Payment failed.");
           setLoading(false);
           return;
         }
 
         if (paymentIntent.status === "succeeded") {
-          console.log("Calling Success Endpoint:", `${API_BASE_URL}/payments/success/${paymentIntent.id}`, {
-            reference: paymentIntent.id,
-            receiptUrl: receiptUrl || null,
-          });
-          const successResponse = await axios.post(
-            `${API_BASE_URL}/payments/success/${paymentIntent.id}`,
-            { reference: paymentIntent.id, receiptUrl: receiptUrl || null },
-            { headers: { Authorization: `Bearer ${auth.token}` } }
-          );
-
-          console.log("Success Endpoint Response:", successResponse.data);
-          if (successResponse.data.success) {
-            clearCart();
-            setPaymentData(null);
-            navigate("/order-confirmation", { state: { orderId, receiptUrl: receiptUrl || null } });
-          } else {
-            setError(successResponse.data.message || "Failed to process payment success response. Please try again.");
-          }
+          await finalizeOrder(paymentIntent.id, receipt);
         } else {
-          setError("Payment is pending. Please check your email for confirmation.");
+          setError("Payment is processing. Check email for status.");
+          setLoading(false);
         }
       } else if (status === "succeeded") {
-        console.log("Calling Success Endpoint:", `${API_BASE_URL}/payments/success/${reference}`, {
-          reference,
-          receiptUrl: receiptUrl || null,
-        });
-        const successResponse = await axios.post(
-          `${API_BASE_URL}/payments/success/${reference}`,
-          { reference, receiptUrl: receiptUrl || null },
-          { headers: { Authorization: `Bearer ${auth.token}` } }
-        );
-
-        console.log("Success Endpoint Response:", successResponse.data);
-        if (successResponse.data.success) {
-          clearCart();
-          setPaymentData(null);
-          navigate("/orders", { state: { orderId, receiptUrl: receiptUrl || null } });
-        } else {
-          setError(successResponse.data.message || "Failed to process payment success response. Please try again.");
-        }
+        await finalizeOrder(reference, receipt);
       } else {
-        setError("Payment is pending. Please check your email for confirmation.");
+        setError("Payment is processing. Check email for status.");
+        setLoading(false);
       }
     } catch (err: any) {
       console.error("Place order error:", err.response?.data || err);
       if (err.response?.status === 401) {
-        setError("Session expired. Please log in again.");
         logout();
         navigate("/login");
       } else {
-        setError(err.response?.data?.message || "Failed to process payment. Please try again.");
+        setError(err.response?.data?.message || "Payment failed. Please try again.");
       }
+      setLoading(false);
+    }
+  };
+
+  const finalizeOrder = async (reference: string, receipt: string | null) => {
+    try {
+      const successResponse = await axios.post(
+        `${API_BASE_URL}/payments/success/${reference}`,
+        { reference, receiptUrl: receipt || null },
+        { headers: { Authorization: `Bearer ${auth.token}` } }
+      );
+  
+      if (successResponse.data.success) {
+        const { orderId, total, receiptUrl } = successResponse.data; // FROM API
+  
+        clearCart();
+        setPaymentData(null);
+        setSuccessData({
+          orderId: orderId || reference,
+          total: total || subtotal + 5,
+          receiptUrl: receiptUrl || null,
+        });
+  
+        // Auto redirect
+        setTimeout(() => {
+          navigate("/orders", {
+            state: { orderId: orderId || reference, receiptUrl: receiptUrl || null }
+          });
+        }, 5000);
+      } else {
+        setError("Order failed. Please contact support.");
+      }
+    } catch (err: any) {
+      setError("Failed to confirm order. Contact support.");
+      console.error("Finalize error:", err);
     } finally {
       setLoading(false);
     }
@@ -650,6 +877,7 @@ const ReviewOrder = ({
             </button>
           </div>
         </div>
+
         <div className="mt-6 sm:mt-8 border-t border-gray-200 pt-4 sm:pt-6">
           <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-4">Items in Order</h3>
           <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
@@ -670,9 +898,7 @@ const ReviewOrder = ({
                       onError={() => setImageError(true)}
                       loading="lazy"
                     />
-                    <p>
-                      {item.title} (x{item.quantity})
-                    </p>
+                    <p>{item.title} (x{item.quantity})</p>
                   </div>
                   <p>£{(parseFloat(item.price.replace("£", "")) * item.quantity).toFixed(2)}</p>
                 </div>
@@ -680,6 +906,7 @@ const ReviewOrder = ({
             })}
           </div>
         </div>
+
         <div className="mt-4 sm:mt-6 border-t border-gray-200 pt-4 sm:pt-6 space-y-2 text-sm sm:text-base text-gray-700">
           <div className="flex justify-between">
             <p>Subtotal</p>
@@ -694,10 +921,12 @@ const ReviewOrder = ({
             <p>£{total.toFixed(2)}</p>
           </div>
         </div>
+
         {error && <div className="text-red-500 text-sm mt-4">{error}</div>}
+
         <button
           onClick={handlePlaceOrder}
-          className="w-full mt-6 sm:mt-8 bg-red-600 text-white py-2 sm:py-3 rounded-md font-semibold text-sm sm:text-base hover:bg-red-700 transition-colors"
+          className="w-full mt-6 sm:mt-8 bg-red-600 text-white py-2 sm:py-3 rounded-md font-semibold text-sm sm:text-base hover:bg-red-700 transition-colors disabled:opacity-50"
           disabled={loading}
         >
           {loading ? "Processing..." : "PLACE ORDER"}
@@ -712,6 +941,13 @@ const CheckoutFlow = () => {
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const [step, setStep] = useState(1);
   const [paymentData, setPaymentData] = useState<any>(null);
+  const [successData, setSuccessData] = useState<{
+    orderId: string;
+    total: number;
+    receiptUrl: string | null;
+  } | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -735,16 +971,24 @@ const CheckoutFlow = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans flex-col">
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
         .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
       `}</style>
 
       <TopBar />
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto pb-16 lg:pb-8">
+
+      <main className="flex-1 p-4 sm:p-8 pb-16 lg:pb-8">
         <div className="max-w-7xl mx-auto">
           <CheckoutStepper currentStep={step} />
           {step === 1 && (
@@ -761,16 +1005,49 @@ const CheckoutFlow = () => {
               <PaymentForm goToNextStep={() => setStep(3)} setPaymentData={setPaymentData} />
             </Elements>
           )}
-          {step === 3 && (
-            <ReviewOrder
-              cartItems={cartItems}
-              goToPreviousStep={() => setStep(2)}
-              paymentData={paymentData}
-              setPaymentData={setPaymentData}
-            />
-          )}
+   {step === 3 && paymentData ? (
+  <ReviewOrder
+    cartItems={cartItems}
+    goToPreviousStep={() => setStep(2)}
+    paymentData={paymentData}
+    setPaymentData={setPaymentData}
+    setSuccessData={setSuccessData}
+  />
+) : step === 3 && successData ? (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 text-center animate-fade-in">
+      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+        <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Successful!</h2>
+      <p className="text-gray-600 mb-4">Thank you for your order.</p>
+      <div className="bg-gray-50 rounded-md p-4 mb-6 text-left">
+        <p className="text-sm text-gray-600">
+          <span className="font-semibold">Order ID:</span> {successData.orderId}
+        </p>
+        <p className="text-sm text-gray-600">
+          <span className="font-semibold">Total Paid:</span> £{successData.total.toFixed(2)}
+        </p>
+      </div>
+      <button
+        onClick={() => navigate("/orders", { state: successData })}
+        className="w-full bg-red-600 text-white py-2 rounded-md font-semibold hover:bg-red-700"
+      >
+        VIEW ORDER
+      </button>
+      <p className="text-xs text-gray-500 mt-3">Redirecting in 5 seconds...</p>
+    </div>
+  </div>
+) : step === 3 ? (
+  <div className="text-center py-12">
+    <p className="text-gray-600">Processing your order...</p>
+  </div>
+) : null}
         </div>
       </main>
+
       <Footer />
     </div>
   );
