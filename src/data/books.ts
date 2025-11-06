@@ -48,6 +48,7 @@ const generatePlaceholderImage = (book: { title: string; isbn: string; genre: st
     Cookbooks: "cook",
     Art: "art",
     Comics: "comics",
+    childrensBooks: "children",
     default: "default",
   };
 
@@ -138,6 +139,7 @@ const defaultCategories = [
   "Cookbooks",
   "Art",
   "Comics",
+  "childrensBooks",
 ].sort();
 
 // ----------------- FETCH CATEGORIES -----------------

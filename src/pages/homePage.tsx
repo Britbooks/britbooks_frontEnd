@@ -231,16 +231,75 @@ const Homepage = () => {
     }
   };
 
-  // Fetch parameters for each shelf
+  let seenBookIds = new Set();
   const shelfFetchParams = {
-    newArrivals: { sort: "createdAt", order: "desc" },
-    popularBooks: { sort: "rating", order: "desc" },
-    bestSellers: { sort: "salesCount", order: "desc" },
-    childrensBooks: { sort: "createdAt", order: "desc" },
-    clearanceItems: { sort: "discount", order: "desc" },
-    recentlyViewed: { sort: "lastViewedAt", order: "desc" }, // ideally based on user history
-  };
+    // 🆕 Latest arrivals — uses `stock > 0` and sorts by creation date
+    newArrivals: {
+      shelf: "newArrivals",
+      label: "New Arrivals",
+      sort: "createdAt",
+      order: "desc",
+      filters: { stock: { $gt: 0 } },
+    },
+  
+    // 🌟 Popular books — rating ≥ 4.3 sorted by rating
+    popularBooks: {
+      shelf: "popularBooks",
+      label: "Popular Books",
+      sort: "rating",
+      order: "desc",
+      filters: {},
+    },
+  
+    bestSellers: {
+      shelf: "bestSellers",
+      label: "Best Sellers",
+      sort: "salesCount",
+      horder: "desc",
+      filters: { 
+        stock: { $gt: 0 },
+       
+        _id: { $nin: Array.from(seenBookIds) } 
+      },
+    },
 
+  
+    // 👶 Children’s books — category matches any child/kids pattern
+    childrensBooks: {
+      shelf: "childrensBooks",
+      label: "Children’s Books",
+      sort: "createdAt",
+      order: "desc",
+      filters: {
+        category: { $regex: /(child|kids|young|nursery|fairy|juvenile)/i },
+      },
+    },
+  
+    // 🔖 Clearance — active discount, valid date, ≥ 10% off
+    clearanceItems: {
+      shelf: "clearanceItems",
+      label: "Clearance",
+      sort: "discount.value",
+      order: "desc",
+      filters: {
+        "discount.isActive": true,
+        "discount.value": { $gte: 10 },
+        // frontend doesn’t need to include date checks;
+        // backend already validates `validFrom` / `validUntil`
+      },
+    },
+  
+    // 👀 Recently viewed — based on `lastViewedAt`
+    recentlyViewed: {
+      shelf: "recentlyViewed",
+      label: "Recently Viewed",
+      sort: "lastViewedAt",
+      order: "desc",
+    },
+  };
+  
+  
+  
   return (
     <>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />

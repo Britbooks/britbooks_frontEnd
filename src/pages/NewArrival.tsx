@@ -469,9 +469,10 @@ const NewArrivalsPage: React.FC = () => {
                 <p className="text-center text-gray-500 py-6 w-full">No featured books available.</p>
               ) : (
                 featuredBooks.map((book) => (
-                  <div className="flex-shrink-0 w-[calc(100%/7)] md:min-w-[150px] snap-center" key={book.id}>
-                    <BookCard book={book} />
-                  </div>
+                  <div className="flex-shrink-2 min-w-80px] md:min-w-[80px] lg:min-w-[60px] snap-center">
+                  <BookCard book={book} />
+                </div>
+                
                 ))
               )}
             </div>
