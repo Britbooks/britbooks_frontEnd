@@ -119,18 +119,9 @@ const QuizModal = ({ isOpen, onClose, onComplete }: { isOpen: boolean; onClose: 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const questions = [
-    {
-      question: "Which genre do you enjoy most?",
-      options: ["Fiction", "Non-Fiction", "Fantasy", "Mystery"],
-    },
-    {
-      question: "How often do you read books?",
-      options: ["Daily", "Weekly", "Monthly", "Rarely"],
-    },
-    {
-      question: "What's your favorite book format?",
-      options: ["Hardcover", "Paperback", "E-book", "Audiobook"],
-    },
+    { question: "Which genre do you enjoy most?", options: ["Fiction", "Non-Fiction", "Fantasy", "Mystery"] },
+    { question: "How often do you read books?", options: ["Daily", "Weekly", "Monthly", "Rarely"] },
+    { question: "What's your favorite book format?", options: ["Hardcover", "Paperback", "E-book", "Audiobook"] },
   ];
 
   const handleAnswer = (answer: string) => {
@@ -162,12 +153,7 @@ const QuizModal = ({ isOpen, onClose, onComplete }: { isOpen: boolean; onClose: 
             </button>
           ))}
         </div>
-        <button
-          onClick={onClose}
-          className="mt-4 text-gray-500 hover:text-gray-700"
-        >
-          Close
-        </button>
+        <button onClick={onClose} className="mt-4 text-gray-500 hover:text-gray-700">Close</button>
       </div>
     </div>
   );
@@ -198,18 +184,8 @@ const SurveyModal = ({ isOpen, onClose, onComplete }: { isOpen: boolean; onClose
           rows={4}
         />
         <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
-          >
-            Submit
-          </button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">Cancel</button>
+          <button onClick={handleSubmit} className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors">Submit</button>
         </div>
       </div>
     </div>
@@ -227,11 +203,11 @@ const ClearancePage = () => {
   const [points, setPoints] = useState(0);
   const [showReward, setShowReward] = useState(false);
   const [clearanceBooks, setClearanceBooks] = useState<(Book & { originalPrice: number })[]>([]);
-  const [totalBooks, setTotalBooks] = useState(1000000); // Assume 1M books
+  const [totalBooks, setTotalBooks] = useState(1000000);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const BOOKS_PER_PAGE = 125; // For ~8000 pages (1M / 125 ≈ 8000)
-  const MAX_PAGE_BUTTONS = 7; // Show 7 page buttons
+  const BOOKS_PER_PAGE = 125;
+  const MAX_PAGE_BUTTONS = 7;
   const gridRef = useRef<HTMLDivElement | null>(null);
   const cacheKey = useRef<string>('');
 
@@ -239,15 +215,13 @@ const ClearancePage = () => {
   const debouncedSetSearchTerm = useMemo(
     () => debounce((value: string) => {
       setSearchTerm(value);
-      setCurrentPage(1); // Reset to page 1 on search
+      setCurrentPage(1);
     }, 500),
     []
   );
 
-  // Generate cache key based on page, search, and sort
-  const generateCacheKey = (page: number, search: string, sort: string) => {
-    return `${page}_${search}_${sort}`;
-  };
+  // Generate cache key
+  const generateCacheKey = (page: number, search: string, sort: string) => `${page}_${search}_${sort}`;
 
   // Pre-fetch adjacent pages
   const preFetchPages = async (page: number, search: string, sort: string) => {
@@ -259,16 +233,18 @@ const ClearancePage = () => {
           const { books } = await fetchBooks({
             page: p,
             limit: BOOKS_PER_PAGE,
-            filters: { search: search || undefined },
-            sort: sort === 'priceLowHigh' ? 'price' : sort === 'priceHighLow' ? 'price' : sort === 'rating' ? 'rating' : undefined,
-            order: sort === 'priceHighLow' ? 'desc' : sort === 'rating' ? 'desc' : 'asc',
+            filters: { 
+              search: search || undefined,
+              discountPercentage: { $gte: 30 }  // ← MATCHES HOMEPAGE
+            },
+            sort: sort === 'priceLowHigh' ? 'price' : sort === 'priceHighLow' ? 'price' : sort === 'rating' ? 'rating' : 'discountPercentage',
+            order: sort === 'priceHighLow' ? 'desc' : sort === 'rating' ? 'desc' : 'desc',
           });
           const booksWithDiscounts = books.map(book => ({
             ...book,
-            originalPrice: book.price * (1 + (Math.random() * 0.5 + 0.2)),
+            originalPrice: book.price * (1 + (book.discountPercentage || 0) / 100),
           }));
           dataCache.current.booksByPage[key] = booksWithDiscounts;
-          // Limit cache to 5 pages
           const keys = Object.keys(dataCache.current.booksByPage);
           if (keys.length > 5) {
             delete dataCache.current.booksByPage[keys[0]];
@@ -287,12 +263,11 @@ const ClearancePage = () => {
       const key = generateCacheKey(currentPage, searchTerm, sortBy);
       cacheKey.current = key;
 
-      // Check cache
       if (dataCache.current.booksByPage[key] && dataCache.current.totalBooks[key]) {
         setClearanceBooks(dataCache.current.booksByPage[key]);
         setTotalBooks(dataCache.current.totalBooks[key]);
         setIsLoading(false);
-        preFetchPages(currentPage, searchTerm, sortBy); // Pre-fetch adjacent pages
+        preFetchPages(currentPage, searchTerm, sortBy);
         return;
       }
 
@@ -302,89 +277,74 @@ const ClearancePage = () => {
         const { books, total } = await fetchBooks({
           page: currentPage,
           limit: BOOKS_PER_PAGE,
-          filters: { search: searchTerm || undefined },
-          sort: sortBy === 'priceLowHigh' ? 'price' : sortBy === 'priceHighLow' ? 'price' : sortBy === 'rating' ? 'rating' : undefined,
-          order: sortBy === 'priceHighLow' ? 'desc' : sortBy === 'rating' ? 'desc' : 'asc',
+          filters: { 
+            search: searchTerm || undefined,
+            discountPercentage: { $gte: 30 }  // ← ONLY CHANGE: Real API filter
+          },
+          sort: sortBy === 'priceLowHigh' ? 'price' : sortBy === 'priceHighLow' ? 'price' : sortBy === 'rating' ? 'rating' : 'discountPercentage',
+          order: sortBy === 'priceHighLow' ? 'desc' : sortBy === 'rating' ? 'desc' : 'desc',
         });
         const booksWithDiscounts = books.map(book => ({
           ...book,
-          originalPrice: book.price * (1 + (Math.random() * 0.5 + 0.2)), // Random discount 20–70%
+          originalPrice: book.price * (1 + (book.discountPercentage || 0) / 100),
         }));
         setClearanceBooks(booksWithDiscounts);
         setTotalBooks(total);
         setIsLoading(false);
 
-        // Update cache
         dataCache.current.booksByPage[key] = booksWithDiscounts;
         dataCache.current.totalBooks[key] = total;
-        // Limit cache to 5 pages
         const keys = Object.keys(dataCache.current.booksByPage);
         if (keys.length > 5) {
           delete dataCache.current.booksByPage[keys[0]];
           delete dataCache.current.totalBooks[keys[0]];
         }
 
-        // Pre-fetch adjacent pages
         preFetchPages(currentPage, searchTerm, sortBy);
       } catch (err) {
         setError("Failed to load clearance books. Please try again.");
         setIsLoading(false);
-        console.error("❌ Failed to fetch clearance books:", err instanceof Error ? err.message : err);
+        console.error("Failed to fetch clearance books:", err instanceof Error ? err.message : err);
       }
     };
     fetchClearanceBooks();
   }, [currentPage, searchTerm, sortBy]);
 
-  // Sort by discount (client-side for cached books)
+  // Sort by discount (client-side fallback)
   const filteredAndSortedBooks = useMemo(() => {
     return [...clearanceBooks].sort((a, b) => {
-      const getDiscount = (book: Book & { originalPrice: number }) => 1 - (book.price / book.originalPrice);
-      if (sortBy === 'discount') return getDiscount(b) - getDiscount(a);
-      return 0; // Other sorts handled by API
+      if (sortBy === 'discount') {
+        return (b.discountPercentage || 0) - (a.discountPercentage || 0);
+      }
+      return 0;
     });
   }, [clearanceBooks, sortBy]);
 
   const totalPages = Math.ceil(totalBooks / BOOKS_PER_PAGE);
 
-  // Handle jump-to-page input
   const handleJumpPage = () => {
     const page = parseInt(jumpPage);
     if (!isNaN(page) && page > 0 && page <= totalPages) {
       setCurrentPage(page);
       setJumpPage('');
-      if (gridRef.current) {
-        gridRef.current.scrollIntoView({ behavior: "smooth" });
-      }
+      gridRef.current?.scrollIntoView({ behavior: "smooth" });
     } else {
       toast.error(`Please enter a valid page number (1–${totalPages})`);
     }
   };
 
-  // Generate page buttons (show 7 buttons centered around current page)
   const getPageButtons = () => {
     const buttons: JSX.Element[] = [];
     const halfButtons = Math.floor(MAX_PAGE_BUTTONS / 2);
     let startPage = Math.max(1, currentPage - halfButtons);
     let endPage = Math.min(totalPages, startPage + MAX_PAGE_BUTTONS - 1);
-
-    // Adjust startPage if endPage is at the limit
     if (endPage - startPage < MAX_PAGE_BUTTONS - 1) {
       startPage = Math.max(1, endPage - MAX_PAGE_BUTTONS + 1);
     }
 
     if (startPage > 1) {
-      buttons.push(
-        <button
-          key={1}
-          onClick={() => handlePageChange(1)}
-          className="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-100 transition-colors"
-        >
-          1
-        </button>
-      );
-      if (startPage > 2) {
-        buttons.push(<span key="start-ellipsis" className="px-4 py-2 text-gray-500">...</span>);
-      }
+      buttons.push(<button key={1} onClick={() => handlePageChange(1)} className="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-100 transition-colors">1</button>);
+      if (startPage > 2) buttons.push(<span key="start-ellipsis" className="px-4 py-2 text-gray-500">...</span>);
     }
 
     for (let i = startPage; i <= endPage; i++) {
@@ -392,11 +352,7 @@ const ClearancePage = () => {
         <button
           key={i}
           onClick={() => handlePageChange(i)}
-          className={`px-4 py-2 rounded-md text-sm font-medium ${
-            i === currentPage
-              ? 'bg-red-600 text-white'
-              : 'text-gray-700 hover:bg-red-100'
-          } transition-colors`}
+          className={`px-4 py-2 rounded-md text-sm font-medium ${i === currentPage ? 'bg-red-600 text-white' : 'text-gray-700 hover:bg-red-100'} transition-colors`}
         >
           {i}
         </button>
@@ -404,18 +360,8 @@ const ClearancePage = () => {
     }
 
     if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        buttons.push(<span key="end-ellipsis" className="px-4 py-2 text-gray-500">...</span>);
-      }
-      buttons.push(
-        <button
-          key={totalPages}
-          onClick={() => handlePageChange(totalPages)}
-          className="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-100 transition-colors"
-        >
-          {totalPages}
-        </button>
-      );
+      if (endPage < totalPages - 1) buttons.push(<span key="end-ellipsis" className="px-4 py-2 text-gray-500">...</span>);
+      buttons.push(<button key={totalPages} onClick={() => handlePageChange(totalPages)} className="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-100 transition-colors">{totalPages}</button>);
     }
 
     return buttons;
@@ -424,9 +370,7 @@ const ClearancePage = () => {
   const handlePageChange = (page: number) => {
     if (page > 0 && page <= totalPages) {
       setCurrentPage(page);
-      if (gridRef.current) {
-        gridRef.current.scrollIntoView({ behavior: "smooth" });
-      }
+      gridRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -444,7 +388,6 @@ const ClearancePage = () => {
     setTimeout(() => setShowReward(false), 3000);
   };
 
-  // Virtualized grid item renderer
   const GridItem = ({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
     const index = rowIndex * 8 + columnIndex;
     if (index >= filteredAndSortedBooks.length) return null;
@@ -462,9 +405,7 @@ const ClearancePage = () => {
         <TopBar />
         <div className="container mx-auto px-4 sm:px-8 py-16">
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 sm:gap-3">
-            {[...Array(BOOKS_PER_PAGE)].map((_, i) => (
-              <BookCardSkeleton key={i} />
-            ))}
+            {[...Array(BOOKS_PER_PAGE)].map((_, i) => <BookCardSkeleton key={i} />)}
           </div>
         </div>
         <Footer />
@@ -496,16 +437,10 @@ const ClearancePage = () => {
             Unbeatable prices on your next favorite book. Grab these limited-time deals before they're gone!
           </p>
           <div className="mt-6 flex justify-center gap-4">
-            <button
-              onClick={() => setShowQuiz(true)}
-              className="flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-md font-semibold hover:bg-yellow-500 transition-colors"
-            >
+            <button onClick={() => setShowQuiz(true)} className="flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
               <BookIcon size={20} /> Take Our Quiz!
             </button>
-            <button
-              onClick={() => setShowSurvey(true)}
-              className="flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-md font-semibold hover:bg-yellow-500 transition-colors"
-            >
+            <button onClick={() => setShowSurvey(true)} className="flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
               <Gift size={20} /> Share Your Feedback
             </button>
           </div>
@@ -582,7 +517,7 @@ const ClearancePage = () => {
                   disabled={currentPage === 1}
                   className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors flex items-center gap-2"
                 >
-                  <ChevronLeft size={20} /> Prev
+                  Prev
                 </button>
                 {getPageButtons()}
                 <button
@@ -590,7 +525,7 @@ const ClearancePage = () => {
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors flex items-center gap-2"
                 >
-                  Next <ChevronRight size={20} />
+                  Next
                 </button>
               </div>
               <div className="flex items-center gap-2">
@@ -601,10 +536,7 @@ const ClearancePage = () => {
                   placeholder={`1–${totalPages}`}
                   className="w-24 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
                 />
-                <button
-                  onClick={handleJumpPage}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm"
-                >
+                <button onClick={handleJumpPage} className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm">
                   Go
                 </button>
               </div>
@@ -615,36 +547,15 @@ const ClearancePage = () => {
           )}
         </div>
       </main>
-      <QuizModal
-        isOpen={showQuiz}
-        onClose={() => setShowQuiz(false)}
-        onComplete={handleQuizComplete}
-      />
-      <SurveyModal
-        isOpen={showSurvey}
-        onClose={() => setShowSurvey(false)}
-        onComplete={handleSurveyComplete}
-      />
+      <QuizModal isOpen={showQuiz} onClose={() => setShowQuiz(false)} onComplete={handleQuizComplete} />
+      <SurveyModal isOpen={showSurvey} onClose={() => setShowSurvey(false)} onComplete={handleSurveyComplete} />
       <Footer />
       <style>{`
-        .text-2xs {
-          font-size: 0.65rem;
-          line-height: 0.9rem;
-        }
-        .animate-pulse {
-          animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .animate-bounce {
-          animation: bounce 0.3s ease-in-out 2;
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
+        .text-2xs { font-size: 0.65rem; line-height: 0.9rem; }
+        .animate-pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .animate-bounce { animation: bounce 0.3s ease-in-out 2; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
       `}</style>
     </div>
   );
