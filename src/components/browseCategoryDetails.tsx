@@ -267,7 +267,8 @@ const BrowseCategoryDetail = () => {
           title: bookData.title || "Untitled",
           author: bookData.author || "Unknown Author",
           price: bookData.price || 0,
-          imageUrl: bookData.samplePageUrls?.[0] || bookData.coverImageUrl || generatePlaceholderImage({
+          // PLACEHOLDER ONLY — IGNORE API IMAGE
+          imageUrl: generatePlaceholderImage({
             title: bookData.title || "Untitled",
             isbn: bookData.isbn || "",
             genre: bookData.category || "default",
