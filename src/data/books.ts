@@ -85,28 +85,37 @@ export const fetchBooks = async ({
       { params }
     );
 
-    const books: Book[] = response.data.listings.map((listing: any) => ({
-      id: listing._id,
-      title: listing.title,
-      author: listing.author,
-      price: listing.price,
-      imageUrl:
-        listing.samplePageUrls?.[0] ||
-        generatePlaceholderImage({
+    const books: Book[] = response.data.listings.map((listing: any) => {
+      let imageUrl = listing.coverImageUrl?.trim();
+      if (!imageUrl && listing.samplePageUrls?.[0]?.trim()) {
+        imageUrl = listing.samplePageUrls[0];
+      }
+      if (!imageUrl) {
+        imageUrl = generatePlaceholderImage({
           title: listing.title,
           isbn: listing.isbn,
           genre: listing.category,
-        }),
-      genre: listing.category,
-      condition: listing.condition,
-      description: listing.description || "",
-      stock: listing.stock,
-      rating: listing.rating || 4.5,
-      isbn: listing.isbn,
-      pages: listing.pages || 300,
-      releaseDate: listing.listedAt,
-    }));
-
+        });
+      }
+    
+      return {
+        id: listing._id,
+        title: listing.title,
+        author: listing.author,
+        price: listing.price,
+        imageUrl,
+        genre: listing.category,
+        condition: listing.condition,
+        description: listing.notes || "",
+        stock: listing.stock,
+        rating: listing.rating || 4.5,
+        isbn: listing.isbn,
+        pages: listing.pages || 300,
+        releaseDate: listing.listedAt,
+      };
+    });
+    
+    
     return {
       books,
       total: response.data.meta?.count || 1000000,

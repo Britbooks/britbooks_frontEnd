@@ -262,17 +262,21 @@ const BrowseCategoryDetail = () => {
           throw new Error("Book not found in API response.");
         }
         const bookData = response.data.listing;
+
+        const imageUrl = bookData.coverImageUrl?.trim()
+          || bookData.samplePageUrls?.[0]?.trim()
+          || generatePlaceholderImage({
+               title: bookData.title || "Untitled",
+               isbn: bookData.isbn || "",
+               genre: bookData.category || "default",
+             });
+        
         const foundBook: Book = {
           id: String(bookData._id || bookData.id),
           title: bookData.title || "Untitled",
           author: bookData.author || "Unknown Author",
           price: bookData.price || 0,
-          // PLACEHOLDER ONLY — IGNORE API IMAGE
-          imageUrl: generatePlaceholderImage({
-            title: bookData.title || "Untitled",
-            isbn: bookData.isbn || "",
-            genre: bookData.category || "default",
-          }),
+          imageUrl, // ✅ updated
           genre: bookData.category || "N/A",
           condition: bookData.condition || "N/A",
           description: bookData.description || "",
@@ -281,7 +285,9 @@ const BrowseCategoryDetail = () => {
           isbn: bookData.isbn || "",
           pages: bookData.pages || 300,
           releaseDate: bookData.listedAt || "",
+          // optional: reviews: bookData.reviews || 0
         };
+        
         setBook(foundBook);
         setIsLoading(false);
       } catch (err) {

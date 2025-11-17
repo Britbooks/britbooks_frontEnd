@@ -261,7 +261,7 @@ const Homepage = () => {
        
         _id: { $nin: Array.from(seenBookIds) } 
       },
-    },
+    }, 
 
   
     // 👶 Children’s books — category matches any child/kids pattern
