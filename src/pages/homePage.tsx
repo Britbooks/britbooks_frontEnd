@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -67,115 +67,143 @@ const BookCard = ({ id, img, title, author, price }: BookCardProps) => {
 };
 
 // Category Card Component with Explore on Hover
-const CategoryCard = ({ name, imageUrl }: { name: string; imageUrl: string }) => {
-  const id = name.toLowerCase().replace(/\s+/g, '-');
+const CategoryCard = ({ 
+  name, 
+  imageUrl, 
+  onOpenModal 
+}: { 
+  name: string; 
+  imageUrl: string; 
+  onOpenModal: (name: string) => void 
+}) => {
   return (
-    <Link to={`/category/${id}`} className="flex-shrink-0 w-40 h-40 bg-blue-600 text-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
-      <div className="relative w-full h-full">
-        <img src={imageUrl} alt={name} className="w-full h-full object-cover opacity-70" />
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-100 flex items-center justify-center">
-          <Link to={`/category/${id}`}>
-            <button className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-2 transition-all duration-100">
-              EXPLORE
-            </button>
-          </Link>
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-          <span className="text-sm font-semibold">{name}</span>
-        </div>
+    <button
+      onClick={() => onOpenModal(name)}
+      className="flex-shrink-0 w-40 h-40 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group relative cursor-pointer"
+    >
+      <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+        <span className="text-white font-semibold text-sm px-2 text-center">{name}</span>
       </div>
-    </Link>
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
+        <span className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+          VIEW BOOKS →
+        </span>
+      </div>
+    </button>
   );
 };
-
 // Updated Book Shelf Component with Grid View for Mobile
 const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) => {
   const [books, setBooks] = useState<BookCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
   const itemsPerPage = 5;
+  const totalBooksToFetch = 100; // ← Gives you 20 pages! (100 ÷ 5 = 20)
 
   useEffect(() => {
     const fetchShelfBooks = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const { books: fetchedBooks } = await fetchBooks({ page: 1, limit: 1000, ...fetchParams });
+        const { books: fetchedBooks } = await fetchBooks({
+          page: 1,
+          limit: totalBooksToFetch, // ← 100 books = 20 full pages
+          ...fetchParams
+        });
+
         setBooks(formatBooksForHomepage(fetchedBooks));
-        setIsLoading(false);
       } catch (err) {
-        setError(`Failed to load ${title.toLowerCase()}. Please try again.`);
+        setError(`Failed to load ${title.toLowerCase()}.`);
+        console.error(`Failed to fetch ${title}:`, err);
+      } finally {
         setIsLoading(false);
-        console.error(`❌ Failed to fetch ${title}:`, err instanceof Error ? err.message : err);
       }
     };
+
     fetchShelfBooks();
   }, [fetchParams]);
 
-  const paginatedBooks = useMemo(() => {
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    return books.slice(indexOfFirstItem, indexOfLastItem);
-  }, [books, currentPage]);
-
   const totalPages = Math.ceil(books.length / itemsPerPage);
-
-  const handlePageChange = (page: number) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
+  const paginatedBooks = books.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (isLoading) {
     return (
-      <section className="py-6 sm:py-8 animate-on-scroll">
-        <h2 className="text-xl sm:text-2xl font-bold text-blue-800 mb-4">{title}</h2>
-        <p className="text-gray-500 text-center">Loading {title.toLowerCase()}...</p>
+      <section className="py-8 animate-on-scroll">
+        <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+          {[...Array(10)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-80 animate-pulse"
+            />
+          ))}
+        </div>
       </section>
     );
   }
 
   if (error) {
     return (
-      <section className="py-6 sm:py-8 animate-on-scroll">
-        <h2 className="text-xl sm:text-2xl font-bold text-blue-800 mb-4">{title}</h2>
-        <p className="text-red-500 text-center">{error}</p>
+      <section className="py-8 animate-on-scroll">
+        <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
+        <p className="text-red-600 text-center">{error}</p>
       </section>
     );
   }
 
   return (
-    <section className="py-6 sm:py-8 animate-on-scroll">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-blue-800">{title}</h2>
-        <div className="flex space-x-2">
+    <section className="py-8 animate-on-scroll">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-blue-800">{title}</h2>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            className="p-1 border rounded-md hover:bg-gray-100 text-gray-500 disabled:text-gray-300"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
+            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={24} />
           </button>
+
+          <span className="text-sm font-semibold text-gray-700 min-w-[100px] text-center">
+            Page {currentPage} of {totalPages > 0 ? totalPages : 1}
+          </span>
+
           <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            className="p-1 border rounded-md hover:bg-gray-100 text-gray-500 disabled:text-gray-300"
-            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={24} />
           </button>
         </div>
       </div>
-      <div className="max-h-[480px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-      
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-          {paginatedBooks.map((book, index) => (
-            <BookCard key={index} {...book} />
-          ))}
-        </div>
+
+      {/* Books Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+        {paginatedBooks.map(book => (
+          <BookCard key={book.id} {...book} />
+        ))}
       </div>
-      {paginatedBooks.length === 0 && (
-        <p className="text-center text-gray-500 py-4">No {title.toLowerCase()} available.</p>
+
+      {books.length === 0 && (
+        <p className="text-center text-gray-500 py-12 text-lg">
+          No {title.toLowerCase()} available right now.
+        </p>
+      )}
+
+      {/* Optional: Show total count */}
+      {books.length > 0 && (
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Showing {paginatedBooks.length} of {books.length} books
+        </p>
       )}
     </section>
   );
@@ -187,6 +215,111 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 const Homepage = () => {
   const [categories, setCategories] = useState<{ name: string; imageUrl: string }[]>([]);
   const categoryRef = useRef<HTMLDivElement>(null);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [modalBooks, setModalBooks] = useState<BookCardProps[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalPage, setModalPage] = useState(1);
+  const [hasMoreBooks, setHasMoreBooks] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  const BOOKS_PER_PAGE = 24; // Optimal for mobile + fast loading
+  const observer = useRef<IntersectionObserver | null>(null);
+  
+  // ULTRA-FAST PAGINATED MODAL OPEN
+  const openCategoryModal = async (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setModalOpen(true);
+    setModalLoading(true);
+    setModalBooks([]);
+    setModalPage(1);
+    setHasMoreBooks(true);
+  
+    try {
+      const { books } = await fetchBooks({
+        page: 1,
+        limit: BOOKS_PER_PAGE,
+        filters: { category: categoryName },
+        sort: "createdAt",    // or "salesCount" for bestsellers
+        order: "desc"
+      });
+  
+      setModalBooks(formatBooksForHomepage(books));
+      setHasMoreBooks(books.length === BOOKS_PER_PAGE);
+    } catch (err) {
+      toast.error("Failed to load books");
+      setHasMoreBooks(false);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+  
+  // INFINITE SCROLL LOAD MORE (optimized for 2M+ books)
+  const loadMoreBooks = useCallback(async () => {
+    if (isLoadingMore || !hasMoreBooks || modalLoading) return;
+  
+    setIsLoadingMore(true);
+  
+    // ←←← THIS IS THE MAGIC PART → SAVE CURRENT SCROLL POSITION
+    const modalContent = document.querySelector('.modal-content-scroll');
+    const prevScroll = modalContent ? modalContent.scrollTop : 0;
+    const prevHeight = modalContent ? modalContent.scrollHeight : 0;
+  
+    try {
+      const nextPage = modalPage + 1;
+      const { books } = await fetchBooks({
+        page: nextPage,
+        limit: BOOKS_PER_PAGE,
+        filters: { category: selectedCategory },
+        sort: "createdAt",
+        order: "desc"
+      });
+  
+      const newBooks = formatBooksForHomepage(books);
+      setModalBooks(prev => [...prev, ...newBooks]);
+      setModalPage(nextPage);
+      setHasMoreBooks(books.length === BOOKS_PER_PAGE);
+  
+      // ←←← RESTORE SCROLL POSITION AFTER REACT RENDERS
+      requestAnimationFrame(() => {
+        if (modalContent) {
+          const newHeight = modalContent.scrollHeight;
+          modalContent.scrollTop = prevScroll + (newHeight - prevHeight);
+        }
+      });
+  
+    } catch (err) {
+      toast.error("Network slow, retrying...");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [modalPage, selectedCategory, isLoadingMore, hasMoreBooks, modalLoading]);
+  
+  // Intersection Observer for Infinite Scroll
+  const lastBookRef = useCallback((node: HTMLDivElement | null) => {
+    if (modalLoading || isLoadingMore || !hasMoreBooks) {
+      if (observer.current) observer.current.disconnect();
+      return;
+    }
+  
+    if (observer.current) observer.current.disconnect();
+  
+    observer.current = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMoreBooks && !isLoadingMore) {
+          loadMoreBooks();
+        }
+      },
+      { 
+        root: document.querySelector('.modal-content-scroll'),
+        rootMargin: "100px",  // Only trigger when really near bottom
+        threshold: 0.1
+      }
+    );
+  
+    if (node) observer.current.observe(node);
+  }, [modalLoading, isLoadingMore, hasMoreBooks, loadMoreBooks]);
 
   useEffect(() => {
     const fetchCategoriesData = async () => {
@@ -229,6 +362,195 @@ const Homepage = () => {
       const scrollAmount = 160; // Adjust based on card width + gap
       categoryRef.current.scrollLeft += direction === 'right' ? scrollAmount : -scrollAmount;
     }
+  };
+
+  const goToPage = async (page: number) => {
+  if (page === modalPage || isLoadingMore) return;
+
+  setIsLoadingMore(true);
+  const modalContent = document.querySelector('.modal-content-scroll') as HTMLElement;
+  const prevScroll = modalContent?.scrollTop || 0;
+
+  try {
+    const { books } = await fetchBooks({
+      page,
+      limit: BOOKS_PER_PAGE,
+      filters: { category: selectedCategory },
+      sort: "createdAt",
+      order: "desc"
+    });
+
+    const newBooks = formatBooksForHomepage(books);
+    setModalBooks(newBooks);
+    setModalPage(page);
+    setHasMoreBooks(books.length === BOOKS_PER_PAGE);
+
+    requestAnimationFrame(() => {
+      if (modalContent) modalContent.scrollTop = 0;
+    });
+  } catch (err) {
+    toast.error("Failed to load page");
+  } finally {
+    setIsLoadingMore(false);
+  }
+};
+
+ 
+
+  // Modal Component
+  const CategoryModal = () => {
+    if (!modalOpen) return null;
+  
+    return (
+      <div 
+        className="fixed inset-0 z-50 bg-black bg-opacity-95 overflow-y-auto"
+        onClick={() => setModalOpen(false)}
+      >
+        <div className="min-h-screen py-10 px-4">
+          <div 
+            className="bg-white rounded-3xl shadow-2xl max-w-7xl mx-auto overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white sticky top-0 z-20">
+              <div className="px-8 py-14 text-center relative">
+                <h1 className="text-5xl sm:text-7xl font-bold mb-4 tracking-tight">
+                  {selectedCategory}
+                </h1>
+                <p className="text-xl opacity-90 max-w-3xl mx-auto">
+                  Quality used books • Fast delivery across the UK & Nigeria
+                </p>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="absolute top-6 right-6 bg-white/20 hover:bg-white/40 rounded-full p-4 backdrop-blur-sm transition-all"
+                >
+                  <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+  
+              <div className="bg-white/10 backdrop-blur-sm py-6 px-8 border-t border-white/20">
+                <div className="flex flex-wrap justify-center gap-10 text-white font-bold text-lg">
+                  <div className="text-center">
+                    <div className="text-4xl">{modalBooks.length.toLocaleString()}+</div>
+                    <div className="text-sm opacity-90">Books Loaded</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl">From £2.99</div>
+                    <div className="text-sm opacity-90">Starting Price</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl">Free Delivery</div>
+                    <div className="text-sm opacity-90">Orders Over £50</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+  
+            {/* Content */}
+            <div className="p-8 sm:p-12 bg-gray-50">
+              {modalLoading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+                  {[...Array(24)].map((_, i) => (
+                    <div key={i} className="bg-gray-200 rounded-2xl h-80 animate-pulse shadow-lg" />
+                  ))}
+                </div>
+              ) : modalBooks.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 mb-16">
+                    {modalBooks.map((book) => (
+                      <div key={book.id}>
+                        <BookCard {...book} />
+                      </div>
+                    ))}
+                  </div>
+  
+                  {/* CLEAN PAGINATION – CLICK ONLY */}
+                  <div className="flex flex-col items-center gap-10">
+                    <div className="text-center">
+                      <p className="text-3xl font-bold text-gray-800">
+                        Page <span className="text-purple-600 text-5xl">{modalPage}</span>
+                      </p>
+                      <p className="text-lg text-gray-600 mt-3">
+                        {modalBooks.length.toLocaleString()} books shown
+                      </p>
+                    </div>
+  
+                    {/* Page Number Buttons */}
+                    <div className="flex gap-4 flex-wrap justify-center">
+                      {Array.from({ length: Math.min(10, modalPage + 5) }, (_, i) => i + 1)
+                        .filter(page => page >= modalPage - 3)
+                        .map(page => (
+                          <button
+                            key={page}
+                            onClick={() => goToPage(page)}
+                            disabled={isLoadingMore}
+                            className={`w-14 h-14 rounded-full font-bold text-xl transition-all ${
+                              page === modalPage
+                                ? 'bg-purple-600 text-white shadow-2xl scale-110'
+                                : 'bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                      {hasMoreBooks && modalPage < 50 && (
+                        <span className="self-center px-6 text-2xl text-gray-500 font-bold">...</span>
+                      )}
+                    </div>
+  
+                    {/* BIG LOAD MORE BUTTON – ONLY WAY TO LOAD */}
+                    {hasMoreBooks && (
+                      <button
+                        onClick={loadMoreBooks}
+                        disabled={isLoadingMore}
+                        className="px-24 py-8 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold rounded-full hover:shadow-2xl transition-all disabled:opacity-60 transform hover:scale-105 shadow-2xl"
+                      >
+                        {isLoadingMore ? "Loading More Books..." : "Load More Books"}
+                      </button>
+                    )}
+                  </div>
+  
+                  {/* Loading Spinner */}
+                  {isLoadingMore && (
+                    <div className="text-center py-20">
+                      <div className="inline-block animate-spin rounded-full h-24 w-24 border-12 border-purple-600 border-t-transparent"></div>
+                      <p className="mt-8 text-3xl font-medium text-gray-700">
+                        Loading page {modalPage + 1}...
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-48 bg-white rounded-3xl shadow-2xl">
+                  <div className="text-9xl mb-8">Empty Book</div>
+                  <h3 className="text-5xl font-bold text-gray-800 mb-6">
+                    No books in {selectedCategory} yet
+                  </h3>
+                  <button
+                    onClick={() => setModalOpen(false)}
+                    className="px-32 py-10 bg-black text-white text-3xl font-bold rounded-full hover:bg-gray-900 transition"
+                  >
+                    Continue Shopping
+                  </button>
+                </div>
+              )}
+            </div>
+  
+            {/* Mobile Close */}
+            <div className="sticky bottom-0 p-6 bg-white border-t-4 border-purple-600 shadow-2xl sm:hidden">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="w-full py-7 bg-black text-white text-3xl font-bold rounded-2xl"
+              >
+                Close Modal
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   let seenBookIds = new Set();
@@ -422,7 +744,8 @@ const Homepage = () => {
           </div>
 
           {/* Shop by Category Section */}
-          <section className="category-section animate-on-scroll">
+        {/* Shop by Category Section */}
+        <section className="category-section animate-on-scroll">
             <div className="max-w-7xl mx-auto px-4 sm:px-8">
               <h3 className="text-white">Shop by Category</h3>
               <div className="relative flex items-center">
@@ -433,20 +756,42 @@ const Homepage = () => {
                 >
                   <ChevronLeft size={24} />
                 </button>
+
                 <div
                   ref={categoryRef}
                   className="flex overflow-x-auto space-x-4 py-4 scrollbar-hide"
                   style={{ scrollBehavior: 'smooth' }}
                 >
-                  {categories.map((category, index) => (
-                    <CategoryCard key={index} name={category.name} imageUrl={category.imageUrl} />
-                  ))}
-                  <Link to="/categories" className="flex-shrink-0 w-40 h-40 bg-blue-700 text-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
+                  {categories.length === 0 ? (
+                    Array.from({ length: 7 }).map((_, i) => (
+                      <div key={`skeleton-${i}`} className="flex-shrink-0 w-40 h-40 bg-gray-700 rounded-lg overflow-hidden shadow-md animate-pulse">
+                        <div className="w-full h-full bg-gray-600"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-24 h-6 bg-gray-500 rounded"></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    categories.map((category, index) => (
+                      <CategoryCard
+                        key={index}
+                        name={category.name}
+                        imageUrl={category.imageUrl}
+                        onOpenModal={openCategoryModal}
+                      />
+                    ))
+                  )}
+
+                  <Link
+                    to="/categories"
+                    className="flex-shrink-0 w-40 h-40 bg-blue-700 text-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
+                  >
                     <div className="relative w-full h-full flex items-center justify-center">
                       <span className="text-sm font-semibold">Show All Categories</span>
                     </div>
                   </Link>
                 </div>
+
                 <button
                   onClick={() => handleScroll('right')}
                   className="absolute right-0 z-10 p-2 bg-white bg-opacity-50 rounded-full hover:bg-opacity-75 transition-all disabled:opacity-50"
@@ -525,6 +870,7 @@ const Homepage = () => {
 
         <Footer />
       </div>
+      <CategoryModal />
     </>
   );
 };

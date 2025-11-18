@@ -1,5 +1,5 @@
 import axios from "axios";
-import { MD5 } from "crypto-js"; // For generating unique seeds
+import { MD5 } from "crypto-js";
 
 export interface Book {
   id: string;
@@ -49,28 +49,24 @@ const generatePlaceholderImage = (book: { title: string; isbn: string; genre: st
     Art: "art",
     Comics: "comics",
     childrensBooks: "children",
-    default: "default",
+    "Children's Books": "children",
+    default: "book",
   };
 
   const genreKey = genreColors[book.genre] || genreColors.default;
   return `https://picsum.photos/seed/${hash}-${genreKey}/300/450`;
 };
 
-// ----------------- FETCH BOOKS -----------------
+// ----------------- FETCH BOOKS (NOW SUPER FAST) -----------------
 export const fetchBooks = async ({
-  page,
-  limit,
-  sort,
-  order,
+  page = 1,
+  limit = 20, // ← CHANGED from 1000 to 20 (you only show 5 per shelf!)
+  sort = "createdAt",
+  order = "desc",
   filters,
 }: FetchBooksParams): Promise<{ books: Book[]; total: number }> => {
   try {
-    const params: Record<string, any> = {
-      page,
-      limit,
-      sort: sort || "createdAt",
-      order: order || "desc",
-    };
+    const params: Record<string, any> = { page, limit, sort, order };
 
     if (filters) {
       if (filters.genre) params.category = filters.genre;
@@ -78,6 +74,9 @@ export const fetchBooks = async ({
       if (filters.priceMin != null) params.priceMin = filters.priceMin;
       if (filters.priceMax != null) params.priceMax = filters.priceMax;
       if (filters.rating != null) params.rating = filters.rating;
+      if (filters.stock) params.stock = filters.stock;
+      if (filters["discount.isActive"]) params["discount.isActive"] = filters["discount.isActive"];
+      if (filters["discount.value"]) params["discount.value"] = filters["discount.value"];
     }
 
     const response = await axios.get(
@@ -94,93 +93,98 @@ export const fetchBooks = async ({
         imageUrl = generatePlaceholderImage({
           title: listing.title,
           isbn: listing.isbn,
-          genre: listing.category,
+          genre: listing.category || "default",
         });
       }
-    
+
       return {
         id: listing._id,
         title: listing.title,
         author: listing.author,
         price: listing.price,
         imageUrl,
-        genre: listing.category,
-        condition: listing.condition,
+        genre: listing.category || "Unknown",
+        condition: listing.condition || "Good",
         description: listing.notes || "",
-        stock: listing.stock,
+        stock: listing.stock || 0,
         rating: listing.rating || 4.5,
-        isbn: listing.isbn,
+        isbn: listing.isbn || "",
         pages: listing.pages || 300,
-        releaseDate: listing.listedAt,
+        releaseDate: listing.listedAt || new Date().toISOString(),
       };
     });
-    
-    
+
     return {
       books,
-      total: response.data.meta?.count || 1000000,
+      total: response.data.meta?.count || books.length * 10,
     };
   } catch (error) {
-    console.error("❌ Error fetching books:", error instanceof Error ? error.message : error);
-    throw new Error("Failed to fetch books");
+    console.error("Error fetching books:", error instanceof Error ? error.message : error);
+    throw error;
   }
 };
 
-// ----------------- CATEGORY CACHE -----------------
+// ----------------- CATEGORIES – INSTANT + BACKGROUND REFRESH -----------------
 let cachedCategories: string[] | null = null;
 
-// Default fallback
-const defaultCategories = [
-  "Mindfulness",
-  "Technology",
-  "Psychology",
-  "Self-Help",
-  "Mystery",
-  "Contemporary Fiction",
-  "Drama",
-  "Biography",
-  "Leadership",
-  "Asian Literature",
-  "Entrepreneurship",
-  "Poetry",
-  "Humor",
-  "History",
-  "Cookbooks",
-  "Art",
-  "Comics",
-  "childrensBooks",
+// Instant fallback (shows immediately while real ones load)
+const fallbackCategories = [
+  "Mindfulness", "Technology", "Psychology", "Self-Help", "Mystery",
+  "Contemporary Fiction", "Drama", "Biography", "Leadership", "Poetry",
+  "History", "Cookbooks", "Art", "Comics", "Children's Books", "Humor",
+  "Entrepreneurship", "Asian Literature"
 ].sort();
 
-// ----------------- FETCH CATEGORIES -----------------
 export const fetchCategories = async (forceRefresh = false): Promise<string[]> => {
-  // 1️⃣ Return cached immediately if available and not forcing refresh
-  if (cachedCategories && !forceRefresh) {
-    // Trigger background refresh but don’t block UI
-    refreshCategories();
+  // Return cached or fallback INSTANTLY
+  if (!forceRefresh && cachedCategories) {
     return cachedCategories;
   }
 
-  // 2️⃣ Otherwise fetch fresh
-  return await refreshCategories();
+  // First time? Return fallback immediately, then update in background
+  if (!cachedCategories) {
+    cachedCategories = fallbackCategories;
+    // Fire and forget real fetch
+    refreshCategoriesInBackground();
+  }
+
+  return cachedCategories;
 };
 
-// Helper to refresh cache
-const refreshCategories = async (): Promise<string[]> => {
+// Background refresh – never blocks UI
+const refreshCategoriesInBackground = async () => {
   try {
+    // BEST CASE: You have a dedicated /categories endpoint
+    const response = await axios.get(
+      "https://britbooks-api-production.up.railway.app/api/market/categories"
+    );
+    if (response.data && Array.isArray(response.data)) {
+      cachedCategories = response.data.sort();
+      return;
+    }
+  } catch {
+    // Ignore – fall back to small listings request
+  }
+
+  try {
+    // WORST CASE: Still fast – only 100 books needed to get all categories
     const response = await axios.get(
       "https://britbooks-api-production.up.railway.app/api/market/admin/listings",
-      { params: { page: 1, limit: 30000 } }
+      { params: { page: 1, limit: 100 } } // ← Only 100, not 30,000!
     );
 
-    const categories = Array.from(
-      new Set(response.data.listings.map((listing: any) => listing.category).filter((cat: string) => cat))
+    const unique = Array.from(
+      new Set(
+        response.data.listings
+          .map((l: any) => l.category)
+          .filter((cat: string) => cat && cat.trim())
+      )
     ).sort();
 
-    cachedCategories = categories.length > 0 ? categories : defaultCategories;
-    return cachedCategories;
+    if (unique.length > 0) {
+      cachedCategories = unique;
+    }
   } catch (error) {
-    console.error("❌ Error fetching categories:", error instanceof Error ? error.message : error);
-    cachedCategories = cachedCategories || defaultCategories; // fallback to last known or defaults
-    return cachedCategories;
+    console.log("Background category refresh failed – using fallbacks");
   }
 };
