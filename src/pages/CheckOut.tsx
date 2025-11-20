@@ -293,129 +293,143 @@ const ShoppingCartView = ({
   const shipping = 5.0;
   const total = subtotal + shipping;
 
+  // Move image error state OUTSIDE the map
+  const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
+
+  const handleImageError = (id: string) => {
+    setImageErrors(prev => ({ ...prev, [id]: true }));
+  };
+
+  const getDisplayImage = (item: any) => {
+    if (imageErrors[item.id]) {
+      return "https://placehold.co/300x450?text=Book+Cover";
+    }
+    return item.imageUrl || generatePlaceholderImage({ title: item.title, isbn: item.isbn || "", genre: item.genre || "default" });
+  };
+
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 animate-on-scroll">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         <div className="lg:col-span-2">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Your Cart</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Your Cart</h2>
+
           {cartItems.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600 text-lg">Your cart is empty.</p>
-              <Link to="/category" className="text-red-600 hover:underline mt-4 inline-block">
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-600 text-lg mb-4">Your cart is empty.</p>
+              <Link to="/category" className="text-red-600 font-semibold hover:underline">
                 Continue Shopping
               </Link>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-100">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">PRODUCT</th>
-                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">PRICE</th>
-                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">QUANTITY</th>
-                      <th className="p-3 sm:p-4 font-semibold text-sm text-gray-600">TOTAL</th>
-                      <th className="p-3 sm:p-4"></th>
+                      <th className="text-left p-4 font-semibold text-gray-700">PRODUCT</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">PRICE</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">QUANTITY</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">TOTAL</th>
+                      <th className="p-4"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {cartItems.map((item) => {
-                      const [imageError, setImageError] = useState(false);
-                      const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
-                      const displayImage = imageError
-                        ? fallbackImage
-                        : item.imageUrl || generatePlaceholderImage({ title: item.title, isbn: item.isbn || "", genre: item.genre || "default" });
-
-                      return (
-                        <tr key={item.id} className="border-b border-gray-200">
-                          <td className="p-3 sm:p-4">
-                            <div className="flex items-center gap-3 sm:gap-4">
-                              <img
-                                src={displayImage}
-                                alt={item.title}
-                                className="w-16 sm:w-20 h-20 sm:h-24 object-cover rounded"
-                                onError={() => setImageError(true)}
-                                loading="lazy"
-                              />
-                              <div>
-                                <p className="font-semibold text-sm sm:text-base text-gray-800">{item.title}</p>
-                                <p className="text-xs text-gray-500">{item.author}</p>
-                              </div>
+                    {cartItems.map((item) => (
+                      <tr key={item.id} className="border-b hover:bg-gray-50 transition">
+                        <td className="p-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={getDisplayImage(item)}
+                              alt={item.title}
+                              className="w-20 h-28 object-cover rounded shadow-sm"
+                              onError={() => handleImageError(item.id)}
+                              loading="lazy"
+                            />
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{item.title}</h3>
+                              <p className="text-sm text-gray-500">{item.author}</p>
                             </div>
-                          </td>
-                          <td className="p-3 sm:p-4 font-semibold text-sm sm:text-base text-gray-800">{item.price}</td>
-                          <td className="p-3 sm:p-4">
-                            <div className="flex items-center border border-gray-300 rounded-md">
-                              <button
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="px-2 sm:px-3 py-1 text-sm sm:text-base font-bold text-gray-700"
-                              >
-                                -
-                              </button>
-                              <span className="px-3 sm:px-4 py-1 border-l border-r border-gray-300 text-sm sm:text-base">
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="px-2 sm:px-3 py-1 text-sm sm:text-base font-bold text-gray-700"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td className="p-3 sm:p-4 font-bold text-sm sm:text-base text-gray-800">
-                            £{(parseFloat(item.price.replace("£", "")) * item.quantity).toFixed(2)}
-                          </td>
-                          <td className="p-3 sm:p-4">
-                            <button onClick={() => removeFromCart(item.id)} className="text-gray-400 hover:text-red-500">
-                              <X size={18} />
+                          </div>
+                        </td>
+                        <td className="p-4 font-medium">{item.price}</td>
+                        <td className="p-4">
+                          <div className="flex items-center border rounded-lg w-fit">
+                            <button
+                              onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                              className="px-3 py-1 hover:bg-gray-100"
+                              disabled={item.quantity <= 1}
+                            >
+                              -
                             </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            <span className="px-4 py-1 border-x">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="px-3 py-1 hover:bg-gray-100"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                        <td className="p-4 font-bold">
+                          £{(parseFloat(item.price.replace("£", "")) * item.quantity).toFixed(2)}
+                        </td>
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="text-gray-400 hover:text-red-600 transition p-2 hover:bg-red-50 rounded-full"
+                            title="Remove item"
+                          >
+                            <X size={20} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+
+              <div className="mt-6 flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/category"
-                  className="bg-gray-200 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-md text-center text-sm sm:text-base hover:bg-gray-300"
+                  className="px-6 py-3 bg-gray-100 text-gray-800 font-medium rounded-lg hover:bg-gray-200 transition text-center"
                 >
                   CONTINUE SHOPPING
                 </Link>
                 <button
                   onClick={clearCart}
-                  className="bg-gray-200 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-md text-sm sm:text-base hover:bg-gray-300"
+                  className="px-6 py-3 bg-gray-100 text-gray-800 font-medium rounded-lg hover:bg-gray-200 transition"
                 >
-                  CLEAR SHOPPING CART
+                  CLEAR CART
                 </button>
               </div>
             </>
           )}
         </div>
 
+        {/* Order Summary */}
         <div className="lg:col-span-1">
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md sticky top-20 sm:top-28">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">Order Summary</h3>
-            <div className="space-y-3 sm:space-y-4 text-gray-700 text-sm sm:text-base">
+          <div className="bg-white p-6 rounded-lg shadow-md border sticky top-24">
+            <h3 className="text-xl font-bold mb-5">Order Summary</h3>
+            <div className="space-y-3 text-gray-700">
               <div className="flex justify-between">
-                <p>Subtotal</p>
-                <p>£{subtotal.toFixed(2)}</p>
+                <span>Subtotal</span>
+                <span className="font-medium">£{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <p>Shipping</p>
-                <p>£{shipping.toFixed(2)}</p>
+                <span>Shipping</span>
+                <span className="font-medium">£{shipping.toFixed(2)}</span>
               </div>
-              <div className="border-t pt-3 sm:pt-4 flex justify-between font-bold text-base sm:text-lg text-gray-800">
-                <p>TOTAL</p>
-                <p>£{total.toFixed(2)}</p>
+              <div className="border-t pt-4">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>TOTAL</span>
+                  <span className="text-red-600">£{total.toFixed(2)}</span>
+                </div>
               </div>
             </div>
             <button
               onClick={goToNextStep}
-              className="w-full mt-6 sm:mt-8 bg-red-600 text-white py-2 sm:py-3 rounded-md font-semibold text-sm sm:text-base hover:bg-red-700 transition-colors"
               disabled={cartItems.length === 0}
+              className="w-full mt-6 py-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               PROCEED TO CHECKOUT
             </button>
@@ -423,8 +437,9 @@ const ShoppingCartView = ({
         </div>
       </div>
 
+      {/* Recommendations */}
       {cartItems.length > 0 && (
-        <div className="mt-12 w-full max-w-7xl mx-auto">
+        <div className="mt-16">
           <BookShelf
             title="You may also like"
             fetchParams={{
@@ -870,12 +885,19 @@ const ReviewOrder = ({
             </button>
           </div>
           <div>
-            <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-4">Payment Method</h3>
-            <p className="text-gray-600 text-sm sm:text-base">Card ending in ****</p>
-            <button onClick={goToPreviousStep} className="text-red-600 text-xs sm:text-sm mt-2 hover:underline">
-              Change
-            </button>
-          </div>
+  <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-4">Payment Method</h3>
+  <p className="text-gray-600 text-sm sm:text-base">
+    Card ending in {paymentData?.card?.last4}
+  </p>
+
+  <button
+    onClick={goToPreviousStep}
+    className="text-red-600 text-xs sm:text-sm mt-2 hover:underline"
+  >
+    Change
+  </button>
+</div>
+
         </div>
 
         <div className="mt-6 sm:mt-8 border-t border-gray-200 pt-4 sm:pt-6">
@@ -950,6 +972,18 @@ const CheckoutFlow = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, [step]);
+
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -960,6 +994,8 @@ const CheckoutFlow = () => {
       },
       { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
+
+  
 
     const elements = document.querySelectorAll(".animate-on-scroll");
     elements.forEach((el) => observer.observe(el));
