@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { Star, ChevronLeft, ChevronRight, Search, Gift, Book as BookIcon } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { FixedSizeGrid } from 'react-window';
@@ -210,6 +210,10 @@ const ClearancePage = () => {
   const MAX_PAGE_BUTTONS = 7;
   const gridRef = useRef<HTMLDivElement | null>(null);
   const cacheKey = useRef<string>('');
+  const previousCategory = (location.state as { category?: string })?.category || "Browse";
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+
 
   // Debounced search handler
   const debouncedSetSearchTerm = useMemo(
@@ -235,7 +239,7 @@ const ClearancePage = () => {
             limit: BOOKS_PER_PAGE,
             filters: { 
               search: search || undefined,
-              discountPercentage: { $gte: 30 }  // ← MATCHES HOMEPAGE
+              discountPercentage: { $gte: 30 }
             },
             sort: sort === 'priceLowHigh' ? 'price' : sort === 'priceHighLow' ? 'price' : sort === 'rating' ? 'rating' : 'discountPercentage',
             order: sort === 'priceHighLow' ? 'desc' : sort === 'rating' ? 'desc' : 'desc',
@@ -279,7 +283,7 @@ const ClearancePage = () => {
           limit: BOOKS_PER_PAGE,
           filters: { 
             search: searchTerm || undefined,
-            discountPercentage: { $gte: 30 }  // ← ONLY CHANGE: Real API filter
+            discountPercentage: { $gte: 30 }
           },
           sort: sortBy === 'priceLowHigh' ? 'price' : sortBy === 'priceHighLow' ? 'price' : sortBy === 'rating' ? 'rating' : 'discountPercentage',
           order: sortBy === 'priceHighLow' ? 'desc' : sortBy === 'rating' ? 'desc' : 'desc',
@@ -388,8 +392,18 @@ const ClearancePage = () => {
     setTimeout(() => setShowReward(false), 3000);
   };
 
-  const GridItem = ({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
-    const index = rowIndex * 8 + columnIndex;
+  // RESPONSIVE COLUMN COUNT
+  const getColumnCount = (width: number) => {
+    if (width < 640) return 2;      // Mobile
+    if (width < 768) return 3;      // Small tablet
+    if (width < 1024) return 4;     // Tablet
+    if (width < 1280) return 6;     // Small desktop
+    return 8;                       // Large desktop
+  };
+
+  const GridItem = ({ columnIndex, rowIndex, style, data }: any) => {
+    const columnCount = data.columnCount;
+    const index = rowIndex * columnCount + columnIndex;
     if (index >= filteredAndSortedBooks.length) return null;
     return (
       <div style={{ ...style, padding: '4px' }}>
@@ -404,8 +418,8 @@ const ClearancePage = () => {
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <TopBar />
         <div className="container mx-auto px-4 sm:px-8 py-16">
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 sm:gap-3">
-            {[...Array(BOOKS_PER_PAGE)].map((_, i) => <BookCardSkeleton key={i} />)}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            {[...Array(24)].map((_, i) => <BookCardSkeleton key={i} />)}
           </div>
         </div>
         <Footer />
@@ -430,17 +444,58 @@ const ClearancePage = () => {
     <div className="bg-slate-50 min-h-screen flex flex-col font-sans">
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li className="flex items-center">
+                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                  <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                  </svg>
+                  <span className="hidden sm:inline">Home</span>
+                  <span className="sm:hidden">Home</span>
+                </Link>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                </svg>
+              </li>
+              {(selectedCategory || (previousCategory && previousCategory !== "Browse")) && (
+                <>
+                  <li className="flex items-center">
+                    <Link
+                      to="/category"
+                      state={{ category: selectedCategory || previousCategory }}
+                      className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
+                    >
+                      {selectedCategory || previousCategory}
+                    </Link>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                    </svg>
+                  </li>
+                </>
+              )}
+              <li className="text-gray-900 font-semibold">Clearance</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
       <main className="flex-1">
         <div className="bg-gradient-to-br from-red-600 to-red-800 text-white text-center py-12 md:py-10 px-4">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Clearance Sale</h1>
           <p className="mt-4 text-lg md:text-xl text-red-100 max-w-2xl mx-auto">
             Unbeatable prices on your next favorite book. Grab these limited-time deals before they're gone!
           </p>
-          <div className="mt-6 flex justify-center gap-4">
-            <button onClick={() => setShowQuiz(true)} className="flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
+          <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+            <button onClick={() => setShowQuiz(true)} className="flex items-center justify-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
               <BookIcon size={20} /> Take Our Quiz!
             </button>
-            <button onClick={() => setShowSurvey(true)} className="flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
+            <button onClick={() => setShowSurvey(true)} className="flex items-center justify-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
               <Gift size={20} /> Share Your Feedback
             </button>
           </div>
@@ -449,7 +504,7 @@ const ClearancePage = () => {
         <div className="max-w-7xl mx-auto p-4 sm:p-8">
           <div className="bg-white p-4 rounded-lg shadow-sm mb-8 flex flex-col md:flex-row items-center gap-4">
             <div className="relative w-full md:w-2/3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 -mt-2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by title, author..."
@@ -485,21 +540,24 @@ const ClearancePage = () => {
           )}
 
           {filteredAndSortedBooks.length > 0 ? (
-            <div ref={gridRef} style={{ height: '600px' }}>
+            <div ref={gridRef} style={{ height: 'calc(100vh - 300px)' }}>
               <AutoSizer>
-                {({ height, width }) => (
-                  <FixedSizeGrid
-                    columnCount={8}
-                    columnWidth={width / 8 - 8}
-                    height={height}
-                    rowCount={Math.ceil(filteredAndSortedBooks.length / 8)}
-                    rowHeight={280}
-                    width={width}
-                    className="gap-2 sm:gap-3"
-                  >
-                    {GridItem}
-                  </FixedSizeGrid>
-                )}
+                {({ height, width }) => {
+                  const columnCount = getColumnCount(width);
+                  return (
+                    <FixedSizeGrid
+                      columnCount={columnCount}
+                      columnWidth={width / columnCount}
+                      height={height}
+                      rowCount={Math.ceil(filteredAndSortedBooks.length / columnCount)}
+                      rowHeight={320}
+                      width={width}
+                      itemData={{ columnCount }}
+                    >
+                      {GridItem}
+                    </FixedSizeGrid>
+                  );
+                }}
               </AutoSizer>
             </div>
           ) : (
@@ -511,11 +569,11 @@ const ClearancePage = () => {
 
           {totalBooks > BOOKS_PER_PAGE && (
             <div className="flex flex-col items-center mt-10 space-y-4">
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap justify-center items-center gap-2">
                 <button
                   onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors"
                 >
                   Prev
                 </button>
@@ -523,7 +581,7 @@ const ClearancePage = () => {
                 <button
                   onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors"
                 >
                   Next
                 </button>

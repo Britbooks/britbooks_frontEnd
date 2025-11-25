@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { MD5 } from "crypto-js"; // For generating unique seeds
 import TopBar from "../components/Topbar";
@@ -242,6 +242,7 @@ const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetch
 const BrowseCategoryDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToCart } = useCart();
   const [book, setBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -249,6 +250,9 @@ const BrowseCategoryDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "info" | "reviews">("details");
   const [imageError, setImageError] = useState(false);
+  const { categoryId } = useParams<{ categoryId?: string }>();
+
+  const previousCategory = (location.state as { category?: string })?.category || "Browse";
 
   const FALLBACK_IMAGE = "https://placehold.co/300x450?text=Book+Cover";
 
@@ -350,13 +354,54 @@ const BrowseCategoryDetail = () => {
     <div className="bg-gray-50 min-h-screen">
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
+      <div className="bg-white border-b border-gray-100">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {/* Home */}
+        <li>
+          <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+            <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+            Home
+          </Link>
+        </li>
+
+        {/* Arrow */}
+        <li>
+          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+          </svg>
+        </li>
+
+        {/* Book Genre — EXACTLY how you wanted it */}
+     
+        <li>
+  <Link
+    to={`/category/?genre=${encodeURIComponent(book?.genre || "Books")}`}
+    className="text-gray-700 hover:text-blue-600 capitalize font-medium transition"
+  >
+    {book?.genre || "Books"}
+  </Link>
+</li>
+        {/* Arrow */}
+        <li>
+          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+          </svg>
+        </li>
+
+        {/* Current Book Title */}
+        <li className="text-gray-900 font-semibold truncate max-w-[200px] sm:max-w-md lg:max-w-none">
+          {book?.title}
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
       <main className="container mx-auto px-4 sm:px-8 py-8">
-        <button
-          onClick={() => navigate("/category")}
-          className="text-blue-600 hover:underline mb-4 flex items-center"
-        >
-          <ChevronLeft size={16} className="mr-1" /> Back to Browse
-        </button>
+     
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="relative">
             <img

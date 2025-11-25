@@ -783,7 +783,7 @@ const Homepage = () => {
                   )}
 
                   <Link
-                    to="/categories"
+                    to="/category"
                     className="flex-shrink-0 w-40 h-40 bg-blue-700 text-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
                   >
                     <div className="relative w-full h-full flex items-center justify-center">

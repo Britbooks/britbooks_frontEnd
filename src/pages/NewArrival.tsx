@@ -207,6 +207,8 @@ const NewArrivalsPage: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const BOOKS_PER_PAGE = 105; // Match BestsellersPage
   const FEATURED_BOOKS_LIMIT = 7; // 7 books for featured section
+  const previousCategory = (location.state as { category?: string })?.category || "Browse";
+
 
   // Handle scroll for featured books
   const handleScroll = (direction: 'left' | 'right') => {
@@ -418,6 +420,47 @@ const NewArrivalsPage: React.FC = () => {
 
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li className="flex items-center">
+                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                  <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                  </svg>
+                  <span className="hidden sm:inline">Home</span>
+                  <span className="sm:hidden">Home</span>
+                </Link>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                </svg>
+              </li>
+              {(selectedCategory || (previousCategory && previousCategory !== "Browse")) && (
+                <>
+                  <li className="flex items-center">
+                    <Link
+                      to="/category"
+                      state={{ category: selectedCategory || previousCategory }}
+                      className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
+                    >
+                      {selectedCategory || previousCategory}
+                    </Link>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                    </svg>
+                  </li>
+                </>
+              )}
+              <li className="text-gray-900 font-semibold">New Arrivals</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
 
       <main>
         {/* Hero Section */}

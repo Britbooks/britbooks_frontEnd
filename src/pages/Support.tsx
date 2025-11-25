@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Footer from '../components/footer';
 import TopBar from '../components/Topbar';
 import { useAuth } from '../context/authContext';
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 
 // === ALL YOUR ORIGINAL ICONS ===
 const ChevronDownIcon = (props: any) => (
@@ -330,6 +331,10 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
 // === MAIN PAGE - YOUR ORIGINAL FULL PAGE ===
 const HelpAndSupportPage = () => {
   const [isSupportSidebarOpen, setIsSupportSidebarOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const previousCategory = (location.state as { category?: string })?.category || "Browse";
+
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -367,6 +372,48 @@ const HelpAndSupportPage = () => {
 
       <div className="flex-1 flex flex-col">
         <TopBar />
+        <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li className="flex items-center">
+                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                  <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                  </svg>
+                  <span className="hidden sm:inline">Home</span>
+                  <span className="sm:hidden">Home</span>
+                </Link>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                </svg>
+              </li>
+              {(selectedCategory || (previousCategory && previousCategory !== "Browse")) && (
+                <>
+                  <li className="flex items-center">
+                    <Link
+                      to="/category"
+                      state={{ category: selectedCategory || previousCategory }}
+                      className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
+                    >
+                      {selectedCategory || previousCategory}
+                    </Link>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                    </svg>
+                  </li>
+                </>
+              )}
+              <li className="text-gray-900 font-semibold">Contact</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+        
         <main className="flex-1 bg-gray-50 p-4 sm:p-8 overflow-y-auto pb-16 lg:pb-8">
           <div className="max-w-4xl mx-auto">
             {/* Hero Section */}

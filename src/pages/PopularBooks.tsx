@@ -41,7 +41,7 @@ const StarRating = ({ rating, starSize = 12 }: { rating: number; starSize?: numb
   </div>
 );
 
-// 📚 Book Card Skeleton Component
+// Book Card Skeleton Component
 const BookCardSkeleton = () => (
   <div className="bg-white rounded-lg shadow-md flex flex-col overflow-hidden border border-gray-200 h-full animate-pulse">
     <div className="relative bg-gray-200 p-2 flex-shrink-0 h-48">
@@ -61,7 +61,7 @@ const BookCardSkeleton = () => (
   </div>
 );
 
-// 📚 Book Card Component
+// Book Card Component
 interface BookCardProps {
   book: Book & { popularityReason?: string };
   rank: number;
@@ -85,7 +85,6 @@ const BookCard: React.FC<BookCardProps> = React.memo(({ book, rank }) => {
   };
 
   const showPopularityReason = () => {
-    // List of possible reasons (at least 7)
     const reasons = [
       `Readers can’t stop talking about "${book.title}" on social media.`,
       `"${book.title}" has received outstanding critical acclaim and award nominations.`,
@@ -97,13 +96,11 @@ const BookCard: React.FC<BookCardProps> = React.memo(({ book, rank }) => {
       `Fans are calling it a must-read for the genre — driving up demand.`,
     ];
   
-    // Pick a random reason
     const randomReason = reasons[Math.floor(Math.random() * reasons.length)];
   
     toast(
       (t) => (
         <div className="max-w-md p-4 bg-white rounded-lg shadow-lg border border-gray-200">
-          {/* Header */}
           <div className="flex items-start justify-between">
             <h4 className="font-semibold text-gray-900 text-lg">
               Why is <span className="text-blue-600">"{book.title}"</span> Popular?
@@ -112,18 +109,16 @@ const BookCard: React.FC<BookCardProps> = React.memo(({ book, rank }) => {
               className="ml-3 text-gray-400 hover:text-gray-600"
               onClick={() => toast.dismiss(t.id)}
             >
-              ✕
+              X
             </button>
           </div>
   
-          {/* Body */}
           <div className="mt-3 space-y-2">
             <p className="text-sm text-gray-700 leading-relaxed">
               {book.popularityReason || randomReason}
             </p>
           </div>
   
-          {/* Footer */}
           <div className="mt-4 flex justify-end">
             <button
               className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition"
@@ -200,7 +195,7 @@ const BookCard: React.FC<BookCardProps> = React.memo(({ book, rank }) => {
   );
 });
 
-// 🛠️ Category Filter Widget Component
+// Category Filter Widget Component
 const CategoryFilterWidget: React.FC<{
   categories: { id: string; name: string; imageUrl: string }[];
   selectedCategory: string | null;
@@ -264,8 +259,7 @@ const CategoryFilterWidget: React.FC<{
 };
 
 // --- Main Popular Books Page Component ---
-const BOOKS_PER_PAGE = 105; // 100 books per page
-const MAX_PAGES = 600; // 600 pages for 600,000 books
+const BOOKS_PER_PAGE = 105;
 
 const PopularBooksPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -278,6 +272,20 @@ const PopularBooksPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true); 
   const [error, setError] = useState<string | null>(null);
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
+  const previousCategory = (location.state as { category?: string })?.category || "Browse";
+
+
+  // Responsive column count
+  const getColumnCount = () => {
+    if (typeof window === "undefined") return 7;
+    const width = window.innerWidth;
+    if (width < 640) return 2;
+    if (width < 768) return 3;
+    if (width < 1024) return 4;
+    if (width < 1280) return 5;
+    if (width < 1536) return 6;
+    return 7;
+  };
 
   // Fetch categories on mount
   useEffect(() => {
@@ -285,14 +293,14 @@ const PopularBooksPage: React.FC = () => {
       try {
         const fetchedCategories = await fetchCategories();
         if (!Array.isArray(fetchedCategories)) throw new Error("Invalid categories response");
-        const categoryObjects = fetchedCategories.map((name, index) => ({
+        const categoryObjects = fetchedCategories.map((name: string, index: number) => ({
           id: name.toLowerCase().replace(/\s+/g, "-"),
           name,
           imageUrl: `https://picsum.photos/seed/category-${index}/300/200`,
         }));
         setCategories(categoryObjects);
       } catch (err) {
-        console.error("❌ Failed to fetch categories:", err);
+        console.error("Failed to fetch categories:", err);
         setCategories([]);
       }
     };
@@ -321,24 +329,23 @@ const PopularBooksPage: React.FC = () => {
           order: sortBy === "priceHighLow" ? "desc" : sortBy === "title" ? "asc" : "desc",
         }));
         if (!Array.isArray(fetchedBooks) || typeof total !== "number") throw new Error("Invalid API response");
-        // Validate image URLs
-        const validatedBooks = fetchedBooks.map((book) => ({
+        const validatedBooks = fetchedBooks.map((book: any) => ({
           ...book,
           imageUrl: book.imageUrl && book.imageUrl.startsWith("http") ? book.imageUrl : "https://via.placeholder.com/150",
         }));
         setBooks(validatedBooks);
-        setTotalBooks(600000); // Static total as per requirement
+        setTotalBooks(600000);
         setIsLoading(false);
       } catch (err) {
         setError("Failed to load popular books. Please try again.");
         setIsLoading(false);
-        console.error("❌ Failed to fetch popular books:", err);
+        console.error("Failed to fetch popular books:", err);
       }
     };
     fetchPopularBooks();
   }, [currentPage, selectedCategory, searchTerm, sortBy]);
 
-  // Simulate live updates (e.g., ratings, stock)
+  // Simulate live updates
   useEffect(() => {
     const interval = setInterval(() => {
       setIsLiveUpdating(true);
@@ -350,7 +357,7 @@ const PopularBooksPage: React.FC = () => {
         }))
       );
       setTimeout(() => setIsLiveUpdating(false), 1000);
-    }, 10000); // Update every 10 seconds
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -375,7 +382,7 @@ const PopularBooksPage: React.FC = () => {
     };
   }, [books]);
 
-  const totalPages = Math.min(Math.ceil(totalBooks / BOOKS_PER_PAGE), MAX_PAGES);
+  const totalPages = Math.min(Math.ceil(totalBooks / BOOKS_PER_PAGE), 600);
   const paginatedBooks = useMemo(() => books, [books]);
   const visiblePages = useMemo(() => {
     const maxVisible = 5;
@@ -451,6 +458,47 @@ const PopularBooksPage: React.FC = () => {
       `}</style>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li className="flex items-center">
+                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                  <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                  </svg>
+                  <span className="hidden sm:inline">Home</span>
+                  <span className="sm:hidden">Home</span>
+                </Link>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                </svg>
+              </li>
+              {(selectedCategory || (previousCategory && previousCategory !== "Browse")) && (
+                <>
+                  <li className="flex items-center">
+                    <Link
+                      to="/category"
+                      state={{ category: selectedCategory || previousCategory }}
+                      className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
+                    >
+                      {selectedCategory || previousCategory}
+                    </Link>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                    </svg>
+                  </li>
+                </>
+              )}
+              <li className="text-gray-900 font-semibold">Popular</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
       <main className="flex-1">
         <div className="bg-gradient-to-br from-blue-700 to-indigo-900 text-white text-center py-12 md:py-16 px-4 animate-on-scroll">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Find Your Next Favorite Book</h1>
@@ -459,10 +507,12 @@ const PopularBooksPage: React.FC = () => {
           </p>
         </div>
 
+    
+
         <div className="max-w-7xl mx-auto p-4 sm:p-8">
           <div className="bg-white p-4 rounded-lg shadow-sm mb-8 flex flex-col md:flex-row items-center gap-4 relative">
             <div className="relative w-full md:w-1/3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 -mt-2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search popular books by title or author..."
@@ -494,13 +544,21 @@ const PopularBooksPage: React.FC = () => {
             )}
           </div>
 
-          <div className={`grid grid-cols-7 gap-4 animate-on-scroll ${isLiveUpdating ? "live-update" : ""}`}>
+          {/* RESPONSIVE GRID — ONLY CHANGE MADE */}
+          <div className={`grid gap-6 animate-on-scroll ${isLiveUpdating ? "live-update" : ""} 
+            grid-cols-2 
+            sm:grid-cols-3 
+            md:grid-cols-4 
+            lg:grid-cols-5 
+            xl:grid-cols-6 
+            2xl:grid-cols-7`}
+          >
             {isLoading ? (
-              [...Array(BOOKS_PER_PAGE)].map((_, i) => (
+              [...Array(24)].map((_, i) => (
                 <BookCardSkeleton key={i} />
               ))
             ) : paginatedBooks.length === 0 ? (
-              <p className="text-center text-gray-500 py-6 col-span-7">
+              <p className="text-center text-gray-500 py-6 col-span-full">
                 No books available{selectedCategory ? ` in ${selectedCategory}` : ""}.
               </p>
             ) : (
@@ -513,7 +571,7 @@ const PopularBooksPage: React.FC = () => {
           </div>
 
           {totalBooks > BOOKS_PER_PAGE && (
-            <div className="mt-4 sm:mt-8 flex justify-center items-center space-x-2 sm:space-x-3 flex-wrap gap-y-2 animate-on-scroll">
+            <div className="mt-8 flex justify-center items-center space-x-2 sm:space-x-3 flex-wrap gap-y-2 animate-on-scroll">
               <button
                 onClick={() => handlePageChange(1)}
                 className="p-2 border rounded-full disabled:opacity-50 text-gray-700 hover:bg-gray-100 transition-colors"

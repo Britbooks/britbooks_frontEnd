@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, Component, ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams , useLocation} from "react-router-dom";
 import { ChevronLeft, ChevronRight, Star, X, Filter, ShoppingBag, Eye, Tag, MessageCircle, Truck } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Footer from "../components/footer";
@@ -783,6 +783,7 @@ const CategoryBrowsePage = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const location = useLocation();
 
   // Set initial category filter from URL
   useEffect(() => {
@@ -795,6 +796,28 @@ const CategoryBrowsePage = () => {
       setIsFilterOpen(false);
     }
   }, [categoryId]);
+
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const genre = params.get("genre");
+  
+    if (genre) {
+      setFilters(prev => ({
+        ...prev,
+        categories: [genre]
+      }));
+    } else {
+      // Optional: show all books when no genre
+      setFilters(prev => ({
+        ...prev,
+        categories: undefined
+      }));
+    }
+  }, [location.search]);
+
+
 
   // Fetch categories and first page of books, using cache if available
   useEffect(() => {
@@ -996,7 +1019,55 @@ const CategoryBrowsePage = () => {
       `}</style>
       <div className="bg-white">
         <TopBar />
-        <main className="container mx-auto px-4 sm:px-8">
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {/* Home */}
+                <li className="flex items-center">
+                  <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                    <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                    <span className="hidden sm:inline">Home</span>
+                  </Link>
+                </li>
+
+                <li className="flex items-center">
+                  <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                  </svg>
+                </li>
+
+                {/* Show current category from URL */}
+                {categoryId && (
+                  <>
+                    <li className="flex items-center">
+                      <Link
+                        to="/category"
+                        className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
+                      >
+                        {categoryId.replace(/-/g, ' ')}
+                      </Link>
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                      </svg>
+                    </li>
+                  </>
+                )}
+
+                {/* Final page name */}
+                <li className="text-gray-900 font-semibold">
+                  {categoryId ? categoryId.replace(/-/g, ' ') : "Browse"}
+                </li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+
+        <main className="container mx-auto px-4 sm:px-8 py-6">
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
             <FilterSidebar
               filters={filters}
@@ -1007,8 +1078,8 @@ const CategoryBrowsePage = () => {
               categories={categories}
               filterOptions={filterOptions}
             />
-            <div className="w-full lg:w-3/4">
-              <div className="space-y-8">
+            <div className="w-full lg:w-3/4 xl:w-4/5">
+              <div className="space-y-12">
                 {isInitialLoading ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {[...Array(12)].map((_, i) => (
@@ -1016,13 +1087,21 @@ const CategoryBrowsePage = () => {
                     ))}
                   </div>
                 ) : error ? (
-                  <div className="text-center text-red-500 text-lg">{error}</div>
+                  <div className="text-center text-red-500 text-lg py-10">{error}</div>
                 ) : filters.categories?.length > 0 ? (
                   filters.categories.map(category => (
                     <BookShelf
                       key={category}
                       title={category}
-                      fetchParams={{ filters: { genre: category, ...filters }, sortBy }}
+                      fetchParams={{ 
+                        filters: { 
+                          genre: category, 
+                          ...(filters.priceRanges && { priceRanges: filters.priceRanges }),
+                          ...(filters.ratings && { ratings: filters.ratings }),
+                          ...(filters.conditions && { conditions: filters.conditions })
+                        }, 
+                        sortBy 
+                      }}
                       onFilterClick={handleFilterClick}
                       bookCount={bookCounts[category] || 0}
                       initialBooks={filteredBooksByCategory[category] || []}
@@ -1033,7 +1112,10 @@ const CategoryBrowsePage = () => {
                     <BookShelf
                       key={category}
                       title={category}
-                      fetchParams={{ filters: { genre: category, ...filters }, sortBy }}
+                      fetchParams={{ 
+                        filters: { genre: category }, 
+                        sortBy 
+                      }}
                       onFilterClick={handleFilterClick}
                       bookCount={bookCounts[category] || 0}
                       initialBooks={filteredBooksByCategory[category] || []}
@@ -1044,6 +1126,7 @@ const CategoryBrowsePage = () => {
             </div>
           </div>
         </main>
+
         <Footer />
       </div>
     </ErrorBoundary>

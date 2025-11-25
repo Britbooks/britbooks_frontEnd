@@ -125,6 +125,7 @@ const ContactPage = () => {
       `}</style>
 
       <TopBar />
+      
 
       <main>
         {/* Hero Section */}

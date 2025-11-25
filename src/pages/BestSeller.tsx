@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Star, Filter, Brain, Flame, PenTool, ChefHat, Palette, Laugh, Building, Award, Users, Zap, Book as BookIcon } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import TopBar from "../components/Topbar";
@@ -8,7 +7,7 @@ import Footer from "../components/footer";
 import { fetchBooks, fetchCategories, Book } from "../data/books";
 import { useCart } from "../context/cartContext";
 
-// ⭐ Star Rating Component
+// Star Rating Component
 const StarRating = ({ rating, starSize = 12 }: { rating: number; starSize?: number }) => (
   <div className="flex items-center justify-center gap-0.5">
     {[...Array(5)].map((_, i) => (
@@ -22,7 +21,7 @@ const StarRating = ({ rating, starSize = 12 }: { rating: number; starSize?: numb
   </div>
 );
 
-// 📚 Book Card Skeleton Component
+// Book Card Skeleton Component
 const BookCardSkeleton = () => (
   <div className="bg-white rounded-lg shadow-md flex flex-col overflow-hidden border border-gray-200 h-full animate-pulse">
     <div className="relative bg-gray-200 p-2 flex-shrink-0 h-48">
@@ -42,7 +41,7 @@ const BookCardSkeleton = () => (
   </div>
 );
 
-// 📚 Book Card Component
+// Book Card Component
 interface BookCardProps {
   book: Book;
   rank: number;
@@ -119,13 +118,12 @@ const BookCard: React.FC<BookCardProps> = React.memo(({ book, rank }) => {
   );
 });
 
-// 🛠️ Category Filter Widget Component
+// Category Filter Widget Component
 const CategoryFilterWidget: React.FC<{
   categories: { id: string; name: string; imageUrl: string }[];
   selectedCategory: string | null;
   setSelectedCategory: (category: string | null) => void;
 }> = ({ categories, selectedCategory, setSelectedCategory }) => {
-  // Map categories to icons
   const categoryIcons: Record<string, React.ComponentType<{ size: number; className: string }>> = {
     Mindfulness: Zap,
     Technology: Zap,
@@ -147,25 +145,25 @@ const CategoryFilterWidget: React.FC<{
   };
 
   return (
-    <div className="relative flex items-center gap-3 bg-white rounded-xl shadow-sm p-3 border border-gray-100 transition-all duration-300 hover:shadow-md">
+    <div className="relative flex items-center gap-3 bg-white rounded-xl shadow-sm p-3 border border-gray-100 transition-all duration-300 hover:shadow-md w-full max-w-md mx-auto">
       <Filter size={20} className="text-red-500" />
-      <label htmlFor="categoryFilter" className="text-sm font-medium text-gray-700">
+      <label htmlFor="categoryFilter" className="text-sm font-medium text-gray-700 hidden sm:block">
         Filter by Category
       </label>
       <select
         id="categoryFilter"
         value={selectedCategory || ""}
         onChange={(e) => setSelectedCategory(e.target.value || null)}
-        className="appearance-none bg-gradient-to-r from-red-50 to-red-100 text-gray-800 rounded-md px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 hover:bg-red-200 transition-all duration-300 cursor-pointer pr-10"
+        className="appearance-none bg-gradient-to-r from-red-50 to-red-100 text-gray-800 rounded-md px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 hover:bg-red-200 transition-all duration-300 cursor-pointer pr-10 flex-1"
       >
-        <option value="" className="flex items-center">
+        <option value="">
           <BookIcon size={16} className="inline mr-2 text-gray-500" />
           All Categories
         </option>
         {categories.map((category) => {
           const Icon = categoryIcons[category.name] || BookIcon;
           return (
-            <option key={category.id} value={category.name} className="flex items-center">
+            <option key={category.id} value={category.name}>
               <Icon size={16} className="inline mr-2 text-gray-500" />
               {category.name}
             </option>
@@ -181,23 +179,25 @@ const CategoryFilterWidget: React.FC<{
   );
 };
 
-// 🏆 Main Bestsellers Page Component
+// Main Bestsellers Page Component
 const BestsellersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
-  const [totalBooks, setTotalBooks] = useState(600000); // 600,000 books for 600 pages with 100 per page
+  const location = useLocation();
+  const [totalBooks, setTotalBooks] = useState(600000);
   const [categories, setCategories] = useState<{ id: string; name: string; imageUrl: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const BOOKS_PER_PAGE = 105; // 100 books per page as requested
+  const BOOKS_PER_PAGE = 105;
+  const previousCategory = (location.state as { category?: string })?.category || "Browse";
 
   useEffect(() => {
     const fetchBestsellers = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const { books: fetchedBooks, total } = await fetchBooks({
+        const { books: fetchedBooks } = await fetchBooks({
           page: currentPage,
           limit: BOOKS_PER_PAGE,
           sort: "rating",
@@ -205,12 +205,11 @@ const BestsellersPage: React.FC = () => {
           filters: selectedCategory ? { genre: selectedCategory } : undefined,
         });
         setBooks(fetchedBooks);
-        // Note: Using static totalBooks (600,000) as per request, ignoring API response total
         setIsLoading(false);
       } catch (err) {
         setError("Failed to load bestsellers. Please try again.");
         setIsLoading(false);
-        console.error("❌ Failed to fetch bestsellers:", err);
+        console.error("Failed to fetch bestsellers:", err);
       }
     };
     fetchBestsellers();
@@ -227,7 +226,7 @@ const BestsellersPage: React.FC = () => {
         }));
         setCategories(categoryObjects);
       } catch (err) {
-        console.error("❌ Failed to fetch categories:", err);
+        console.error("Failed to fetch categories:", err);
         setCategories([]);
       }
     };
@@ -254,7 +253,7 @@ const BestsellersPage: React.FC = () => {
     };
   }, []);
 
-  const totalPages = Math.ceil(totalBooks / BOOKS_PER_PAGE); // 600 pages
+  const totalPages = Math.ceil(totalBooks / BOOKS_PER_PAGE);
   const paginatedBooks = useMemo(() => books, [books]);
 
   const handlePageChange = (page: number) => {
@@ -352,27 +351,70 @@ const BestsellersPage: React.FC = () => {
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
 
+      {/* Breadcrumb - Mobile Responsive */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li className="flex items-center">
+                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                  <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                  </svg>
+                  <span className="hidden sm:inline">Home</span>
+                  <span className="sm:hidden">Home</span>
+                </Link>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                </svg>
+              </li>
+              {(selectedCategory || (previousCategory && previousCategory !== "Browse")) && (
+                <>
+                  <li className="flex items-center">
+                    <Link
+                      to="/category"
+                      state={{ category: selectedCategory || previousCategory }}
+                      className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
+                    >
+                      {selectedCategory || previousCategory}
+                    </Link>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                    </svg>
+                  </li>
+                </>
+              )}
+              <li className="text-gray-900 font-semibold">Bestsellers</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+
       <main>
         {/* Hero Section */}
-        <header className="hero-section text-white py-8 sm:py-12">
+        <header className="hero-section text-white py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center animate-on-scroll">
-            <h1 className="text-2xl sm:text-4xl font-bold mb-2">Bestsellers</h1>
-            <p className="text-base sm:text-xl max-w-3xl mx-auto text-gray-200">
+            <h1 className="text-3xl sm:text-5xl font-bold mb-3">Bestsellers</h1>
+            <p className="text-sm sm:text-lg max-w-2xl mx-auto text-gray-200 leading-relaxed px-4">
               Celebrating Britain’s Best Reads – Discover the top-selling books loved by the BritBooks community.
             </p>
           </div>
         </header>
 
-        {/* Bestsellers Section */}
-        <section className="py-6 sm:py-10 bg-gradient-to-b from-white to-gray-100">
+        {/* Bestsellers Section - Fully Mobile Responsive */}
+        <section className="py-8 sm:py-12 bg-gradient-to-b from-white to-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 animate-on-scroll">
-              <h2 className="text-xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2">
-                <Star size={24} className="text-yellow-400" />
-                This Week's Top Bestsellers
+            {/* Title + Filter */}
+            <div className="flex flex-col gap-6 mb-8 animate-on-scroll text-center sm:text-left">
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-800 flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2">
+                <Star size={32} className="text-yellow-400" />
+                <span>This Week's Top Bestsellers</span>
                 {selectedCategory && (
-                  <span className="text-sm font-normal text-gray-500">
-                    {" "}
+                  <span className="text-base sm:text-lg font-normal text-gray-600">
                     in {selectedCategory}
                   </span>
                 )}
@@ -383,13 +425,13 @@ const BestsellersPage: React.FC = () => {
                 setSelectedCategory={setSelectedCategory}
               />
             </div>
-            <div className="grid grid-cols-7 gap-4">
+
+            {/* Responsive Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 sm:gap-6">
               {isLoading ? (
-                [...Array(BOOKS_PER_PAGE)].map((_, i) => (
-                  <BookCardSkeleton key={i} />
-                ))
+                [...Array(12)].map((_, i) => <BookCardSkeleton key={i} />)
               ) : paginatedBooks.length === 0 ? (
-                <p className="text-center text-gray-500 py-6 col-span-7">
+                <p className="col-span-full text-center text-gray-500 py-12 text-lg">
                   No bestsellers available{selectedCategory ? ` in ${selectedCategory}` : ""}.
                 </p>
               ) : (
@@ -402,48 +444,36 @@ const BestsellersPage: React.FC = () => {
                 ))
               )}
             </div>
+
+            {/* Mobile-Friendly Pagination */}
             {totalBooks > BOOKS_PER_PAGE && (
-              <div className="mt-4 sm:mt-8 flex justify-center items-center space-x-2 sm:space-x-3 flex-wrap gap-y-2">
-                <button
-                  onClick={() => handlePageChange(1)}
-                  className="p-2 border rounded-full disabled:opacity-50 text-gray-700 hover:bg-gray-100 transition-colors"
-                  disabled={currentPage === 1}
-                >
-                  <span className="sr-only">First Page</span>
-                  <ChevronLeft size={20} className="rotate-180" />
+              <div className="mt-12 flex flex-wrap justify-center items-center gap-3">
+                <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-300 disabled:opacity-50 hover:bg-gray-50 transition">
+                  <ChevronLeft size={20} className="rotate-180" /><ChevronLeft size={20} />
+                </button>
+                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-300 disabled:opacity-50 hover:bg-gray-50 transition">
                   <ChevronLeft size={20} />
                 </button>
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className="p-2 border rounded-full disabled:opacity-50 text-gray-700 hover:bg-gray-100 transition-colors"
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                {visiblePages.map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`pagination-button ${currentPage === page ? "active" : ""}`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className="p-2 border rounded-full disabled:opacity-50 text-gray-700 hover:bg-gray-100 transition-colors"
-                  disabled={currentPage === totalPages}
-                >
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {visiblePages.map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                        currentPage === page
+                          ? "bg-red-600 text-white"
+                          : "bg-white border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-300 disabled:opacity-50 hover:bg-gray-50 transition">
                   <ChevronRight size={20} />
                 </button>
-                <button
-                  onClick={() => handlePageChange(totalPages)}
-                  className="p-2 border rounded-full disabled:opacity-50 text-gray-700 hover:bg-gray-100 transition-colors"
-                  disabled={currentPage === totalPages}
-                >
-                  <span className="sr-only">Last Page</span>
-                  <ChevronRight size={20} />
-                  <ChevronRight size={20} />
+                <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-300 disabled:opacity-50 hover:bg-gray-50 transition">
+                  <ChevronRight size={20} /><ChevronRight size={20} />
                 </button>
               </div>
             )}
