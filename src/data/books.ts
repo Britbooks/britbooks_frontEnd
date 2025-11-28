@@ -25,8 +25,14 @@ interface FetchBooksParams {
   filters?: Record<string, any>;
 }
 
-// ----------------- PLACEHOLDER IMAGE -----------------
-const generatePlaceholderImage = (book: { title: string; isbn: string; genre: string }): string => {
+/* ----------------------------------------------------------
+   PLACEHOLDER IMAGES
+---------------------------------------------------------- */
+const generatePlaceholderImage = (book: {
+  title: string;
+  isbn: string;
+  genre: string;
+}): string => {
   const input = book.isbn || book.title;
   const hash = MD5(input).toString().slice(0, 8);
 
@@ -57,26 +63,36 @@ const generatePlaceholderImage = (book: { title: string; isbn: string; genre: st
   return `https://picsum.photos/seed/${hash}-${genreKey}/300/450`;
 };
 
-// ----------------- FETCH BOOKS (NOW SUPER FAST) -----------------
+/* ----------------------------------------------------------
+   FETCH BOOKS (Now Exactly Matches Backend Structure)
+---------------------------------------------------------- */
 export const fetchBooks = async ({
   page = 1,
-  limit = 20, // ← CHANGED from 1000 to 20 (you only show 5 per shelf!)
+  limit = 20,
   sort = "createdAt",
   order = "desc",
   filters,
 }: FetchBooksParams): Promise<{ books: Book[]; total: number }> => {
   try {
-    const params: Record<string, any> = { page, limit, sort, order };
+    const params: Record<string, any> = {
+      page,
+      limit,
+      sort,
+      order,
+    };
 
+    // Correct query keys for backend
     if (filters) {
       if (filters.genre) params.category = filters.genre;
       if (filters.condition) params.condition = filters.condition;
       if (filters.priceMin != null) params.priceMin = filters.priceMin;
       if (filters.priceMax != null) params.priceMax = filters.priceMax;
       if (filters.rating != null) params.rating = filters.rating;
-      if (filters.stock) params.stock = filters.stock;
-      if (filters["discount.isActive"]) params["discount.isActive"] = filters["discount.isActive"];
-      if (filters["discount.value"]) params["discount.value"] = filters["discount.value"];
+      if (filters.stock != null) params.stock = filters.stock;
+      if (filters["discount.isActive"] != null)
+        params["discount.isActive"] = filters["discount.isActive"];
+      if (filters["discount.value"] != null)
+        params["discount.value"] = filters["discount.value"];
     }
 
     const response = await axios.get(
@@ -116,7 +132,7 @@ export const fetchBooks = async ({
 
     return {
       books,
-      total: response.data.meta?.count || books.length * 10,
+      total: response.data.meta?.count || books.length,
     };
   } catch (error) {
     console.error("Error fetching books:", error instanceof Error ? error.message : error);
@@ -124,67 +140,71 @@ export const fetchBooks = async ({
   }
 };
 
-// ----------------- CATEGORIES – INSTANT + BACKGROUND REFRESH -----------------
+/* ----------------------------------------------------------
+   CATEGORIES — Cached + Background Refresh
+---------------------------------------------------------- */
 let cachedCategories: string[] | null = null;
 
-// Instant fallback (shows immediately while real ones load)
 const fallbackCategories = [
-  "Mindfulness", "Technology", "Psychology", "Self-Help", "Mystery",
-  "Contemporary Fiction", "Drama", "Biography", "Leadership", "Poetry",
-  "History", "Cookbooks", "Art", "Comics", "Children's Books", "Humor",
-  "Entrepreneurship", "Asian Literature"
+  "Fiction",
+  "Non-Fiction",
+  "Psychology",
+  "Self-Help",
+  "Mystery",
+  "Contemporary Fiction",
+  "Drama",
+  "Biography",
+  "Leadership",
+  "Poetry",
+  "History",
+  "Cookbooks",
+  "Art",
+  "Comics",
+  "Children's Books",
+  "Humor",
+  "Entrepreneurship",
+  "Asian Literature",
 ].sort();
 
-export const fetchCategories = async (forceRefresh = false): Promise<string[]> => {
-  // Return cached or fallback INSTANTLY
-  if (!forceRefresh && cachedCategories) {
-    return cachedCategories;
-  }
+export const fetchCategories = async (
+  forceRefresh = false
+): Promise<string[]> => {
+  if (!forceRefresh && cachedCategories) return cachedCategories;
 
-  // First time? Return fallback immediately, then update in background
   if (!cachedCategories) {
     cachedCategories = fallbackCategories;
-    // Fire and forget real fetch
     refreshCategoriesInBackground();
   }
 
   return cachedCategories;
 };
 
-// Background refresh – never blocks UI
 const refreshCategoriesInBackground = async () => {
   try {
-    // BEST CASE: You have a dedicated /categories endpoint
     const response = await axios.get(
       "https://britbooks-api-production.up.railway.app/api/market/categories"
     );
+
     if (response.data && Array.isArray(response.data)) {
       cachedCategories = response.data.sort();
       return;
     }
-  } catch {
-    // Ignore – fall back to small listings request
-  }
+  } catch {}
 
   try {
-    // WORST CASE: Still fast – only 100 books needed to get all categories
     const response = await axios.get(
       "https://britbooks-api-production.up.railway.app/api/market/admin/listings",
-      { params: { page: 1, limit: 100 } } // ← Only 100, not 30,000!
+      { params: { page: 1, limit: 100 } }
     );
 
     const unique = Array.from(
       new Set(
         response.data.listings
           .map((l: any) => l.category)
-          .filter((cat: string) => cat && cat.trim())
+          .filter((cat: string) => cat?.trim())
       )
     ).sort();
 
-    if (unique.length > 0) {
-      cachedCategories = unique;
-    }
-  } catch (error) {
-    console.log("Background category refresh failed – using fallbacks");
-  }
+    if (unique.length > 0) cachedCategories = unique;
+  } catch {}
 };
