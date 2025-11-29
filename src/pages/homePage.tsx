@@ -6,70 +6,10 @@ import Footer from '../components/footer';
 import TopBar from '../components/Topbar';
 import { fetchBooks, fetchCategories, Book } from '../data/books';
 import { useCart } from '../context/cartContext';
+import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
 
-const PLACEHOLDER_CATEGORIES = [
-  { name: "Fiction", count: 18420 },
-  { name: "Romance", count: 15230 },
-  { name: "Mystery & Thriller", count: 13890 },
-  { name: "Fantasy", count: 12750 },
-  { name: "Science Fiction", count: 11200 },
-  { name: "Historical Fiction", count: 9850 },
-  { name: "Literary Fiction", count: 8760 },
-  { name: "Young Adult", count: 15400 },
-  { name: "Children’s Books", count: 22300 },
-  { name: "Picture Books", count: 18900 },
-  { name: "Middle Grade", count: 11250 },
-  { name: "Biography & Memoir", count: 13400 },
-  { name: "True Crime", count: 9850 },
-  { name: "History", count: 15600 },
-  { name: "Politics & Current Affairs", count: 8200 },
-  { name: "Self-Help", count: 14300 },
-  { name: "Psychology", count: 11200 },
-  { name: "Business & Economics", count: 12900 },
-  { name: "Cookbooks", count: 9850 },
-  { name: "Health & Fitness", count: 8700 },
-  { name: "Science & Nature", count: 9200 },
-  { name: "Technology", count: 7600 },
-  { name: "Art & Photography", count: 8300 },
-  { name: "Travel", count: 7800 },
-  { name: "Religion & Spirituality", count: 10200 },
-  { name: "Philosophy", count: 6500 },
-  { name: "Poetry", count: 5400 },
-  { name: "Horror", count: 8900 },
-  { name: "Crime", count: 10500 },
-  { name: "Dystopian", count: 7200 },
-  { name: "Graphic Novels", count: 6800 },
-  { name: "Comics", count: 5900 },
-  { name: "Classics", count: 11200 },
-  { name: "Mythology & Folklore", count: 5200 },
-  { name: "Adventure", count: 7800 },
-  { name: "Sports", count: 6100 },
-  { name: "Humor", count: 7300 },
-  { name: "Parenting & Family", count: 6900 },
-  { name: "Gardening", count: 5100 },
-  { name: "Crafts & Hobbies", count: 6400 },
-  { name: "Music", count: 5800 },
-  { name: "Film & Theatre", count: 4900 },
-  { name: "Design", count: 5300 },
-  { name: "Architecture", count: 4700 },
-  { name: "Education", count: 8900 },
-  { name: "Reference", count: 6200 },
-  { name: "Law", count: 5100 },
-  { name: "Medicine", count: 6800 },
-  { name: "Mathematics", count: 4900 },
-  { name: "Engineering", count: 5700 },
-  { name: "Computers & Internet", count: 6300 },
-  { name: "Gaming", count: 5200 },
-  { name: "LGBTQ+", count: 7900 },
-  { name: "Women’s Fiction", count: 8600 },
-  { name: "African Literature", count: 5400 },
-  { name: "Caribbean Literature", count: 4200 },
-  { name: "Asian Literature", count: 6100 },
-  { name: "Latin American Literature", count: 5800 },
-  { name: "Short Stories", count: 6900 },
-  { name: "Anthologies", count: 4800 },
-  { name: "All Books", count: 285000 },
-];
+
 
 // Interface for BookCard props
 interface BookCardProps {
@@ -140,21 +80,56 @@ const CategoryCard = ({
   count: number; 
   onOpenModal: (category: string) => void;
 }) => {
+  
+  const { ref, inView } = useInView({
+    triggerOnce: true,
+    threshold: 0.15,
+  });
+
+  const placeholderImage = `https://source.unsplash.com/600x800/?${encodeURIComponent(
+    name.toLowerCase().replace(/&/g, '').replace(/\s+/g, '-')
+  )},book,library,reading&sig=${name}`;
+
   return (
-    <button
+    <motion.button
+      ref={ref}
       onClick={() => onOpenModal(name)}
-      className="flex-shrink-0 w-40 h-40 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all relative group cursor-pointer"
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={inView ? { opacity: 1, scale: 1 } : {}}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      whileHover={{ scale: 1.07 }}
+      className="flex-shrink-0 w-40 h-40 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all relative group cursor-pointer"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-600 opacity-80" />
-      <div className="absolute inset-0 bg-black opacity-40 group-hover:opacity-60 transition" />
-      <div className="relative h-full flex flex-col items-center justify-center text-white p-4 text-center">
-        <h3 className="font-bold text-lg leading-tight">{name}</h3>
-        <p className="text-sm opacity-90 mt-1">{count.toLocaleString()} books</p>
+      <img 
+        src={placeholderImage}
+        alt={name}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        onError={(e) => {
+          e.currentTarget.src = `https://picsum.photos/seed/${name}/600/800`;
+        }}
+      />
+
+<div className="absolute inset-0 bg-black/90 group-hover:bg-black/70 transition-all duration-300" />
+      
+      {/* Name + Count */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 text-white text-left">
+        <h3 className="text-2xl font-bold leading-tight drop-shadow-lg">
+          {name}
+        </h3>
+        <p className="text-lg opacity-90 mt-1 drop-shadow">
+          {count.toLocaleString()} books
+        </p>
       </div>
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-        <span className="text-white font-bold text-xl">EXPLORE</span>
+
+      {/* Hover overlay */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 
+        group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-sm">
+        <span className="text-4xl font-bold tracking-wider text-white drop-shadow-2xl">
+          EXPLORE →
+        </span>
       </div>
-    </button>
+    </motion.button>
   );
 };
 // Updated Book Shelf Component with Grid View for Mobile
@@ -277,7 +252,8 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 // --- Main Homepage Component ---
 
 const Homepage = () => {
-  const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);  const categoryRef = useRef<HTMLDivElement>(null);
+  const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);  const categoryRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -392,18 +368,24 @@ const loadMoreBooks = useCallback(async () => {
   }, [modalLoading, isLoadingMore, hasMoreBooks, loadMoreBooks]);
   
   const goToPage = async (page: number) => {
-    if (page === modalPage || isLoadingMore || !currentCategorySlug) return;
+    if (page === modalPage || isLoadingMore || !selectedCategory) return;
+  
     setIsLoadingMore(true);
-
+  
     try {
-      const { books } = await fetchBooks({
+      const response = await fetchBooks({
         page,
         limit: BOOKS_PER_PAGE,
-        filters: { category: currentCategorySlug },
+        filters: selectedCategory === "All Books"
+          ? {}
+          : { genre: selectedCategory },   // ✅ FIXED
         sort: "createdAt",
-        order: "desc"
+        order: "desc",
       });
-      setModalBooks(formatBooksForHomepage(books));
+  
+      const books = response.listings || response.books || [];
+      setModalBooks(formatBooksForHomepage(books));  // keep format consistent
+  
       setModalPage(page);
       setHasMoreBooks(books.length === BOOKS_PER_PAGE);
     } catch (err) {
@@ -412,126 +394,70 @@ const loadMoreBooks = useCallback(async () => {
       setIsLoadingMore(false);
     }
   };
+  
+  
 
   useEffect(() => {
-    // 1. Instant beautiful UI
-    setCategories(PLACEHOLDER_CATEGORIES);
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
   
-    const loadRealCategories = async () => {
       try {
-        const { books } = await fetchBooks({ page: 1, limit: 2000 });
+        // 1. Get real categories from your fixed fetchCategories()
+        const realCategoryNames = await fetchCategories();
   
-        if (!books || books.length === 0) return;
-  
-        // Master mapping: messy AI tag → clean category name
-        const tagToCategory: Record<string, string> = {
-          // Literature & Classics
-          "Classic": "Classics",
-          "Coming-of-Age": "Young Adult",
-          "American Literature": "Literary Fiction",
-          "Literature": "Literary Fiction",
-          "Literary Fiction": "Literary Fiction",
-  
-          // Fantasy & Sci-Fi
-          "Fantasy": "Fantasy",
-          "Adventure": "Fantasy",
-          "Science Fiction": "Science Fiction",
-          "Sci-Fi": "Science Fiction",
-          "Dystopian": "Dystopian",
-  
-          // Children's
-          "Children": "Children’s Books",
-          "Kids": "Children’s Books",
-          "Juvenile": "Children’s Books",
-  
-          // Romance & Thriller
-          "Romance": "Romance",
-          "Love Story": "Romance",
-          "Mystery": "Mystery & Thriller",
-          "Thriller": "Mystery & Thriller",
-          "Crime": "Crime",
-          "Detective": "Mystery & Thriller",
-  
-          // Non-Fiction
-          "Biography": "Biography & Memoir",
-          "Memoir": "Biography & Memoir",
-          "Self-Help": "Self-Help",
-          "Psychology": "Psychology",
-          "Business": "Business & Economics",
-          "History": "History",
-          "Cookbooks": "Cookbooks",
-          "Health": "Health & Fitness",
-          "Religion": "Religion & Spirituality",
-          "Philosophy": "Philosophy",
-          "Poetry": "Poetry",
-          "Horror": "Horror",
-  
-          // Default fallbacks
-          "Fiction": "Fiction",
-          "Non-Fiction": "Non-Fiction",
-        };
-  
-        const categoryCount = new Map<string, number>();
-  
-        books.forEach((book: any) => {
-          // Only trust high-confidence AI tags
-          if (!book.aiMetadataFilled || book.aiConfidenceScore < 0.7) return;
-  
-          const tags: string[] = book.autoCategorizedTags || [];
-          let matched = false;
-  
-          for (const tag of tags) {
-            const cleanTag = tag.trim();
-            if (!cleanTag) continue;
-  
-            // Direct match
-            if (tagToCategory[cleanTag]) {
-              const catName = tagToCategory[cleanTag];
-              categoryCount.set(catName, (categoryCount.get(catName) || 0) + 1);
-              matched = true;
-              break; // Best match found
-            }
-  
-            // Partial match fallback (e.g. "Fantasy Fiction" → Fantasy)
-            const lower = cleanTag.toLowerCase();
-            if (lower.includes("fantasy")) { categoryCount.set("Fantasy", (categoryCount.get("Fantasy") || 0) + 1); matched = true; }
-            else if (lower.includes("romance")) { categoryCount.set("Romance", (categoryCount.get("Romance") || 0) + 1); matched = true; }
-            else if (lower.includes("mystery") || lower.includes("thriller")) { categoryCount.set("Mystery & Thriller", (categoryCount.get("Mystery & Thriller") || 0) + 1); matched = true; }
-            else if (lower.includes("child") || lower.includes("kids")) { categoryCount.set("Children’s Books", (categoryCount.get("Children’s Books") || 0) + 1); matched = true; }
-            else if (lower.includes("biography") || lower.includes("memoir")) { categoryCount.set("Biography & Memoir", (categoryCount.get("Biography & Memoir") || 0) + 1); matched = true; }
-            else if (lower.includes("cook")) { categoryCount.set("Cookbooks", (categoryCount.get("Cookbooks") || 0) + 1); matched = true; }
-          }
-  
-          // Final fallback: use manual category if clean
-          if (!matched && book.category && typeof book.category === "string") {
-            const cat = book.category.trim();
-            if (cat && !/uncategor|unknown|general|none/i.test(cat)) {
-              categoryCount.set(cat, (categoryCount.get(cat) || 0) + 1);
-            }
-          }
-        });
-  
-        // Convert to array
-        const realCategories = Array.from(categoryCount.entries())
-          .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 50);
-  
-        // Only switch if we found real ones
-        if (realCategories.length >= 5) {
-          realCategories.unshift({ name: "All Books", count: books.length });
-          setCategories(realCategories);
-          console.log(`SUCCESS: Loaded ${realCategories.length - 1} REAL categories!`, realCategories.map(c => `${c.name} (${c.count})`));
-        } else {
-          console.log("Still using beautiful placeholders");
+        if (realCategoryNames.length === 0) {
+          console.warn("No categories found");
+          setCategories([]);
+          return;
         }
   
+        // 2. Get accurate book count for each category
+        const categoryData = await Promise.all(
+          realCategoryNames.map(async (name) => {
+            try {
+              const { total = 0 } = await fetchBooks({
+                page: 1,
+                limit: 1,
+                filters: { genre: name },
+              });
+              return { name, count: total };
+            } catch {
+              return { name, count: 0 };
+            }
+          })
+        );
+  
+        // Filter out empty categories & sort by popularity
+        const validCategories = categoryData
+          .filter(c => c.count > 0)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 18); // Show top 18
+  
+        // Get total books for "All Books"
+        const { total: totalBooks = 50000 } = await fetchBooks({ page: 1, limit: 1 });
+  
+        // Prepend "All Books"
+        const finalList = [
+          { name: "All Books", count: totalBooks },
+          ...validCategories,
+        ];
+  
+        setCategories(finalList);
+        console.log("REAL categories loaded (homepage):", finalList.map(c => `${c.name} (${c.count})`));
       } catch (err) {
-        console.warn("Failed to load real categories → keeping placeholders", err);
+        console.error("Failed to load homepage categories", err);
+        // Optional: tiny graceful fallback (still better than 60 fake ones)
+        setCategories([
+          { name: "All Books", count: 48500 },
+          { name: "Fiction", count: 18200 },
+          { name: "Children's Books", count: 9800 },
+        ]);
+      } finally {
+        setIsLoadingCategories(false);
       }
     };
   
-    loadRealCategories();
+    loadCategories();
   }, []);
 
 
@@ -998,7 +924,7 @@ const loadMoreBooks = useCallback(async () => {
 
         <Footer />
       </div>
-      <CategoryModal />
+      <CategoryModal /> 
     </>
   );
 };

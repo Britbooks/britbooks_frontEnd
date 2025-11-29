@@ -820,93 +820,84 @@ const CategoryBrowsePage = () => {
 
 
   // Fetch categories and first page of books, using cache if available
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      // Check cache first
-      if (dataCache.current.categories && dataCache.current.booksByCategory && dataCache.current.bookCounts) {
-        setCategories(dataCache.current.categories);
-        setBooksByCategory(dataCache.current.booksByCategory);
-        setBookCounts(dataCache.current.bookCounts);
-        setIsInitialLoading(false);
-        return;
+// --- FETCH CATEGORIES & INITIAL DATA (NO FALLBACK PLACEHOLDERS) ---
+useEffect(() => {
+  const fetchInitialData = async () => {
+    setIsInitialLoading(true);
+    setError(null);
+
+    try {
+      // 1. Fetch real categories from backend
+      const realCategories = await fetchCategories();
+
+      if (!realCategories || realCategories.length === 0) {
+        throw new Error("No categories returned from server");
       }
 
-      try {
-        const uniqueCategories = await fetchCategories();
-        setCategories(uniqueCategories);
-        dataCache.current.categories = uniqueCategories;
+      // Sort alphabetically for consistency
+      const sortedCategories = [...realCategories].sort((a, b) => 
+        a.localeCompare(b, undefined, { sensitivity: 'base' })
+      );
 
-        // Fetch first page of books for all categories in parallel
-        const bookPromises = uniqueCategories.map(async (category) => {
-          try {
-            const { books } = await fetchBooks({ page: 1, limit: 12, filters: { genre: category } });
-            return { category, books: formatBooksForHomepage(books) };
-          } catch (err) {
-            console.error(`Failed to fetch books for ${category}:`, err);
-            return { category, books: [] };
-          }
-        });
+      setCategories(sortedCategories);
+      dataCache.current.categories = sortedCategories;
 
-        const bookResults = await Promise.all(bookPromises);
-        const newBooksByCategory = bookResults.reduce((acc, { category, books }) => {
-          acc[category] = books.map(book => ({ ...book, category }));
-          return acc;
-        }, {} as Record<string, BookCardProps[]>);
-        setBooksByCategory(newBooksByCategory);
-        dataCache.current.booksByCategory = newBooksByCategory;
-        setIsInitialLoading(false);
+      // 2. Fetch first page of books for each category in parallel
+      const bookPromises = sortedCategories.map(async (category) => {
+        try {
+          const { books, total } = await fetchBooks({
+            page: 1,
+            limit: 12,
+            filters: { genre: category }
+          });
 
-        // Fetch book counts in the background
-        const countPromises = uniqueCategories.map(async (category) => {
-          try {
-            const { books } = await fetchBooks({ page: 1, limit: 1000, filters: { genre: category } });
-            return { category, count: books.length };
-          } catch (err) {
-            console.error(`Failed to fetch book count for ${category}:`, err);
-            return { category, count: 0 };
-          }
-        });
+          return {
+            category,
+            books: formatBooksForHomepage(books),
+            total: total || books.length
+          };
+        } catch (err) {
+          console.warn(`Failed to load books for category: ${category}`);
+          return { category, books: [], total: 0 };
+        }
+      });
 
-        const countResults = await Promise.all(countPromises);
-        const newBookCounts = countResults.reduce((acc, { category, count }) => {
-          acc[category] = count;
-          return acc;
-        }, {} as Record<string, number>);
-        setBookCounts(newBookCounts);
-        dataCache.current.bookCounts = newBookCounts;
-      } catch (err) {
-        setError("Failed to load categories. Using fallback categories.");
-        const fallbackCategories = [
-          "Mindfulness",
-          "Technology",
-          "Psychology",
-          "Self-Help",
-          "Mystery",
-          "Contemporary Fiction",
-          "Drama",
-          "Biography",
-          "Leadership",
-          "Asian Literature",
-          "Entrepreneurship",
-          "Poetry",
-          "Humor",
-          "History",
-          "Cookbooks",
-          "Art",
-          "Comics",
-        ].sort();
-        setCategories(fallbackCategories);
-        setBooksByCategory(Object.fromEntries(fallbackCategories.map((cat) => [cat, []])));
-        setBookCounts(Object.fromEntries(fallbackCategories.map((cat) => [cat, 0])));
-        dataCache.current.categories = fallbackCategories;
-        dataCache.current.booksByCategory = Object.fromEntries(fallbackCategories.map((cat) => [cat, []]));
-        dataCache.current.bookCounts = Object.fromEntries(fallbackCategories.map((cat) => [cat, 0]));
-        setIsInitialLoading(false);
-      }
-    };
-    fetchInitialData();
-  }, []);
+      const results = await Promise.all(bookPromises);
 
+      // Update books by category
+      const newBooksByCategory: Record<string, BookCardProps[]> = {};
+      const newBookCounts: Record<string, number> = {};
+
+      results.forEach(({ category, books, total }) => {
+        newBooksByCategory[category] = books.map(book => ({
+          ...book,
+          category // ensure category is attached for filtering
+        }));
+        newBookCounts[category] = total || books.length;
+      });
+
+      setBooksByCategory(newBooksByCategory);
+      setBookCounts(newBookCounts);
+
+      // Update cache
+      dataCache.current.booksByCategory = newBooksByCategory;
+      dataCache.current.bookCounts = newBookCounts;
+
+      setIsInitialLoading(false);
+    } catch (err) {
+      console.error("Failed to load categories or books:", err);
+      setError("Unable to load categories. Please try again later.");
+      setIsInitialLoading(false);
+
+      // Optional: Show empty state instead of fake data
+      setCategories([]);
+      setBooksByCategory({});
+      setBookCounts({});
+    }
+  };
+
+  fetchInitialData();
+}, []); // Only run once on mount
   // Animation for scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -930,10 +921,20 @@ const CategoryBrowsePage = () => {
 
   // Filter options for sidebar
   const filterOptions = useMemo(() => {
+    const categoryOptions: Record<string, number> = {};
+    
+    categories.forEach(cat => {
+      categoryOptions[cat] = bookCounts[cat] || 0;
+    });
+  
+    // Sort categories alphabetically
+    const sortedCategoryEntries = Object.entries(categoryOptions)
+      .sort(([a], [b]) => a.localeCompare(b));
+  
     return {
-      category: Object.fromEntries(categories.map((cat) => [cat, bookCounts[cat] || 0])),
+      category: Object.fromEntries(sortedCategoryEntries),
       condition: { new: 0, "like new": 0, "very good": 0, good: 0 },
-      price: priceRanges.map((range) => ({ ...range, count: 0 })),
+      price: priceRanges.map(r => ({ ...r, count: 0 })),
       rating: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     };
   }, [categories, bookCounts]);

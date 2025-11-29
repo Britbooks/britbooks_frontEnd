@@ -145,38 +145,78 @@ export const fetchBooks = async ({
 ---------------------------------------------------------- */
 let cachedCategories: string[] | null = null;
 
-const fallbackCategories = [
-  "Fiction",
-  "Non-Fiction",
-  "Psychology",
-  "Self-Help",
-  "Mystery",
-  "Contemporary Fiction",
-  "Drama",
-  "Biography",
-  "Leadership",
-  "Poetry",
-  "History",
-  "Cookbooks",
-  "Art",
-  "Comics",
-  "Children's Books",
-  "Humor",
-  "Entrepreneurship",
-  "Asian Literature",
-].sort();
 
-export const fetchCategories = async (
-  forceRefresh = false
-): Promise<string[]> => {
-  if (!forceRefresh && cachedCategories) return cachedCategories;
 
-  if (!cachedCategories) {
-    cachedCategories = fallbackCategories;
-    refreshCategoriesInBackground();
+/* ----------------------------------------------------------
+   CATEGORIES — Real Only, No Fallbacks, Proper Loading State
+---------------------------------------------------------- */
+
+let categoriesPromise: Promise<string[]> | null = null;
+
+export const fetchCategories = async (): Promise<string[]> => {
+  // Return cached if already loaded
+  if (cachedCategories) {
+    return cachedCategories;
   }
 
-  return cachedCategories;
+  // Return same promise if already fetching (prevents duplicate requests)
+  if (categoriesPromise) {
+    return categoriesPromise;
+  }
+
+  // Start actual fetch
+  categoriesPromise = (async () => {
+    try {
+      // 1. Try dedicated categories endpoint
+      const response = await axios.get(
+        "https://britbooks-api-production.up.railway.app/api/market/categories"
+      );
+
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const cats = response.data
+          .map((c: any) => String(c).trim())
+          .filter((c: string) => c.length > 0);
+
+        if (cats.length > 0) {
+          cachedCategories = cats.sort((a, b) => a.localeCompare(b));
+          return cachedCategories;
+        }
+      }
+    } catch (error) {
+      console.warn("Categories endpoint failed, falling back to listings scan");
+    }
+
+    // 2. Fallback: Scan listings to extract real categories
+    try {
+      const response = await axios.get(
+        "https://britbooks-api-production.up.railway.app/api/market/admin/listings",
+        { params: { limit: 500 } } // Get enough to discover all categories
+      );
+
+      const uniqueCategories = Array.from(
+        new Set(
+          response.data.listings
+            .map((l: any) => l.category)
+            .filter((cat: string | null) => cat?.trim())
+            .map((cat: string) => cat.trim())
+        )
+      ).sort((a: string, b: string) => a.localeCompare(b));
+
+      if (uniqueCategories.length > 0) {
+        cachedCategories = uniqueCategories;
+        return cachedCategories;
+      }
+    } catch (error) {
+      console.error("Failed to extract categories from listings:", error);
+    }
+
+    // 3. Final fallback: return empty array (never fake data)
+    console.error("No real categories could be loaded from backend");
+    cachedCategories = [];
+    return [];
+  })();
+
+  return categoriesPromise;
 };
 
 const refreshCategoriesInBackground = async () => {
