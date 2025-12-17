@@ -34,6 +34,23 @@ const ShoppingCartIcon = (props) => (
   </svg>
 );
 
+const BookmarkIcon = (props) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+  </svg>
+);
+
 const MenuIcon = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -46,6 +63,19 @@ const XIcon = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18"></line>
     <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
+
+const UserIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+);
+
+const HeartIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
   </svg>
 );
 
@@ -73,7 +103,7 @@ const SearchResultCard = ({ id, imageUrl, title, author, price, rating, onSelect
   const numericPrice = typeof price === "string" ? parseFloat(price.replace("£", "")) : price;
 
   const handleAddToCart = (e) => {
-    e.stopPropagation(); // Prevent navigation when clicking Add to Basket
+    e.stopPropagation();
     addToCart({
       id,
       imageUrl,
@@ -85,24 +115,16 @@ const SearchResultCard = ({ id, imageUrl, title, author, price, rating, onSelect
     toast.success(`${title} added to your basket!`);
   };
 
-  // Handle navigation and clear search
   const handleClick = () => {
     if (id && id !== 'unknown') {
       navigate(`/browse/${id}`);
-      onSelect(); // Clear search query and results
+      onSelect();
     }
   };
 
   return (
-    <div
-      className="flex items-center p-2 border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
-      onClick={handleClick}
-    >
-      <img
-        src={imageUrl || "https://via.placeholder.com/150"}
-        alt={title}
-        className="w-12 h-16 object-cover rounded-md mr-3"
-      />
+    <div className="flex items-center p-2 border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onClick={handleClick}>
+      <img src={imageUrl || "https://via.placeholder.com/150"} alt={title} className="w-12 h-16 object-cover rounded-md mr-3" />
       <div className="flex-1">
         <h3 className="text-sm font-semibold truncate">{title}</h3>
         <p className="text-xs text-gray-500">{author}</p>
@@ -113,10 +135,7 @@ const SearchResultCard = ({ id, imageUrl, title, author, price, rating, onSelect
         </div>
         <p className="text-sm font-bold text-gray-900">£{numericPrice.toFixed(2)}</p>
       </div>
-      <button
-        onClick={handleAddToCart}
-        className="bg-red-600 text-white font-medium px-2 py-1 rounded-md text-xs hover:bg-red-700"
-      >
+      <button onClick={handleAddToCart} className="bg-red-600 text-white font-medium px-2 py-1 rounded-md text-xs hover:bg-red-700">
         Add to Basket
       </button>
     </div>
@@ -135,39 +154,29 @@ const TopBar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const searchRef = useRef(null); // Ref for search input and dropdown
+  const searchRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
-    if (isMobileMenuOpen) {
-      setSearchQuery('');
-      setSearchResults([]);
-    }
   };
 
-  // Clear search query and results
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
   };
 
-  // Handle clicks outside search input/dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         clearSearch();
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounced search function
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (searchQuery.trim()) {
@@ -175,13 +184,10 @@ const TopBar = () => {
         setError(null);
         fetch(`https://britbooks-api-production.up.railway.app/api/market/search?keyword=${encodeURIComponent(searchQuery)}`)
           .then((response) => {
-            if (!response.ok) {
-              throw new Error('Search request failed');
-            }
+            if (!response.ok) throw new Error('Search request failed');
             return response.json();
           })
           .then((data) => {
-            // Normalize API response and map to expected fields
             const results = Array.isArray(data) ? data : data.results || [];
             const mappedResults = results.map((book) => ({
               id: book._id || book.bookId || book.id || 'unknown',
@@ -197,22 +203,18 @@ const TopBar = () => {
           .catch((err) => {
             setError('Failed to fetch search results. Please try again.');
             setIsLoading(false);
-            console.error('Error fetching search results:', err);
           });
       } else {
         setSearchResults([]);
         setError(null);
       }
-    }, 300); // 300ms debounce delay
+    }, 300);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  const handleInputChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
+  const handleInputChange = (e) => setSearchQuery(e.target.value);
 
-  // Navigation links for both desktop and mobile
   const navLinks = (
     <>
       <Link to="/" onClick={toggleMobileMenu} className={`py-3 ${isActive('/') ? 'text-red-600' : 'hover:text-red-600'}`}>Home</Link>
@@ -227,28 +229,63 @@ const TopBar = () => {
 
   return (
     <header className="shadow-md sticky top-0 z-50">
-      {/* --- MODERN MOBILE HEADER (Visible on mobile) --- */}
-      <div className="sm:hidden bg-white flex items-center justify-between p-4 border-b">
-        <button onClick={toggleMobileMenu} className="p-2">
-          <MenuIcon className="h-6 w-6 text-gray-700" />
-        </button>
-        <Link to="/">
-          <img src="/logobrit.png" alt="BritBooks Logo" className="h-10" />
-        </Link>
-        <Link to="/checkout" className="p-2 relative">
-          <ShoppingCartIcon className="h-6 w-6 text-red-500" />
-          <span className="absolute top-0 right-0 block h-4 w-4 rounded-full bg-red-500 text-white text-xs text-center">{cartCount}</span>
-        </Link>
+      {/* ==================== MOBILE TOPBAR ==================== */}
+      <div className="sm:hidden bg-white border-b">
+        {/* First row: menu + logo + cart */}
+        <div className="flex items-center justify-between p-4">
+          <button onClick={toggleMobileMenu} className="p-2">
+            <MenuIcon className="h-6 w-6 text-gray-700" />
+          </button>
+          <Link to="/">
+            <img src="/logobrit.png" alt="BritBooks Logo" className="h-10" />
+          </Link>
+          <Link to="/checkout" className="p-2 relative">
+            <ShoppingCartIcon className="h-6 w-6 text-red-500" />
+            <span className="absolute top-0 right-0 block h-4 w-4 rounded-full bg-red-500 text-white text-xs text-center">{cartCount}</span>
+          </Link>
+        </div>
+
+        {/* NEW: Search bar in mobile top bar */}
+        <div className="px-4 pb-4" ref={searchRef}>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search For Books..."
+              className="w-full py-2 px-4 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchQuery}
+              onChange={handleInputChange}
+            />
+            <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          </div>
+
+          {/* Search Results Dropdown */}
+          {searchQuery.trim() && (
+            <div className="absolute left-4 right-4 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg max-h-96 overflow-y-auto z-40">
+              {isLoading && <p className="p-4 text-center text-gray-500">Loading...</p>}
+              {error && <p className="p-4 text-center text-red-500">{error}</p>}
+              {!isLoading && !error && searchResults.length === 0 && (
+                <p className="p-4 text-center text-gray-500">No results found.</p>
+              )}
+              {searchResults.map((book) => (
+                <SearchResultCard
+                  key={book.id}
+                  id={book.id}
+                  imageUrl={book.imageUrl}
+                  title={book.title}
+                  author={book.author}
+                  price={`£${book.price.toFixed(2)}`}
+                  rating={book.rating}
+                  onSelect={clearSearch}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* --- FULLSCREEN MOBILE MENU (Overlay) --- */}
-      <div 
-        className={`fixed inset-0 z-50 bg-white transform transition-transform duration-300 ease-in-out sm:hidden ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+      {/* ==================== MOBILE MENU (NO SEARCH ANYMORE) ==================== */}
+      <div className={`fixed inset-0 z-50 bg-white transform transition-transform duration-300 ease-in-out sm:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
-          {/* Menu Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <Link to="/">
               <img src="/logobrit.png" alt="BritBooks Logo" className="h-10" />
@@ -258,66 +295,34 @@ const TopBar = () => {
             </button>
           </div>
 
-          {/* Search Bar */}
-          <div className="p-4 border-b" ref={searchRef}>
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Search For Books..." 
-                className="w-full py-2 px-4 border rounded-md"
-                value={searchQuery}
-                onChange={handleInputChange}
-              />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <SearchIcon className="h-5 w-5 -mt-6"/>
-              </button>
-            </div>
-            {/* Search Results Dropdown */}
-            {searchQuery.trim() && (
-              <div className="absolute left-0 right-0 top-full bg-white border border-gray-200 shadow-lg max-h-96 overflow-y-auto z-50 mt-2">
-                {isLoading && <p className="p-4 text-gray-500 text-center">Loading...</p>}
-                {error && <p className="p-4 text-red-500 text-center">{error}</p>}
-                {!isLoading && !error && (!Array.isArray(searchResults) || searchResults.length === 0) && (
-                  <p className="p-4 text-gray-500 text-center">No results found.</p>
-                )}
-                {!isLoading && !error && Array.isArray(searchResults) && searchResults.map((book) => (
-                  <SearchResultCard
-                    key={book.id}
-                    id={book.id}
-                    imageUrl={book.imageUrl}
-                    title={book.title}
-                    author={book.author}
-                    price={`£${book.price.toFixed(2)}`}
-                    rating={book.rating}
-                    onSelect={clearSearch}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          {/* REMOVED SEARCH BAR FROM HERE */}
 
-          {/* Navigation Links */}
           <nav className="flex flex-col p-4 space-y-4 text-lg font-medium">
             {navLinks}
           </nav>
 
-          {/* Footer of Menu */}
           <div className="mt-auto p-4 border-t text-center text-red-600 font-bold">
-            📞 01234 567890
+            Phone 01234 567890
           </div>
         </div>
       </div>
 
-      {/* Top Bar */}
+      {/* Top Bar (Welcome + Account) */}
       <div className="bg-indigo-900 text-white px-4 py-1">
         <div className="container mx-auto flex justify-between items-center text-xs">
-          <span>{user ? `Welcome back, ${user.fullName}!` : 'sign in to explore more!'}</span>
-          <nav className="flex space-x-4 md:space-x-6">
+          <span>{user ? `Welcome back, ${user.fullName}!` : 'Sign in to explore more!'}</span>
+          <nav className="flex space-x-4 md:space-x-6 items-center">
             {user ? (
               <>
-                <Link to="/settings" className="hover:text-gray-300">My Account</Link>
-                <Link to="/wishlist" className="hover:text-gray-300">Wishlist</Link>
-                <button onClick={logout} className="hover:text-gray-300 focus:outline-none">Logout</button>
+                <Link to="/settings" className="hover:text-gray-300 flex items-center space-x-1">
+                  <UserIcon className="w-5 h-5" />
+                </Link>
+                <Link to="/wishlist" className="hover:text-gray-300 flex items-center">
+                  <BookmarkIcon className="w-5 h-5" />
+                </Link>
+                <button onClick={logout} className="hover:text-gray-300 focus:outline-none">
+                  Logout
+                </button>
               </>
             ) : (
               <>
@@ -329,24 +334,17 @@ const TopBar = () => {
         </div>
       </div>
 
-      {/* Main header */}
+      {/* ==================== DESKTOP (COMPLETELY UNCHANGED) ==================== */}
       <div className="bg-white px-1 py-1">
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center relative">
-          {/* Logo (Visible only on desktop) */}
           <div className="hidden sm:block absolute top-0 left-0 h-36 sm:h-40 z-10">
             <Link to="/" className="block w-auto h-full">
-              <img
-                src="/logobrit.png"
-                alt="BritBooks Logo"
-                className="h-full w-auto object-contain"
-              />
+              <img src="/logobrit.png" alt="BritBooks Logo" className="h-full w-auto object-contain" />
             </Link>
           </div>
           
-          {/* Spacer for top section (Visible only on desktop) */}
           <div className="hidden sm:block h-24 sm:h-24 w-44 sm:w-60 flex-shrink-0"></div>
 
-          {/* Search (Visible only on desktop) */}
           <div className="hidden sm:block w-full sm:max-w-lg mx-0 sm:mx-4 mt-2 sm:mt-0 relative" ref={searchRef}>
             <div className="relative">
               <input
@@ -357,18 +355,17 @@ const TopBar = () => {
                 onChange={handleInputChange}
               />
               <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <SearchIcon className="h-5 w-5 -mt-2" />
+                <SearchIcon className="h-5 w-5 -mt-2" />
               </button>
             </div>
-            {/* Search Results Dropdown */}
             {searchQuery.trim() && (
               <div className="absolute left-0 right-0 top-full bg-white border border-gray-200 shadow-lg max-h-96 overflow-y-auto z-50 mt-2">
                 {isLoading && <p className="p-4 text-gray-500 text-center">Loading...</p>}
                 {error && <p className="p-4 text-red-500 text-center">{error}</p>}
-                {!isLoading && !error && (!Array.isArray(searchResults) || searchResults.length === 0) && (
+                {!isLoading && !error && searchResults.length === 0 && (
                   <p className="p-4 text-gray-500 text-center">No results found.</p>
                 )}
-                {!isLoading && !error && Array.isArray(searchResults) && searchResults.map((book) => (
+                {searchResults.map((book) => (
                   <SearchResultCard
                     key={book.id}
                     id={book.id}
@@ -384,8 +381,7 @@ const TopBar = () => {
             )}
           </div>
 
-          {/* Phone Number (Visible only on desktop) */}
-          <div className="hidden sm:block text-red-600 font-bold text-lg mt-2 sm:mt-0">
+           <div className="hidden sm:block text-red-600 font-bold text-lg mt-2 sm:mt-0">
             📞 01234 567890
           </div>
         </div>
@@ -394,10 +390,8 @@ const TopBar = () => {
       {/* Bottom nav */}
       <div className="bg-white border-t border-gray-200 px-4">
         <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16">
-          {/* Spacer for bottom section (Visible only on desktop) */}
           <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden sm:flex flex-1 justify-between items-center font-medium text-gray-600">
             <div className="flex space-x-8">
               <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Home </Link>

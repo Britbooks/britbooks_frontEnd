@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import axios from "axios";
-import { MD5 } from "crypto-js"; // For generating unique seeds
+import { MD5 } from "crypto-js";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import {
@@ -18,40 +18,7 @@ import {
 import toast, { Toaster } from "react-hot-toast";
 import { useCart } from "../context/cartContext";
 import { Book, fetchBooks } from "../data/books";
-
-// --- Helper Function for Placeholder Images ---
-const generatePlaceholderImage = (book: { title: string; isbn: string; genre: string }): string => {
-  // Create a hash from ISBN or title to use as a seed for Picsum
-  const input = book.isbn || book.title;
-  const hash = MD5(input).toString().slice(0, 8); // Use first 8 chars of MD5 hash
-
-  // Map genre to a keyword for visual distinction
-  const genreColors: Record<string, string> = {
-    Mindfulness: "zen",
-    Technology: "tech",
-    Psychology: "psych",
-    "Self-Help": "selfhelp",
-    Mystery: "mystery",
-    "Contemporary Fiction": "fiction",
-    Drama: "drama",
-    Biography: "bio",
-    Leadership: "lead",
-    "Asian Literature": "asianlit",
-    Entrepreneurship: "entrepreneur",
-    Poetry: "poetry",
-    Humor: "humor",
-    History: "history",
-    Cookbooks: "cook",
-    Art: "art",
-    Comics: "comics",
-    default: "default",
-  };
-
-  const genreKey = genreColors[book.genre] || genreColors.default;
-
-  // Use Lorem Picsum with the hash as a seed for unique images
-  return `https://picsum.photos/seed/${hash}-${genreKey}/300/450`;
-};
+import { generatePlaceholderImage } from "../data/books";
 
 // --- SVG ICONS ---
 const StarIcon = ({ filled, rating }: { filled: boolean; rating: number }) => (
@@ -77,13 +44,8 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
   const [imageError, setImageError] = useState(false);
   const numericPrice = typeof price === "string" ? parseFloat(price.replace("£", "")) : price;
 
-  // Fallback image if both primary and Picsum images fail
   const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
-
-  // Use provided imageUrl or generate a placeholder
-  const displayImage = imageError
-    ? fallbackImage
-    : imageUrl || generatePlaceholderImage({ title, isbn, genre });
+  const displayImage = imageError ? fallbackImage : imageUrl;
 
   const handleAddToCart = () => {
     addToCart({
@@ -249,11 +211,9 @@ const BrowseCategoryDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "info" | "reviews">("details");
-  const [imageError, setImageError] = useState(false);
   const { categoryId } = useParams<{ categoryId?: string }>();
 
   const previousCategory = (location.state as { category?: string })?.category || "Browse";
-
   const FALLBACK_IMAGE = "https://placehold.co/300x450?text=Book+Cover";
 
   useEffect(() => {
@@ -261,46 +221,49 @@ const BrowseCategoryDetail = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://britbooks-api-production.up.railway.app/api/market/${id}`);
+        const response = await axios.get(
+          `https://britbooks-api-production.up.railway.app/api/market/${id}`
+        );
+  
         if (!response.data.success || !response.data.listing) {
-          throw new Error("Book not found in API response.");
+          throw new Error("Book not found");
         }
-        const bookData = response.data.listing;
-
-        const imageUrl = bookData.coverImageUrl?.trim()
-          || bookData.samplePageUrls?.[0]?.trim()
-          || generatePlaceholderImage({
-               title: bookData.title || "Untitled",
-               isbn: bookData.isbn || "",
-               genre: bookData.category || "default",
-             });
-        
+  
+        const data = response.data.listing;
+  
+        // Generate the SAME placeholder as in fetchBooks()
+        const placeholderImage = generatePlaceholderImage({
+          title: data.title || "book",
+          isbn: data.isbn || data.title || "unknown",
+          genre: data.category || "default",
+        });
+  
         const foundBook: Book = {
-          id: String(bookData._id || bookData.id),
-          title: bookData.title || "Untitled",
-          author: bookData.author || "Unknown Author",
-          price: bookData.price || 0,
-          imageUrl, // ✅ updated
-          genre: bookData.category || "N/A",
-          condition: bookData.condition || "N/A",
-          description: bookData.description || "",
-          stock: bookData.stock || 0,
-          rating: bookData.rating || 4.5,
-          isbn: bookData.isbn || "",
-          pages: bookData.pages || 300,
-          releaseDate: bookData.listedAt || "",
-          // optional: reviews: bookData.reviews || 0
+          id: String(data._id || data.id),
+          title: data.title || "Untitled Book",
+          author: data.author || "Unknown Author",
+          price: data.price || 0,
+          imageUrl: placeholderImage, // ← ALWAYS valid & beautiful
+          genre: data.category || "General",
+          condition: data.condition || "Good",
+          description: data.description || data.notes || "",
+          stock: data.stock ?? 1,
+          rating: data.rating || 4.5,
+          isbn: data.isbn || "",
+          pages: data.pages || 300,
+          releaseDate: data.listedAt || "",
         };
-        
+  
         setBook(foundBook);
         setIsLoading(false);
       } catch (err) {
-        setError("Failed to load book details. Please try again later.");
+        setError("Failed to load book details.");
         setIsLoading(false);
-        console.error("❌ Failed to fetch book:", err instanceof Error ? err.message : err);
-        toast.error(err instanceof Error ? err.message : "Failed to load book details.");
+        console.error("Failed to fetch book:", err);
+        toast.error("Book not found");
       }
     };
+  
     findBookById();
   }, [id]);
 
@@ -308,7 +271,7 @@ const BrowseCategoryDetail = () => {
     if (book) {
       addToCart({
         id: book.id,
-        imageUrl: imageError ? FALLBACK_IMAGE : book.imageUrl,
+        imageUrl: book.imageUrl,
         title: book.title,
         author: book.author,
         price: `£${book.price.toFixed(2)}`,
@@ -355,68 +318,65 @@ const BrowseCategoryDetail = () => {
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
       <div className="bg-white border-b border-gray-100">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-  <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
-  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {/* Home */}
-        <li>
-          <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
-            <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-            </svg>
-            Home
-          </Link>
-        </li>
-
-        {/* Arrow */}
-        <li>
-          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-          </svg>
-        </li>
-
-        {/* Book Genre — EXACTLY how you wanted it */}
-     
-        <li>
-  <Link
-    to={`/category/?genre=${encodeURIComponent(book?.genre || "Books")}`}
-    className="text-gray-700 hover:text-blue-600 capitalize font-medium transition"
-  >
-    {book?.genre || "Books"}
-  </Link>
-</li>
-        {/* Arrow */}
-        <li>
-          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-          </svg>
-        </li>
-
-        {/* Current Book Title */}
-        <li className="text-gray-900 font-semibold truncate max-w-[200px] sm:max-w-md lg:max-w-none">
-          {book?.title}
-        </li>
-      </ol>
-    </nav>
-  </div>
-</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
+            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li>
+                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                  <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                  </svg>
+                  Home
+                </Link>
+              </li>
+              <li>
+                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                </svg>
+              </li>
+              <li>
+                <Link
+                  to={`/category/?genre=${encodeURIComponent(book?.genre || "Books")}`}
+                  className="text-gray-700 hover:text-blue-600 capitalize font-medium transition"
+                >
+                  {book?.genre || "Books"}
+                </Link>
+              </li>
+              <li>
+                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                </svg>
+              </li>
+              <li className="text-gray-900 font-semibold truncate max-w-[200px] sm:max-w-md lg:max-w-none">
+                {book?.title}
+              </li>
+            </ol>
+          </nav>
+        </div>
+      </div>
       <main className="container mx-auto px-4 sm:px-8 py-8">
-     
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="relative">
-            <img
-              src={imageError ? FALLBACK_IMAGE : book.imageUrl}
-              alt={`Cover of ${book.title}`}
-              className="w-full h-80 object-contain rounded-lg shadow-sm"
-              onError={() => setImageError(true)}
-              loading="lazy"
-            />
+            {book.imageUrl === FALLBACK_IMAGE ? (
+              <div className="w-full h-80 bg-gray-200 border-2 border-dashed rounded-lg flex items-center justify-center text-gray-500 text-center p-4">
+                <div>
+                  <div className="text-4xl font-bold mb-2">No Cover</div>
+                  <div className="text-sm">Book Cover Unavailable</div>
+                </div>
+              </div>
+            ) : (
+              <img
+                src={book.imageUrl}
+                alt={`Cover of ${book.title}`}
+                className="w-full h-80 object-contain rounded-lg shadow-sm"
+                onError={(e) => (e.currentTarget.src = FALLBACK_IMAGE)}
+                loading="lazy"
+              />
+            )}
           </div>
-
           <div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">{book.title}</h1>
             <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
-
             <div className="flex items-center mb-3 text-sm">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
@@ -436,16 +396,13 @@ const BrowseCategoryDetail = () => {
                 Add Your Review
               </a>
             </div>
-
             <p className="text-xl font-bold text-gray-900 mb-3">
               £{book.price.toFixed(2)}
             </p>
-
             <div className="text-sm mb-3">
               <span className="text-green-600 font-semibold">{book.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}</span>
               <span className="text-gray-500 ml-2">SKU: {book.isbn || `BBW0${book.id}`}</span>
             </div>
-
             {book.description ? (
               <p className="text-gray-600 leading-relaxed mb-3">
                 {book.description.substring(0, 150)}...
@@ -455,12 +412,10 @@ const BrowseCategoryDetail = () => {
                 No description available for this book.
               </p>
             )}
-
             <div className="mb-3">
               <span className="font-semibold">Condition: </span>
               <span className="text-gray-700">{book.condition}</span>
             </div>
-
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center">
                 <span className="mr-2 font-semibold text-gray-700">Qty:</span>
@@ -495,7 +450,6 @@ const BrowseCategoryDetail = () => {
                 ADD TO BASKET
               </button>
             </div>
-
             <div className="flex items-center gap-6 mb-3">
               <button className="flex items-center text-gray-600 hover:text-red-600">
                 <Heart size={18} className="mr-1" /> Add to Wish List
@@ -517,7 +471,6 @@ const BrowseCategoryDetail = () => {
             </div>
           </div>
         </div>
-
         <div className="mt-8 border rounded-md">
           <div className="border-b bg-gray-50 rounded-t-md">
             <nav className="flex space-x-1 p-2">
@@ -562,7 +515,6 @@ const BrowseCategoryDetail = () => {
             )}
           </div>
         </div>
-
         <BookShelf
           title="You may also like"
           fetchParams={{ filters: { genre: book.genre }, sort: "rating", order: "desc" }}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Check,
   X,
@@ -754,7 +754,7 @@ const ReviewOrder = ({
   const handlePlaceOrder = async () => {
     if (!auth.token) {
       setError("Please log in to place an order.");
-      navigate("/login");
+      navigate("/login", { state: { from: "/checkout" } });
       return;
     }
 

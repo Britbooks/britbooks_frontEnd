@@ -8,6 +8,8 @@ import { fetchBooks, fetchCategories, Book } from '../data/books';
 import { useCart } from '../context/cartContext';
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
+import { MD5 } from "crypto-js";
+
 
 
 
@@ -21,15 +23,28 @@ interface BookCardProps {
 }
 
 // Convert API books to homepage format
+
+const generatePlaceholderImage = (book: {
+  title: string;
+  isbn?: string;
+  genre?: string;
+}) => {
+  const seed = book.isbn || book.title;
+  const hash = MD5(seed).toString().slice(0, 8);
+  return `https://picsum.photos/seed/book-${hash}/300/450`;
+};
+
 const formatBooksForHomepage = (books: Book[]): BookCardProps[] => {
   return books.map(book => ({
     id: book.id,
-    img: book.imageUrl || 'https://via.placeholder.com/150',
+    img: book.imageUrl?.trim() || generatePlaceholderImage(book),
     title: book.title,
     author: book.author,
     price: `£${book.price.toFixed(2)}`,
   }));
 };
+
+
 
 // --- Reusable Components ---
 
@@ -42,10 +57,24 @@ const BookCard = ({ id, img, title, author, price }: BookCardProps) => {
     toast.success(`${title} added to your basket!`);
   };
 
+  
+
+
+
   return (
     <div className="relative group flex-shrink-0 w-full max-w-[180px] text-center border border-gray-200 rounded-lg p-3 transition-shadow hover:shadow-lg">
       <div className="relative">
-        <img src={img} alt={title} className="w-full h-60 object-cover mb-3 rounded" />
+      <img
+  src={img}
+  alt={title}
+  loading="lazy"
+  className="w-full h-60 object-cover mb-3 rounded"
+  onError={(e) => {
+    const target = e.currentTarget;
+    target.onerror = null; // prevents infinite loop
+    target.src = `https://picsum.photos/seed/fallback-${id}/300/450`;
+  }}
+/>
         <div className="absolute inset-x-0 top-0 h-60 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-100 flex items-center justify-center">
           <Link to={`/browse/${id}`}>
             <button className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-100">

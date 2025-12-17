@@ -72,41 +72,79 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const userId = auth.user?.userId;
   const token = auth.token;
 
-  const [view, setView] = useState<'form' | 'chat'>('form');
+  const [view, setView] = useState<'list' | 'form' | 'chat'>('list'); // list → form → chat
+  const [threads, setThreads] = useState<any[]>([]);                    // All user threads
+  const [selectedChat, setSelectedChat] = useState<any>(null);          // Currently open chat
+  const [messages, setMessages] = useState<any[]>([]);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
-  const [chat, setChat] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(true);
+  const [chatError, setChatError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const API_BASE = "https://britbooks-api-production.up.railway.app/api/chat";
+
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Load all threads when sidebar opens
   useEffect(() => {
-    if (isOpen && userId) loadUserChat();
-  }, [isOpen, userId]);
+    if (isOpen && userId && token) {
+      loadUserThreads();
+    } else if (isOpen && !userId) {
+      setChatLoading(false);
+    }
+  }, [isOpen, userId, token]);
 
-  const loadUserChat = async () => {
+  const loadUserThreads = async () => {
+    if (!userId || !token) return;
+
+    setChatLoading(true);
+    setChatError('');
+
     try {
       const res = await fetch(`${API_BASE}/user/${userId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.chat) {
-          setChat(data.chat);
-          setMessages(data.chat.messages || []);
-        }
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const result = await res.json();
+      const threadList = result.data || [];
+
+      // Sort by last message time (newest first)
+      threadList.sort((a: any, b: any) => 
+        new Date(b.lastMessageAt || b.updatedAt).getTime() - 
+        new Date(a.lastMessageAt || a.updatedAt).getTime()
+      );
+
+      setThreads(threadList);
+
+      if (threadList.length > 0) {
+        // Auto-open the most recent thread
+        setSelectedChat(threadList[0]);
+        setMessages(threadList[0].messages || []);
+        setView('chat');
+      } else {
+        setView('form');
       }
     } catch (err) {
-      console.log("No existing chat");
+      console.error("Failed to load threads:", err);
+      setChatError("Could not load your support history.");
+      setView('form');
+    } finally {
+      setChatLoading(false);
     }
   };
 
-  const handleSubmitTicket = async (e: React.FormEvent) => {
+  const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !description.trim()) return;
 
@@ -116,19 +154,22 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ userId, subject, description }),
       });
-      if (!res.ok) throw new Error();
+
+      if (!res.ok) throw new Error('Failed to create ticket');
+
       const newChat = await res.json();
-      setChat(newChat);
+      setThreads(prev => [newChat, ...prev]);
+      setSelectedChat(newChat);
       setMessages(newChat.messages || []);
       setView('chat');
       setSubject('');
       setDescription('');
     } catch (err) {
-      alert("Failed to create ticket");
+      alert("Failed to create ticket. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -136,10 +177,16 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !chat?._id) return;
+    if (!newMessage.trim() || !selectedChat?._id) return;
 
-    const tempMsg = { _id: `temp_${Date.now()}`, senderId: userId, message: newMessage, createdAt: new Date().toISOString() };
-    setMessages(prev => [...prev, tempMsg]);
+    const optimisticMsg = {
+      _id: `temp_${Date.now()}`,
+      senderId: userId,
+      message: newMessage,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages(prev => [...prev, optimisticMsg]);
     const text = newMessage;
     setNewMessage('');
 
@@ -148,35 +195,61 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ chatId: chat._id, senderId: userId, message: text }),
+        body: JSON.stringify({
+          chatId: selectedChat._id,
+          senderId: userId,
+          message: text,
+        }),
       });
+
       if (!res.ok) throw new Error();
-      const updated = await res.json();
-      setMessages(updated.messages || []);
-      setChat(updated);
+
+      const updatedChat = await res.json();
+      setMessages(updatedChat.messages || []);
+      setSelectedChat(updatedChat);
+
+      // Update thread list with new last message
+      setThreads(prev => prev.map(t => t._id === updatedChat._id ? updatedChat : t));
     } catch (err) {
       setMessages(prev => prev.filter(m => !m._id?.startsWith('temp_')));
       setNewMessage(text);
+      alert("Failed to send message.");
     }
   };
 
-  const getSenderType = (msg: any) => {
-    if (msg.senderId === userId) return 'user';
-    if (msg.senderId === 'bot') return 'bot';
-    return 'admin';
+  const getSenderName = (msg: any) => {
+    if (msg.senderId === userId) return 'You';
+    if (msg.senderId === 'bot') return 'Grok (AI)';
+    return 'Support Team';
   };
 
-  const lastMessage = messages[messages.length - 1];
-  const subjectLine = chat?.messages?.[0]?.message?.split('\n')[0]?.replace('Subject: ', '') || 'Support Thread';
+  const extractSubject = (chat: any) => {
+    const firstMsg = chat.messages?.[0]?.message;
+    if (firstMsg?.startsWith('Subject:')) {
+      return firstMsg.split('\n')[0].replace('Subject:', '').trim();
+    }
+    return 'Support Thread';
+  };
 
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  // Not logged in
   if (!userId) {
     return (
       <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center ${isOpen ? 'block' : 'hidden'}`} onClick={onClose}>
         <div className="bg-white p-8 rounded-xl shadow-2xl text-center max-w-sm" onClick={e => e.stopPropagation()}>
           <h3 className="text-2xl font-bold mb-4">Login Required</h3>
-          <p className="text-gray-600 mb-6">Please log in to access support chat.</p>
+          <p className="text-gray-600 mb-6">Please log in to access support.</p>
           <button onClick={onClose} className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700">
             Close
           </button>
@@ -186,141 +259,328 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   }
 
   return (
-    <div className={`fixed top-0 right-0 h-full w-full sm:w-80 bg-white shadow-lg z-50 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+    <div className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
       <div className="flex flex-col h-full">
+
         {/* Header */}
-        <div className="p-3 sm:p-4 border-b flex justify-between items-center">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800">
-            {view === 'form' ? 'Create Support Ticket' : 'Support Chat'}
+        <div className="p-4 border-b flex justify-between items-center">
+          <h2 className="text-lg font-bold text-gray-800">
+            {view === 'form' ? 'New Support Ticket' : view === 'list' ? 'Support Threads' : 'Support Chat'}
           </h2>
-          <button onClick={onClose}>
-            <XIcon className="w-5 h-5" />
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <XIcon className="w-6 h-6" />
           </button>
         </div>
 
+        {/* Loading */}
+        {chatLoading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p>Loading your threads...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {chatError && !chatLoading && (
+          <div className="p-4 text-center text-red-600 bg-red-50 mx-4 rounded-lg">
+            {chatError}
+          </div>
+        )}
+
+        {/* Thread List View */}
+        {!chatLoading && view === 'list' && threads.length > 0 && (
+  <div className="flex flex-col h-full bg-gray-50">
+    {/* Clean Minimal Header */}
+    <div className="bg-white px-6 pt-8 pb-6">
+      <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Support</h2>
+      <p className="text-sm text-gray-500">Your conversations with BritBooks</p>
+      
+      <button
+        onClick={() => setView('form')}
+        className="mt-6 w-full bg-red-600 text-white py-4 rounded-2xl font-semibold text-lg hover:bg-red-700 active:bg-red-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+        </svg>
+        New Ticket
+      </button>
+    </div>
+
+    {/* Modern Thread List - Clean Cards */}
+    <div 
+      className="flex-1 overflow-y-auto -mt-4" // Overlap header slightly for modern feel
+      style={{ 
+        paddingBottom: 'max(calc(env(safe-area-inset-bottom) + 4rem), 6rem)' 
+      }}
+      ref={(node) => {
+        if (node) node.scrollTop = 0;
+      }}
+    >
+      <div className="px-4 pt-4 space-y-4">
+        {threads.map((thread) => {
+          // Replace with real unread logic later
+          const unreadCount = thread.unreadCount || 0;
+          const isUnread = unreadCount > 0;
+
+          return (
+            <div
+              key={thread._id}
+              onClick={() => {
+                setSelectedChat(thread);
+                setMessages(thread.messages || []);
+                setView('chat');
+              }}
+              className={`bg-white rounded-3xl p-5 cursor-pointer transition-all duration-300 ${
+                isUnread 
+                  ? 'ring-2 ring-red-500/30 shadow-xl scale-[1.01]' 
+                  : 'shadow-md hover:shadow-xl hover:scale-[1.01]'
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                {/* Large Clean Avatar */}
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 ${
+                  isUnread ? 'bg-red-600' : 'bg-gray-800'
+                }`}>
+                  B
+                  {/* Unread dot */}
+                  {isUnread && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white shadow-lg animate-pulse" />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className={`font-semibold text-lg truncate ${isUnread ? 'text-gray-900' : 'text-gray-800'}`}>
+                      {extractSubject(thread)}
+                    </h3>
+                    <span className="text-xs text-gray-500 ml-2">
+                      {formatTime(thread.lastMessageAt || thread.updatedAt)}
+                    </span>
+                  </div>
+
+                  <p className={`text-base line-clamp-2 leading-relaxed ${isUnread ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                    {thread.lastMessage || 'No messages yet'}
+                  </p>
+
+                  {/* Unread Badge - Clean Pill */}
+                  {isUnread && (
+                    <div className="mt-3 inline-flex items-center px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-bold">
+                      {unreadCount > 99 ? '99+' : unreadCount} new
+                    </div>
+                  )}
+                </div>
+
+                {/* Subtle chevron */}
+                <svg className={`w-6 h-6 flex-shrink-0 transition-colors ${isUnread ? 'text-red-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+)}
+
         {/* Form View */}
-        {view === 'form' ? (
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4">
-            <form onSubmit={handleSubmitTicket} className="space-y-4">
+        {!chatLoading && view === 'form' && (
+          <div className="flex-1 overflow-y-auto p-6">
+            <form onSubmit={handleCreateTicket} className="space-y-6">
               <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-2">Subject</label>
+                <label className="block text-sm font-semibold mb-2">Subject</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  placeholder="Enter ticket subject..."
-                  className="w-full p-2 sm:p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
+                  placeholder="e.g. Order not received"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-2">Description</label>
+                <label className="block text-sm font-semibold mb-2">Description</label>
                 <textarea
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Describe your issue..."
-                  className="w-full p-2 sm:p-3 border rounded-md resize-none h-24 sm:h-32 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
+                  className="w-full p-3 border rounded-lg h-40 resize-none focus:ring-2 focus:ring-red-500"
                   required
                 />
               </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 text-sm sm:text-base"
+                className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:opacity-70"
               >
-                {loading ? "Creating..." : "Submit Ticket"}
+                {loading ? 'Creating...' : 'Submit Ticket'}
               </button>
             </form>
 
-            {/* WhatsApp-style Last Message Preview */}
-            {chat && messages.length > 0 && (
-              <div
-                onClick={() => setView('chat')}
-                className="mt-8 mx-4 cursor-pointer select-none"
+            {threads.length > 0 && (
+              <button
+                onClick={() => setView('list')}
+                className="w-full mt-4 text-blue-600 font-medium hover:underline"
               >
-                <div className="flex items-center gap-4 px-5 py-4 bg-white rounded-2xl shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-all border border-gray-100">
-                  {/* Avatar */}
-                  <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md flex-shrink-0">
-                    B
-                  </div>
-
-                  {/* Chat Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 text-base truncate leading-tight">
-                      {subjectLine}
-                    </p>
-                    <p className="text-sm text-gray-600 truncate leading-snug mt-0.5">
-                      {lastMessage?.senderId === userId ? 'You: ' : ''}
-                      {lastMessage?.message || 'No message'}
-                    </p>
-                  </div>
-
-                  {/* Time */}
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500 whitespace-nowrap">
-                      {lastMessage && new Date(lastMessage.createdAt).toLocaleTimeString([], {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* No previous chat */}
-            {!chat && (
-              <div className="text-center mt-12">
-                <p className="text-gray-500 text-sm">
-                  No previous thread. Submit a ticket to start.
-                </p>
-              </div>
+                ← View Previous Threads
+              </button>
             )}
           </div>
-        ) : (
-          /* Full Chat View */
-          <div className="flex flex-col h-full relative">
-            <div className="p-3 sm:p-4">
-              <button onClick={() => setView('form')} className="text-blue-600 font-semibold text-xs sm:text-sm mb-2 sm:mb-3 hover:underline">
-                ← Back to New Ticket
-              </button>
-              <p className="text-sm sm:text-base font-semibold text-gray-800">{subjectLine}</p>
-            </div>
+        )}
 
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 border-t border-gray-200 mb-16 sm:mb-20">
-              {messages.map((msg: any) => {
-                const type = getSenderType(msg);
-                const isUser = type === 'user';
-                return (
-                  <div key={msg._id} className={`mb-3 sm:mb-4 flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] sm:max-w-xs p-2 sm:p-3 rounded-lg ${isUser ? 'bg-red-600 text-white' : type === 'bot' ? 'bg-gray-100 text-gray-800' : 'bg-gray-200 text-gray-800'}`}>
-                      <p className="text-xs sm:text-sm font-semibold">
-                        {isUser ? 'You' : type === 'bot' ? 'Grok (Bot)' : 'Support Team'}
-                      </p>
-                      <p className="text-xs sm:text-sm break-words">{msg.message}</p>
-                      <p className="text-xs text-gray-500 mt-1 opacity-70">
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
+        {/* Chat View */}
+        {!chatLoading && view === 'chat' && selectedChat && (
+  <div className="flex flex-col h-full bg-gradient-to-b from-gray-50 to-gray-100">
+    {/* Modern Header with subtle glass effect */}
+    <div className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-5 py-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setView(threads.length > 1 ? 'list' : 'form')}
+          className="text-blue-600 text-sm font-medium flex items-center gap-2 hover:gap-3 transition-all"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          {threads.length > 1 ? 'All Threads' : 'New Ticket'}
+        </button>
+      </div>
+      <div className="flex items-center gap-4 mt-3">
+        <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+          B
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-gray-900 text-lg truncate">
+            {extractSubject(selectedChat)}
+          </p>
+          <p className="text-sm text-green-600 font-medium">Support • Usually replies quickly</p>
+        </div>
+      </div>
+    </div>
 
-            <form onSubmit={handleSendMessage} className="fixed bottom-0 right-0 w-full sm:w-80 p-3 sm:p-4 border-t bg-white flex items-center" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 p-2 sm:p-3 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
-              />
-              <button type="submit" className="bg-red-600 text-white p-2 sm:p-3 rounded-r-md hover:bg-red-700">
-                <SendIcon className="w-4 sm:w-5 h-4 sm:h-5" />
-              </button>
-            </form>
+    {/* Messages Area - Modern bubble design */}
+    <div 
+      className="flex-1 overflow-y-auto px-4 pt-6"
+      style={{ 
+        paddingBottom: 'max(calc(env(safe-area-inset-bottom) + 6rem), 9rem)' 
+      }}
+    >
+      <div className="max-w-4xl mx-auto space-y-4">
+        {messages.map((msg: any, index) => {
+          const isUser = msg.senderId === userId;
+          const showAvatar = !isUser && (index === 0 || messages[index - 1]?.senderId === userId);
+
+          return (
+            <div
+              key={msg._id}
+              className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'} group`}
+            >
+              {/* Bot/Support Avatar - only show on first or after user message */}
+              {!isUser && showAvatar && (
+                <div className="w-9 h-9 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0 mb-6">
+                  B
+                </div>
+              )}
+              {(!isUser && !showAvatar) && <div className="w-9 flex-shrink-0" />}
+
+              {/* Message Bubble */}
+              <div
+                className={`relative max-w-[75%] px-5 py-4 rounded-3xl shadow-lg transition-all hover:scale-[1.01] ${
+                  isUser
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white rounded-br-md'
+                    : 'bg-white text-gray-900 border border-gray-200 rounded-bl-md'
+                }`}
+              >
+                {/* Sender Name - only for non-user */}
+                {!isUser && (
+                  <p className="text-xs font-bold text-red-600 mb-1">
+                    {getSenderName(msg)}
+                  </p>
+                )}
+
+                {/* Message Text */}
+                <p className="text-base leading-relaxed break-words whitespace-pre-wrap">
+                  {msg.message}
+                </p>
+
+                {/* Timestamp */}
+                <p className={`text-xs mt-2 ${isUser ? 'text-red-200' : 'text-gray-500'} text-right`}>
+                  {new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })}
+                </p>
+
+                {/* Tail for bubble */}
+                <div
+                  className={`absolute bottom-0 w-3 h-3 ${
+                    isUser
+                      ? 'right-0 -mr-1 bg-red-700'
+                      : 'left-0 -ml-1 bg-white border-b border-l border-gray-200'
+                  } rotate-45 transform`}
+                />
+              </div>
+
+              {/* User avatar - only on last message */}
+              {isUser && index === messages.length - 1 && (
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md mb-6">
+                  Y
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+    </div>
+
+    {/* Modern Input Bar - Glassmorphism + floating feel */}
+    <div
+      className="fixed bottom-0 left-0 right-0 sm:right-auto sm:w-96 bg-white/90 backdrop-blur-lg border-t border-gray-200 shadow-2xl"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.5rem)' }}
+    >
+      <form onSubmit={handleSendMessage} className="px-4 py-4 flex items-center gap-3">
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="w-full px-6 py-4 bg-gray-100 rounded-full text-base placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-red-300 transition-all shadow-inner"
+            autoFocus
+          />
+          {/* Optional: Add emoji button later */}
+          {/* <button className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <SmileIcon className="w-6 h-6" />
+          </button> */}
+        </div>
+
+        <button
+          type="submit"
+          disabled={!newMessage.trim()}
+          className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-full shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+        >
+          <SendIcon className="w-6 h-6" />
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
+        {/* Empty State */}
+        {!chatLoading && threads.length === 0 && view === 'list' && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <MessageSquareIcon className="w-20 h-20 text-gray-300 mb-4" />
+            <p className="text-gray-500 mb-6">No support threads yet.</p>
+            <button
+              onClick={() => setView('form')}
+              className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700"
+            >
+              Create Your First Ticket
+            </button>
           </div>
         )}
       </div>

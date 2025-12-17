@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/authContext";
 import { LoginFormData, JwtPayload } from "../types/auth";
 import TopBar from "../components/Topbar";
@@ -84,6 +84,9 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const context = useContext(AuthContext);
 
+  const location = useLocation();
+
+
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
   const { auth, login, verifyLogin, logout } = context;
   const { loading, error, token } = auth;
@@ -162,7 +165,11 @@ const LoginPage = () => {
         setVerifyCode("");
         localStorage.removeItem("loginEmail");
         toast.success("Login verified successfully!");
-        navigate("/");
+
+        const redirectTo = location.state?.from || "/";
+        
+        navigate(redirectTo, { replace: true });
+        
       } else {
         console.error("Login verification failed:", auth.error);
         toast.error(auth.error || "Verification failed. Please try again.");

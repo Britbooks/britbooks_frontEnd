@@ -25,15 +25,20 @@ interface FetchBooksParams {
   filters?: Record<string, any>;
 }
 
+export interface Category {
+  name: string;
+  imageUrl: string;
+}
+
 /* ----------------------------------------------------------
    PLACEHOLDER IMAGES
 ---------------------------------------------------------- */
-const generatePlaceholderImage = (book: {
+export const generatePlaceholderImage = (book: {
   title: string;
   isbn: string;
   genre: string;
 }): string => {
-  const input = book.isbn || book.title;
+  const input = book.isbn || book.title || "unknown";
   const hash = MD5(input).toString().slice(0, 8);
 
   const genreColors: Record<string, string> = {
@@ -63,8 +68,37 @@ const generatePlaceholderImage = (book: {
   return `https://picsum.photos/seed/${hash}-${genreKey}/300/450`;
 };
 
+const generateCategoryPlaceholder = (name: string) =>
+  `https://picsum.photos/seed/category-${MD5(name).toString().slice(0, 8)}/300/200`;
+
 /* ----------------------------------------------------------
-   FETCH BOOKS (Now Exactly Matches Backend Structure)
+   CACHING FOR fetchBooks
+---------------------------------------------------------- */
+interface CacheEntry {
+  books: Book[];
+  total: number;
+  timestamp: number;
+}
+
+const booksCache = new Map<string, CacheEntry>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const generateCacheKey = (params: FetchBooksParams): string => {
+  const normalizedFilters = params.filters
+    ? JSON.stringify(params.filters, Object.keys(params.filters).sort())
+    : null;
+
+  return JSON.stringify({
+    page: params.page,
+    limit: params.limit,
+    sort: params.sort || "createdAt",
+    order: params.order || "desc",
+    filters: normalizedFilters,
+  });
+};
+
+/* ----------------------------------------------------------
+   FETCH BOOKS — Now with Smart Caching
 ---------------------------------------------------------- */
 export const fetchBooks = async ({
   page = 1,
@@ -73,15 +107,21 @@ export const fetchBooks = async ({
   order = "desc",
   filters,
 }: FetchBooksParams): Promise<{ books: Book[]; total: number }> => {
-  try {
-    const params: Record<string, any> = {
-      page,
-      limit,
-      sort,
-      order,
-    };
+  const cacheKey = generateCacheKey({ page, limit, sort, order, filters });
+  const now = Date.now();
 
-    // Correct query keys for backend
+  // Return cached data if still fresh
+  const cached = booksCache.get(cacheKey);
+  if (cached && now - cached.timestamp < CACHE_DURATION) {
+    console.log(`Cache HIT: ${cacheKey.substring(0, 60)}...`);
+    return { books: cached.books, total: cached.total };
+  }
+
+  console.log(`Cache MISS → Fetching from API: ${cacheKey.substring(0, 60)}...`);
+
+  try {
+    const params: Record<string, any> = { page, limit, sort, order };
+
     if (filters) {
       if (filters.genre) params.category = filters.genre;
       if (filters.condition) params.condition = filters.condition;
@@ -101,39 +141,42 @@ export const fetchBooks = async ({
     );
 
     const books: Book[] = response.data.listings.map((listing: any) => {
-      let imageUrl = listing.coverImageUrl?.trim();
-      if (!imageUrl && listing.samplePageUrls?.[0]?.trim()) {
-        imageUrl = listing.samplePageUrls[0];
-      }
-      if (!imageUrl) {
-        imageUrl = generatePlaceholderImage({
-          title: listing.title,
-          isbn: listing.isbn,
-          genre: listing.category || "default",
-        });
-      }
+      const imageUrl = generatePlaceholderImage({
+        title: listing.title || "Unknown",
+        isbn: listing.isbn || listing.title || "unknown",
+        genre: listing.category || "default",
+      });
 
       return {
-        id: listing._id,
-        title: listing.title,
-        author: listing.author,
-        price: listing.price,
+        id: String(listing._id || listing.id),
+        title: listing.title || "Untitled",
+        author: listing.author || "Unknown Author",
+        price: listing.price ?? 0,
         imageUrl,
         genre: listing.category || "Unknown",
         condition: listing.condition || "Good",
-        description: listing.notes || "",
-        stock: listing.stock || 0,
-        rating: listing.rating || 4.5,
+        description: listing.notes || listing.description || "",
+        stock: listing.stock ?? 0,
+        rating: listing.rating ?? 4.5,
         isbn: listing.isbn || "",
         pages: listing.pages || 300,
         releaseDate: listing.listedAt || new Date().toISOString(),
       };
     });
 
-    return {
+    const result = {
       books,
-      total: response.data.meta?.count || books.length,
+      total: response.data.meta?.count ?? books.length,
     };
+
+    // Cache the result
+    booksCache.set(cacheKey, {
+      books,
+      total: result.total,
+      timestamp: now,
+    });
+
+    return result;
   } catch (error) {
     console.error("Error fetching books:", error instanceof Error ? error.message : error);
     throw error;
@@ -141,110 +184,91 @@ export const fetchBooks = async ({
 };
 
 /* ----------------------------------------------------------
-   CATEGORIES — Cached + Background Refresh
+   CATEGORIES — Cached
 ---------------------------------------------------------- */
 let cachedCategories: string[] | null = null;
-
-
-
-/* ----------------------------------------------------------
-   CATEGORIES — Real Only, No Fallbacks, Proper Loading State
----------------------------------------------------------- */
-
 let categoriesPromise: Promise<string[]> | null = null;
 
 export const fetchCategories = async (): Promise<string[]> => {
-  // Return cached if already loaded
-  if (cachedCategories) {
-    return cachedCategories;
-  }
+  if (cachedCategories) return cachedCategories;
+  if (categoriesPromise) return categoriesPromise;
 
-  // Return same promise if already fetching (prevents duplicate requests)
-  if (categoriesPromise) {
-    return categoriesPromise;
-  }
-
-  // Start actual fetch
   categoriesPromise = (async () => {
+    let categoryNames: string[] = [];
+
     try {
-      // 1. Try dedicated categories endpoint
       const response = await axios.get(
         "https://britbooks-api-production.up.railway.app/api/market/categories"
       );
 
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        const cats = response.data
-          .map((c: any) => String(c).trim())
-          .filter((c: string) => c.length > 0);
-
-        if (cats.length > 0) {
-          cachedCategories = cats.sort((a, b) => a.localeCompare(b));
-          return cachedCategories;
-        }
+      if (response.data?.success && Array.isArray(response.data.categories)) {
+        categoryNames = response.data.categories
+          .map((c: any) => String(c.name || c).trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b));
       }
-    } catch (error) {
-      console.warn("Categories endpoint failed, falling back to listings scan");
+    } catch (err) {
+      console.warn("Categories endpoint failed, scanning listings...");
     }
 
-    // 2. Fallback: Scan listings to extract real categories
-    try {
-      const response = await axios.get(
-        "https://britbooks-api-production.up.railway.app/api/market/admin/listings",
-        { params: { limit: 500 } } // Get enough to discover all categories
-      );
+    if (categoryNames.length === 0) {
+      try {
+        const response = await axios.get(
+          "https://britbooks-api-production.up.railway.app/api/market/admin/listings",
+          { params: { limit: 5000 } }
+        );
 
-      const uniqueCategories = Array.from(
-        new Set(
-          response.data.listings
-            .map((l: any) => l.category)
-            .filter((cat: string | null) => cat?.trim())
-            .map((cat: string) => cat.trim())
-        )
-      ).sort((a: string, b: string) => a.localeCompare(b));
+        const categories = response.data.listings
+          .map((l: any) => l.category)
+          .filter((cat: string) => cat?.trim())
+          .map((cat: string) => cat.trim());
 
-      if (uniqueCategories.length > 0) {
-        cachedCategories = uniqueCategories;
-        return cachedCategories;
+        categoryNames = Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b));
+      } catch (err) {
+        console.error("Failed to extract categories from listings:", err);
       }
-    } catch (error) {
-      console.error("Failed to extract categories from listings:", error);
     }
 
-    // 3. Final fallback: return empty array (never fake data)
-    console.error("No real categories could be loaded from backend");
-    cachedCategories = [];
-    return [];
+    cachedCategories = categoryNames.length > 0 ? categoryNames : ["Fiction", "Non-Fiction"];
+    return cachedCategories;
   })();
 
   return categoriesPromise;
 };
 
-const refreshCategoriesInBackground = async () => {
-  try {
-    const response = await axios.get(
-      "https://britbooks-api-production.up.railway.app/api/market/categories"
-    );
+/* ----------------------------------------------------------
+   UTILS
+---------------------------------------------------------- */
+export const clearBooksCache = () => {
+  booksCache.clear();
+  console.log("Books cache cleared");
+};
 
-    if (response.data && Array.isArray(response.data)) {
-      cachedCategories = response.data.sort();
-      return;
-    }
-  } catch {}
+export const fetchAllBooks = async (
+  customParams: Omit<FetchBooksParams, "page" | "limit"> = {},
+  batchLimit = 100
+): Promise<Book[]> => {
+  let allBooks: Book[] = [];
+  let page = 1;
+  let total = 0;
 
-  try {
-    const response = await axios.get(
-      "https://britbooks-api-production.up.railway.app/api/market/admin/listings",
-      { params: { page: 1, limit: 100 } }
-    );
+  do {
+    const { books, total: responseTotal } = await fetchBooks({
+      ...customParams,
+      page,
+      limit: batchLimit,
+    });
 
-    const unique = Array.from(
-      new Set(
-        response.data.listings
-          .map((l: any) => l.category)
-          .filter((cat: string) => cat?.trim())
-      )
-    ).sort();
+    allBooks.push(...books);
+    total = responseTotal || total;
 
-    if (unique.length > 0) cachedCategories = unique;
-  } catch {}
+    console.log(`Fetched page ${page}: ${books.length} books (total: ${allBooks.length}/${total})`);
+
+    if (books.length === 0) break;
+    page++;
+    await new Promise((r) => setTimeout(r, 300)); // Be gentle
+  } while (allBooks.length < total);
+
+  console.log(`Fetched all ${allBooks.length} books.`);
+  return allBooks;
 };

@@ -33,7 +33,7 @@ const initialUserData = {
   name: 'John Doe',
   email: 'john.doe@example.com',
   phone: '',
-  profilePicture: 'https://via.placeholder.com/150',
+  profilePicture: '',
   is2FAEnabled: false,
   notifications: { email: true, sms: false },
 };
@@ -49,8 +49,9 @@ const AccountSettingsForm = ({ userData, setUserData, token, logout }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [profilePicFile, setProfilePicFile] = useState(null);
-  const [profilePicPreview, setProfilePicPreview] = useState(userData.profilePicture);
-
+  const profilePicPreview = profilePicFile 
+  ? URL.createObjectURL(profilePicFile)
+  : (userData.profilePicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(userData.name || 'User')}`);
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox' && name.includes('notifications.')) {
@@ -109,15 +110,16 @@ const AccountSettingsForm = ({ userData, setUserData, token, logout }) => {
         formDataToSend,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setUserData({
         userId: response.data._id,
-        name: response.data.fullName,
+        name: response.data.fullName || 'User',
         email: response.data.email,
-        phone: response.data.phoneNumber,
-        profilePicture: response.data.profilePicture || profilePicPreview,
-        is2FAEnabled: formData.is2FAEnabled,
-        notifications: formData.notifications,
+        phone: response.data.phoneNumber || '',
+        profilePicture: response.data.profilePicture 
+          ? response.data.profilePicture 
+          : `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(response.data.fullName || 'User')}`,
+        is2FAEnabled: initialUserData.is2FAEnabled,
+        notifications: initialUserData.notifications,
       });
       setSuccess('Account details updated successfully!');
       setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }));
@@ -159,11 +161,11 @@ const AccountSettingsForm = ({ userData, setUserData, token, logout }) => {
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm animate-on-scroll">
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="flex flex-col items-center mb-4 sm:mb-6">
-            <img
-              src={profilePicPreview}
-              alt="Profile"
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover mb-2"
-            />
+          <img
+  src={profilePicPreview}
+  alt="Profile"
+  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover mb-2"
+/>
             <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-2">
               Profile Picture
             </label>
