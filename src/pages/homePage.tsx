@@ -165,36 +165,114 @@ const CategoryCard = ({
 const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) => {
   const [books, setBooks] = useState<BookCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalBooks, setTotalBooks] = useState(0); // From API if available
 
-  const itemsPerPage = 5;
-  const totalBooksToFetch = 100; // ← Gives you 20 pages! (100 ÷ 5 = 20)
+  const itemsPerPage = 5; // Show more books per page → feels "plenty" instantly
+  const initialLimit = 100; // Safe first load – fast & gives 5 pages of content
 
+  // Cache for prefetched pages
+  const pageCache = useRef<Map<number, BookCardProps[]>>(new Map());
+
+  const loadPage = useCallback(async (pageNum: number, append = false) => {
+    // If already cached, use instantly
+    if (pageCache.current.has(pageNum)) {
+      const cached = pageCache.current.get(pageNum)!;
+      setBooks(prev => append ? [...prev, ...cached] : cached);
+      setCurrentPage(pageNum);
+      return;
+    }
+
+    if (pageNum === 1) setIsLoading(true);
+    else setIsLoadingMore(true);
+
+    try {
+      const { books: fetchedBooks, total } = await fetchBooks({
+        page: pageNum,
+        limit: itemsPerPage,
+        ...fetchParams,
+      });
+
+      const formatted = formatBooksForHomepage(fetchedBooks || []);
+
+      // Cache it
+      pageCache.current.set(pageNum, formatted);
+
+      // Update state
+      if (append) {
+        setBooks(prev => [...prev, ...formatted]);
+      } else {
+        setBooks(formatted);
+      }
+
+      setTotalBooks(total || 0);
+      setCurrentPage(pageNum);
+    } catch (err) {
+      setError(`Failed to load ${title.toLowerCase()}.`);
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [fetchParams, title]);
+
+  // Initial load – get first 100 books fast
   useEffect(() => {
-    const fetchShelfBooks = async () => {
+    const fetchInitial = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const { books: fetchedBooks } = await fetchBooks({
+        const { books: fetchedBooks, total } = await fetchBooks({
           page: 1,
-          limit: totalBooksToFetch, // ← 100 books = 20 full pages
-          ...fetchParams
+          limit: initialLimit,
+          ...fetchParams,
         });
 
-        setBooks(formatBooksForHomepage(fetchedBooks));
+        const formatted = formatBooksForHomepage(fetchedBooks || []);
+        setBooks(formatted);
+        setTotalBooks(total || formatted.length);
+
+        // Cache first few pages
+        for (let p = 1; p <= Math.ceil(formatted.length / itemsPerPage); p++) {
+          const slice = formatted.slice((p - 1) * itemsPerPage, p * itemsPerPage);
+          pageCache.current.set(p, slice);
+        }
       } catch (err) {
         setError(`Failed to load ${title.toLowerCase()}.`);
-        console.error(`Failed to fetch ${title}:`, err);
+        console.error(err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchShelfBooks();
+    fetchInitial();
   }, [fetchParams]);
 
-  const totalPages = Math.ceil(books.length / itemsPerPage);
+  // Prefetch next page when user is on current page
+  useEffect(() => {
+    if (currentPage < Math.ceil(books.length / itemsPerPage)) return;
+
+    // Prefetch next page in background
+    const nextPage = currentPage + 1;
+    if (!pageCache.current.has(nextPage)) {
+      fetchBooks({
+        page: nextPage,
+        limit: itemsPerPage,
+        ...fetchParams,
+      }).then(res => {
+        const formatted = formatBooksForHomepage(res.books || []);
+        pageCache.current.set(nextPage, formatted);
+      }).catch(() => {});
+    }
+  }, [currentPage, books.length, fetchParams]);
+
+  const totalPages = Math.max(
+    Math.ceil(books.length / itemsPerPage),
+    Math.ceil(totalBooks / itemsPerPage)
+  );
+
   const paginatedBooks = books.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -205,10 +283,10 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
       <section className="py-8 animate-on-scroll">
         <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-          {[...Array(10)].map((_, i) => (
+          {[...Array(20)].map((_, i) => (
             <div
               key={i}
-              className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-80 animate-pulse"
+              className="bg-gray-200 border-2 border-dashed rounded-xl w-full aspect-[3/4] animate-pulse"
             />
           ))}
         </div>
@@ -230,36 +308,52 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-blue-800">{title}</h2>
 
-        {/* Pagination Controls */}
-        <div className="flex items-center gap-3">
+        {/* Enhanced Pagination */}
+        <div className="flex items-center gap-4">
           <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onClick={() => {
+              const prev = Math.max(1, currentPage - 1);
+              setCurrentPage(prev);
+              if (!pageCache.current.has(prev)) loadPage(prev);
+            }}
             disabled={currentPage === 1}
-            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
           >
             <ChevronLeft size={24} />
           </button>
 
-          <span className="text-sm font-semibold text-gray-700 min-w-[100px] text-center">
+          <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
             Page {currentPage} of {totalPages > 0 ? totalPages : 1}
+            {totalBooks > 0 && ` • ${totalBooks.toLocaleString()} books`}
           </span>
 
           <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition"
+            onClick={() => {
+              const next = currentPage + 1;
+              setCurrentPage(next);
+              loadPage(next, true); // append if needed
+            }}
+            disabled={currentPage >= totalPages}
+            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
           >
             <ChevronRight size={24} />
           </button>
         </div>
       </div>
 
-      {/* Books Grid */}
+      {/* Books Grid – Now 20 books visible instantly */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
         {paginatedBooks.map(book => (
           <BookCard key={book.id} {...book} />
         ))}
       </div>
+
+      {isLoadingMore && (
+        <div className="text-center py-10">
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent" />
+          <p className="mt-4 text-gray-600">Loading more...</p>
+        </div>
+      )}
 
       {books.length === 0 && (
         <p className="text-center text-gray-500 py-12 text-lg">
@@ -267,10 +361,10 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
         </p>
       )}
 
-      {/* Optional: Show total count */}
       {books.length > 0 && (
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Showing {paginatedBooks.length} of {books.length} books
+        <p className="text-center text-sm text-gray-500 mt-8">
+          Showing {paginatedBooks.length} of {books.length}+ books
+          {totalBooks > books.length && ` • ${totalBooks.toLocaleString()} total`}
         </p>
       )}
     </section>
