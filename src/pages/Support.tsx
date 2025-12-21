@@ -5,6 +5,10 @@ import Footer from '../components/footer';
 import TopBar from '../components/Topbar';
 import { useAuth } from '../context/authContext';
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { PlusIcon, XMarkIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
+
+
 
 // === ALL YOUR ORIGINAL ICONS ===
 const ChevronDownIcon = (props: any) => (
@@ -39,6 +43,29 @@ const XIcon = (props: any) => (
     <line x1="6" y1="6" x2="18" y2="18"></line>
   </svg>
 );
+
+const newsItems = [
+  {
+    text: "System maintenance scheduled for Dec 24, 2025 – Minimal downtime expected",
+    iconUrl: "https://media.istockphoto.com/id/1219484410/vector/calendar-days-of-the-month-with-a-scheduled-reminder-and-a-wrench-and-screwdriver-for.jpg?s=612x612&w=0&k=20&c=0WWqOpdUub3xwuTjfHWQrf9u__SMcQ2L3CVPhBW1C1I=",
+  },
+  {
+    text: "New feature released: Advanced ticket analytics dashboard!",
+    iconUrl: "https://www.shutterstock.com/image-vector/vector-new-update-bell-modern-260nw-2440669853.jpg",
+  },
+  {
+    text: "Security tip: Enable two-factor authentication for better protection",
+    iconUrl: "https://www.shutterstock.com/image-vector/security-shield-sign-vector-illustration-260nw-2486879781.jpg",
+  },
+  {
+    text: "All systems operational – Server status: 100% uptime",
+    iconUrl: "https://www.shutterstock.com/image-vector/arrow-icon-set-cursor-down-260nw-2663185649.jpg", // Using a clean "up/online" arrow icon
+  },
+  {
+    text: "Happy Holidays! Support hours adjusted Dec 25–Jan 1",
+    iconUrl: "https://media.istockphoto.com/id/2165186116/vector/upcoming-holidays-and-celebrations-icons-editable-stroke.jpg?s=612x612&w=0&k=20&c=xMOViWRyOmUe6udobVbssGw8FR-ZwXlx4811NaWfDpE=",
+  },
+];
 
 // === FAQ COMPONENT (YOUR ORIGINAL) ===
 const FaqItem = ({ question, answer }: { question: string; answer: string }) => {
@@ -221,7 +248,7 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
   const getSenderName = (msg: any) => {
     if (msg.senderId === userId) return 'You';
-    if (msg.senderId === 'bot') return 'Grok (AI)';
+    if (msg.senderId === 'bot') return 'Alex';
     return 'Support Team';
   };
 
@@ -243,6 +270,165 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
     });
   };
 
+  const renderMessageContent = (rawText: string) => {
+    // ==================== CLEAN TEXT ====================
+    let text = rawText
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .trim();
+  
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+  
+    // ==================== PAYMENT CARD ====================
+    const paymentIdMatch = text.match(/pi_[A-Za-z0-9_]+/);
+  
+    if (paymentIdMatch) {
+      const paymentId = paymentIdMatch[0];
+  
+      const details: { label: string; value: string }[] = [];
+      let politeLine = "";
+      let closingQuestion = "";
+      let receiptLink = "";
+  
+      // 🔒 SINGLE SOURCE OF TRUTH
+      let canonicalAmount: string | null = null;
+      const seenLabels = new Set<string>();
+  
+      for (const line of lines) {
+        if (line.length < 3) continue;
+  
+        // Polite / closing lines
+        if (!line.includes(":")) {
+          if (/confirmed|processed|succeeded|successful|completed|great|perfect/i.test(line)) {
+            politeLine = line;
+          } else if (/anything else|can I help|assist|need anything/i.test(line)) {
+            closingQuestion = line;
+          }
+          continue;
+        }
+  
+        const kvMatch = line.match(/^[\*\-\•\s]*(.+?)\s*:\s*(.+)$/);
+        if (!kvMatch) continue;
+  
+        let label = kvMatch[1].trim().replace(/:$/, "");
+        let rawValue = kvMatch[2].trim();
+        let value = rawValue.replace(/✅$/, "").trim();
+  
+        // ---------- NORMALIZATION ----------
+        if (/amount|total|paid/i.test(label)) {
+          label = "Amount";
+  
+          // capture once
+          if (!canonicalAmount) {
+            canonicalAmount = value;
+          }
+  
+          value = canonicalAmount;
+        } 
+        else if (/date/i.test(label)) {
+          label = "Date";
+        } 
+        else if (/status/i.test(label)) {
+          label = "Status";
+        } 
+        else if (/payment\s*id/i.test(label)) {
+          label = "Payment ID";
+        } 
+        else if (/receipt/i.test(label)) {
+          label = "Receipt";
+  
+          const mdLink = rawValue.match(/\[(.*?)\]\((https?:\/\/[^)\s]+)\)/);
+          const plainLink = rawValue.match(/(https?:\/\/[^\s\)]+)/);
+          receiptLink = mdLink?.[2] || plainLink?.[1] || "";
+  
+          value = "View Receipt";
+        }
+  
+        // 🚫 prevent duplicates (especially Amount)
+        if (seenLabels.has(label)) continue;
+        seenLabels.add(label);
+  
+        details.push({ label, value });
+      }
+  
+      // HARD SAFETY NET
+      if (details.length === 0) {
+        details.push({
+          label: "Status",
+          value: /success|succeeded|confirmed|completed/i.test(text)
+            ? "Succeeded"
+            : "Processed",
+        });
+      }
+  
+      return (
+        <div className="space-y-5">
+          {/* Payment ID */}
+          <div className="flex justify-center">
+            <span className="px-6 py-2.5 rounded-full bg-red-50 text-red-700 font-bold text-sm shadow-sm">
+              {paymentId}
+            </span>
+          </div>
+  
+          {/* Summary */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 bg-gray-50 font-semibold text-gray-700">
+              Payment Summary
+            </div>
+  
+            <div className="divide-y divide-gray-100">
+              {details.map((d, i) => (
+                <div key={i} className="flex justify-between px-5 py-3.5 text-sm">
+                  <span className="text-gray-500">{d.label}</span>
+                  <span className="font-medium text-gray-900 flex items-center gap-1.5">
+                    {d.value}
+                    {/succeeded|success/i.test(d.value) && (
+                      <span className="text-green-600">✓</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+  
+          {/* Receipt */}
+          {receiptLink && (
+            <div className="flex justify-center">
+              <a
+                href={receiptLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-7 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
+              >
+                Download Receipt
+              </a>
+            </div>
+          )}
+  
+          {/* Closing */}
+          {(politeLine || closingQuestion) && (
+            <div className="text-center space-y-2">
+              {politeLine && <p>{politeLine}</p>}
+              {closingQuestion && <p className="italic">{closingQuestion}</p>}
+            </div>
+          )}
+        </div>
+      );
+    }
+  
+    // ==================== TEXT FALLBACK ====================
+    return (
+      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+        {text}
+      </p>
+    );
+  };
+  
+  
+  
   // Not logged in
   if (!userId) {
     return (
@@ -263,24 +449,97 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       <div className="flex flex-col h-full">
 
         {/* Header */}
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-lg font-bold text-gray-800">
-            {view === 'form' ? 'New Support Ticket' : view === 'list' ? 'Support Threads' : 'Support Chat'}
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <XIcon className="w-6 h-6" />
-          </button>
+        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+  {/* Main Header Row */}
+  <div className="px-6 py-5 flex items-center justify-between">
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={view}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="flex items-center gap-4"
+      >
+        {/* Icon with modern gradient badge */}
+        <div className="p-2.5 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 border border-violet-200 shadow-sm">
+          {view === "form" ? (
+            <PlusIcon className="w-6 h-6 text-violet-700" />
+          ) : (
+            <ChatBubbleLeftRightIcon className="w-6 h-6 text-indigo-700" />
+          )}
         </div>
+
+        {/* Bold gradient title */}
+        <h2 className="text-2xl font-extrabold bg-gradient-to-r from-gray-800 via-gray-900 to-indigo-900 bg-clip-text text-transparent">
+          {view === "form"
+            ? "New Support Ticket"
+            : view === "list"
+            ? "Support Threads"
+            : "Conversation"}
+        </h2>
+      </motion.div>
+    </AnimatePresence>
+
+    {/* Modern close button */}
+    <button
+      onClick={onClose}
+      className="group p-3 rounded-2xl bg-gray-100/70 hover:bg-gray-200/80 backdrop-blur-sm transition-all duration-200 active:scale-90"
+      aria-label="Close"
+    >
+      <XMarkIcon className="w-5 h-5 text-gray-600 group-hover:text-gray-900 transition-colors" />
+    </button>
+  </div>
+
+  {/* Show news feed only for support threads (list or conversation views) */}
+  {(view === "list" || view === "conversation") && (
+    <div className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 py-4 px-6">
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_50%,white_0.5px,transparent_0.5px)] bg-[length:30px_30px]" />
+
+      <motion.div
+        className="flex items-center gap-12 whitespace-nowrap"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 30, ease: "linear", repeat: Infinity }}
+      >
+        {[...messages, ...messages].map((msg, idx) => (
+          <div
+            key={idx}
+            className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/25 backdrop-blur-md border border-white/30 text-white text-sm font-semibold shadow-lg"
+          >
+            <div className="w-2 h-2 rounded-full bg-white animate-ping" />
+            {msg.text}
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Fade edges */}
+      <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-violet-600 to-transparent pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-purple-600 to-transparent pointer-events-none" />
+    </div>
+  )}
+</div>
+
+
 
         {/* Loading */}
         {chatLoading && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p>Loading your threads...</p>
-            </div>
-          </div>
-        )}
+  <div className="flex-1 flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      {/* Minimal Spinner */}
+      <div className="relative w-8 h-8">
+        <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
+        <div className="absolute inset-0 rounded-full border-2 border-red-600 border-t-transparent animate-spin"></div>
+      </div>
+
+      {/* Text */}
+      <p className="text-sm text-gray-500 tracking-wide">
+        Loading conversations
+      </p>
+    </div>
+  </div>
+)}
+
 
         {/* Error */}
         {chatError && !chatLoading && (
@@ -290,37 +549,52 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         )}
 
         {/* Thread List View */}
-        {!chatLoading && view === 'list' && threads.length > 0 && (
-  <div className="flex flex-col h-full bg-gray-50">
-    {/* Clean Minimal Header */}
-    <div className="bg-white px-6 pt-8 pb-6">
-      <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Support</h2>
-      <p className="text-sm text-gray-500">Your conversations with BritBooks</p>
-      
-      <button
-        onClick={() => setView('form')}
-        className="mt-6 w-full bg-red-600 text-white py-4 rounded-2xl font-semibold text-lg hover:bg-red-700 active:bg-red-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-        </svg>
-        New Ticket
-      </button>
+        {!chatLoading && view === "list" && threads.length > 0 && (
+  <div className="flex flex-col h-full bg-[#fafafa]">
+    {/* Header */}
+    <div className="bg-white px-6 py-5 border-b border-gray-100">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Support
+          </h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Conversations with BritBooks
+          </p>
+        </div>
+
+        <button
+          onClick={() => setView("form")}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          New ticket
+        </button>
+      </div>
     </div>
 
-    {/* Modern Thread List - Clean Cards */}
-    <div 
-      className="flex-1 overflow-y-auto -mt-4" // Overlap header slightly for modern feel
-      style={{ 
-        paddingBottom: 'max(calc(env(safe-area-inset-bottom) + 4rem), 6rem)' 
-      }}
-      ref={(node) => {
-        if (node) node.scrollTop = 0;
+    {/* Thread List */}
+    <div
+      className="flex-1 overflow-y-auto"
+      style={{
+        paddingBottom:
+          "max(calc(env(safe-area-inset-bottom) + 2rem), 4rem)",
       }}
     >
-      <div className="px-4 pt-4 space-y-4">
+      <div className="px-4 py-3 space-y-2">
         {threads.map((thread) => {
-          // Replace with real unread logic later
           const unreadCount = thread.unreadCount || 0;
           const isUnread = unreadCount > 0;
 
@@ -330,52 +604,68 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
               onClick={() => {
                 setSelectedChat(thread);
                 setMessages(thread.messages || []);
-                setView('chat');
+                setView("chat");
               }}
-              className={`bg-white rounded-3xl p-5 cursor-pointer transition-all duration-300 ${
-                isUnread 
-                  ? 'ring-2 ring-red-500/30 shadow-xl scale-[1.01]' 
-                  : 'shadow-md hover:shadow-xl hover:scale-[1.01]'
+              className={`group cursor-pointer rounded-xl bg-white px-4 py-3 transition-all ${
+                isUnread
+                  ? "ring-1 ring-red-100"
+                  : "hover:bg-gray-50"
               }`}
             >
-              <div className="flex items-start gap-4">
-                {/* Large Clean Avatar */}
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 ${
-                  isUnread ? 'bg-red-600' : 'bg-gray-800'
-                }`}>
+              <div className="flex items-center gap-4">
+                {/* Avatar */}
+                <div
+                  className={`relative w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-white text-sm ${
+                    isUnread ? "bg-red-600" : "bg-gray-800"
+                  }`}
+                >
                   B
-                  {/* Unread dot */}
                   {isUnread && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white shadow-lg animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" />
                   )}
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className={`font-semibold text-lg truncate ${isUnread ? 'text-gray-900' : 'text-gray-800'}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3
+                      className={`truncate text-sm font-medium ${
+                        isUnread
+                          ? "text-gray-900"
+                          : "text-gray-700"
+                      }`}
+                    >
                       {extractSubject(thread)}
                     </h3>
-                    <span className="text-xs text-gray-500 ml-2">
-                      {formatTime(thread.lastMessageAt || thread.updatedAt)}
+
+                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                      {formatTime(
+                        thread.lastMessageAt || thread.updatedAt
+                      )}
                     </span>
                   </div>
-
-                  <p className={`text-base line-clamp-2 leading-relaxed ${isUnread ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
-                    {thread.lastMessage || 'No messages yet'}
-                  </p>
-
-                  {/* Unread Badge - Clean Pill */}
-                  {isUnread && (
-                    <div className="mt-3 inline-flex items-center px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-bold">
-                      {unreadCount > 99 ? '99+' : unreadCount} new
-                    </div>
-                  )}
                 </div>
 
-                {/* Subtle chevron */}
-                <svg className={`w-6 h-6 flex-shrink-0 transition-colors ${isUnread ? 'text-red-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                {/* Unread Badge */}
+                {isUnread && (
+                  <span className="ml-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+
+                {/* Chevron */}
+                <svg
+                  className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </div>
             </div>
@@ -385,6 +675,7 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
     </div>
   </div>
 )}
+
 
         {/* Form View */}
         {!chatLoading && view === 'form' && (
@@ -468,71 +759,51 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       }}
     >
       <div className="max-w-4xl mx-auto space-y-4">
-        {messages.map((msg: any, index) => {
-          const isUser = msg.senderId === userId;
-          const showAvatar = !isUser && (index === 0 || messages[index - 1]?.senderId === userId);
+      {messages.map((msg: any, index) => {
+  const isUser = msg.senderId === userId;
+  const showAvatar = !isUser && (index === 0 || messages[index - 1]?.senderId === userId);
 
-          return (
-            <div
-              key={msg._id}
-              className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'} group`}
-            >
-              {/* Bot/Support Avatar - only show on first or after user message */}
-              {!isUser && showAvatar && (
-                <div className="w-9 h-9 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0 mb-6">
-                  B
-                </div>
-              )}
-              {(!isUser && !showAvatar) && <div className="w-9 flex-shrink-0" />}
 
-              {/* Message Bubble */}
-              <div
-                className={`relative max-w-[75%] px-5 py-4 rounded-3xl shadow-lg transition-all hover:scale-[1.01] ${
-                  isUser
-                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white rounded-br-md'
-                    : 'bg-white text-gray-900 border border-gray-200 rounded-bl-md'
-                }`}
-              >
-                {/* Sender Name - only for non-user */}
-                {!isUser && (
-                  <p className="text-xs font-bold text-red-600 mb-1">
-                    {getSenderName(msg)}
-                  </p>
-                )}
 
-                {/* Message Text */}
-                <p className="text-base leading-relaxed break-words whitespace-pre-wrap">
-                  {msg.message}
-                </p>
+  return (
+    <div
+      key={msg._id}
+      className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+    >
+      {!isUser && showAvatar && (
+        <div className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center font-bold shadow mb-6">
+          A
+        </div>
+      )}
+      {!isUser && !showAvatar && <div className="w-9" />}
 
-                {/* Timestamp */}
-                <p className={`text-xs mt-2 ${isUser ? 'text-red-200' : 'text-gray-500'} text-right`}>
-                  {new Date(msg.createdAt).toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                  })}
-                </p>
+      <div
+        className={`relative max-w-[85%] px-5 py-4 rounded-2xl shadow ${
+          isUser
+            ? 'bg-red-600 text-white rounded-br-md'
+            : 'bg-white border border-gray-200 rounded-bl-md'
+        }`}
+      >
+        {!isUser && (
+          <p className="text-xs font-semibold text-red-600 mb-2">
+            {getSenderName(msg)}
+          </p>
+        )}
 
-                {/* Tail for bubble */}
-                <div
-                  className={`absolute bottom-0 w-3 h-3 ${
-                    isUser
-                      ? 'right-0 -mr-1 bg-red-700'
-                      : 'left-0 -ml-1 bg-white border-b border-l border-gray-200'
-                  } rotate-45 transform`}
-                />
-              </div>
+        {renderMessageContent(msg.message)}
 
-              {/* User avatar - only on last message */}
-              {isUser && index === messages.length - 1 && (
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md mb-6">
-                  Y
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <p className={`text-[11px] mt-3 text-right ${isUser ? 'text-red-200' : 'text-gray-400'}`}>
+          {new Date(msg.createdAt).toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          })}
+        </p>
+      </div>
+    </div>
+  );
+})}
+
         <div ref={messagesEndRef} />
       </div>
     </div>
@@ -552,10 +823,6 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
             className="w-full px-6 py-4 bg-gray-100 rounded-full text-base placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-red-300 transition-all shadow-inner"
             autoFocus
           />
-          {/* Optional: Add emoji button later */}
-          {/* <button className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            <SmileIcon className="w-6 h-6" />
-          </button> */}
         </div>
 
         <button

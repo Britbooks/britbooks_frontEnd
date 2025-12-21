@@ -704,47 +704,131 @@ const MainContent = ({ setOrders }) => {
               ))
             )}
           </div>
-
           {/* Pagination Controls */}
-          {!loading && totalOrders > 0 && (
-            <div className="mt-8 flex justify-center items-center space-x-2">
-              <button
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                  currentPage === 1
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}
-              >
-                Previous
-              </button>
-              <div className="flex space-x-1">
-                {Array.from({ length: totalPages }, (_, index) => (
-                  <button
-                    key={index + 1}
-                    onClick={() => paginate(index + 1)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                      currentPage === index + 1
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                  currentPage === totalPages
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}
-              >
-                Next
-              </button>
+          {!loading && totalOrders > 0 && !searchQuery && (
+            <div className="mt-12 flex flex-col items-center gap-6">
+              {/* Page Info */}
+              <p className="text-sm text-gray-600 font-medium">
+                Showing page <span className="font-semibold text-indigo-600">{currentPage}</span> of{' '}
+                <span className="font-semibold text-indigo-600">{totalPages}</span> ({totalOrders}{' '}
+                {totalOrders === 1 ? 'order' : 'orders'} total)
+              </p>
+
+              {/* Pagination Navigation */}
+              <nav className="flex items-center gap-2" aria-label="Pagination">
+                {/* Previous Button */}
+                <button
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-300
+                    bg-white border border-gray-300 text-gray-700 shadow-sm
+                    hover:bg-gray-50 hover:border-gray-400 hover:shadow
+                    disabled:pointer-events-none disabled:opacity-50 disabled:text-gray-400 disabled:shadow-none
+                    focus:outline-none focus:ring-4 focus:ring-indigo-200"
+                  aria-label="Previous page"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span className="hidden sm:inline">Previous</span>
+                </button>
+
+                {/* Page Numbers - Smart Truncation (Desktop) */}
+                <div className="hidden sm:flex items-center gap-2">
+                  {/* First Page + Ellipsis */}
+                  {currentPage > 3 && (
+                    <>
+                      <button
+                        onClick={() => paginate(1)}
+                        className="w-12 h-12 rounded-xl text-sm font-medium transition-all duration-300
+                          bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow"
+                      >
+                        1
+                      </button>
+                      {currentPage > 4 && <span className="text-gray-500 px-2">...</span>}
+                    </>
+                  )}
+
+                  {/* Dynamic Page Range (up to 5 visible) */}
+                  {(() => {
+                    const pages = [];
+                    const start = totalPages <= 5 ? 1 : Math.max(1, currentPage - 2);
+                    const end = totalPages <= 5 ? totalPages : Math.min(totalPages, currentPage + 2);
+
+                    for (let i = start; i <= end; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => paginate(i)}
+                          className={`w-12 h-12 rounded-xl text-sm font-medium transition-all duration-300 shadow-sm
+                            ${currentPage === i
+                              ? 'bg-indigo-600 text-white border border-indigo-600 shadow-indigo-200'
+                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow'}`}
+                          aria-current={currentPage === i ? 'page' : undefined}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    return pages;
+                  })()}
+
+                  {/* Last Page + Ellipsis */}
+                  {currentPage < totalPages - 2 && (
+                    <>
+                      {currentPage < totalPages - 3 && <span className="text-gray-500 px-2">...</span>}
+                      <button
+                        onClick={() => paginate(totalPages)}
+                        className="w-12 h-12 rounded-xl text-sm font-medium transition-all duration-300
+                          bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Mobile Simplified: Just Prev/Current/Next */}
+                <div className="flex sm:hidden items-center gap-4 text-sm font-medium text-gray-700">
+                  <span>
+                    Page {currentPage} / {totalPages}
+                  </span>
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-300
+                    bg-white border border-gray-300 text-gray-700 shadow-sm
+                    hover:bg-gray-50 hover:border-gray-400 hover:shadow
+                    disabled:pointer-events-none disabled:opacity-50 disabled:text-gray-400 disabled:shadow-none
+                    focus:outline-none focus:ring-4 focus:ring-indigo-200"
+                  aria-label="Next page"
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </nav>
+            </div>
+          )}
+
+          {/* Search No Results Message */}
+          {searchQuery && displayedOrders.length === 0 && !loading && (
+            <div className="mt-12 text-center">
+              <p className="text-gray-600 text-lg">
+                No orders found matching "<span className="font-semibold text-indigo-600">{searchQuery}</span>".
+              </p>
+              <p className="text-sm text-gray-500 mt-2">Try searching by full or partial order ID.</p>
+            </div>
+          )}
+
+          {/* Optional: Show message when searching */}
+          {searchQuery && filteredOrders.length === 0 && !loading && (
+            <div className="mt-8 text-center text-gray-600">
+              No orders found matching "<strong>{searchQuery}</strong>". Try searching by full or partial order ID.
             </div>
           )}
         </div>
