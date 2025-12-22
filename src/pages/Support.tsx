@@ -1031,7 +1031,7 @@ const HelpAndSupportPage = () => {
         }
         .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
         .hero-section {
-          background-image: url('https://media.istockphoto.com/id/1315388795/video/flying-through-emerging-digital-structures-blue-loopable-data-network-virtual-reality-quantum.mp4?s=mp4-640x640-is&k=20&c=YOcxqKZzmSRYHCTkzQgtAKAKGC6E1L5QWNB7ecOspnk=');
+          background-image: url('https://media.istockphoto.com/id/2152866635/video/chatbot-assistant-application-ai-concept-digital-binary-data-and-streaming-digital-code.mp4?s=mp4-640x640-is&k=20&c=ame22KN30JAUvvydaB0UGYk0yyZvRTWVCaHfKP5OpGY=');
           background-size: cover;
           background-position: center;
           position: relative;
@@ -1093,14 +1093,36 @@ const HelpAndSupportPage = () => {
         <main className="flex-1 bg-gray-50 p-4 sm:p-8 overflow-y-auto pb-16 lg:pb-8">
           <div className="max-w-4xl mx-auto">
             {/* Hero Section */}
-            <header className="hero-section text-white py-16 animate-on-scroll rounded-2xl overflow-hidden">
-              <div className="text-center px-6">
-                <h1 className="text-4xl sm:text-5xl font-bold">Help & Support</h1>
-                <p className="mt-4 text-lg max-w-2xl mx-auto text-gray-200">
-                  Create a ticket to chat with our support team or Grok, our AI assistant.
-                </p>
-              </div>
-            </header>
+      {/* Hero Section */}
+<header className="relative text-white py-16 animate-on-scroll rounded-2xl overflow-hidden">
+  {/* Video Background */}
+  <video
+    className="absolute inset-0 w-full h-full object-cover"
+    autoPlay
+    muted
+    loop
+    playsInline
+    poster="https://via.placeholder.com/1920x1080/000000/333333?text=AI+Binary+Background" // Optional fallback image
+  >
+    <source
+      src="https://media.istockphoto.com/id/2152866635/video/chatbot-assistant-application-ai-concept-digital-binary-data-and-streaming-digital-code.mp4?s=mp4-640x640-is&k=20&c=ame22KN30JAUvvydaB0UGYk0yyZvRTWVCaHfKP5OpGY="
+      type="video/mp4"
+    />
+    {/* Add more sources if you have WebM version for better compatibility */}
+    Your browser does not support the video tag.
+  </video>
+
+  {/* Dark Overlay */}
+  <div className="absolute inset-0 bg-black opacity-50 z-10"></div>
+
+  {/* Content */}
+  <div className="relative z-20 text-center px-6">
+    <h1 className="text-4xl sm:text-5xl font-bold">Help & Support</h1>
+    <p className="mt-4 text-lg max-w-2xl mx-auto text-gray-200">
+      Create a ticket to chat with our support team or Alex, our AI assistant.
+    </p>
+  </div>
+</header>
 
             {/* FAQ Section */}
             <section className="py-12">
