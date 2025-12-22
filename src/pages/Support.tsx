@@ -202,21 +202,30 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
     }
   };
 
+  const dedupeMessages = (msgs: any[]) => {
+    const map = new Map<string, any>();
+    msgs.forEach(m => map.set(m._id, m));
+    return Array.from(map.values());
+  };
+  
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedChat?._id) return;
-
+  
+    const tempId = `temp_${Date.now()}`;
+  
     const optimisticMsg = {
-      _id: `temp_${Date.now()}`,
+      _id: tempId,
       senderId: userId,
       message: newMessage,
       createdAt: new Date().toISOString(),
     };
-
+  
+    // 1️⃣ Optimistic render
     setMessages(prev => [...prev, optimisticMsg]);
     const text = newMessage;
     setNewMessage('');
-
+  
     try {
       const res = await fetch(`${API_BASE}/send`, {
         method: 'POST',
@@ -230,21 +239,33 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
           message: text,
         }),
       });
-
+  
       if (!res.ok) throw new Error();
-
+  
       const updatedChat = await res.json();
-      setMessages(updatedChat.messages || []);
+  
+      // 2️⃣ Merge + dedupe instead of replace
+      setMessages(prev =>
+        dedupeMessages([
+          ...prev.filter(m => m._id !== tempId), // remove temp
+          ...(updatedChat.messages || []),
+        ])
+      );
+  
       setSelectedChat(updatedChat);
-
-      // Update thread list with new last message
-      setThreads(prev => prev.map(t => t._id === updatedChat._id ? updatedChat : t));
+  
+      // 3️⃣ Update thread list safely
+      setThreads(prev =>
+        prev.map(t => (t._id === updatedChat._id ? updatedChat : t))
+      );
     } catch (err) {
-      setMessages(prev => prev.filter(m => !m._id?.startsWith('temp_')));
+      // Rollback optimistic message
+      setMessages(prev => prev.filter(m => m._id !== tempId));
       setNewMessage(text);
       alert("Failed to send message.");
     }
   };
+  
 
   const getSenderName = (msg: any) => {
     if (msg.senderId === userId) return 'You';
@@ -271,18 +292,16 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   };
 
   const renderMessageContent = (rawText: string) => {
-    // ==================== CLEAN TEXT ====================
-    let text = rawText
-      .replace(/\*\*(.*?)\*\*/g, "$1")
-      .replace(/\*(.*?)\*/g, "$1")
-      .trim();
+    let text = rawText.trim();
+  
+    const displayText = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
   
     const lines = text
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
   
-    // ==================== PAYMENT CARD ====================
+    // ==================== PAYMENT CARD (COMPLETELY UNTOUCHED) ====================
     const paymentIdMatch = text.match(/pi_[A-Za-z0-9_]+/);
   
     if (paymentIdMatch) {
@@ -293,14 +312,12 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       let closingQuestion = "";
       let receiptLink = "";
   
-      // 🔒 SINGLE SOURCE OF TRUTH
       let canonicalAmount: string | null = null;
       const seenLabels = new Set<string>();
   
       for (const line of lines) {
         if (line.length < 3) continue;
   
-        // Polite / closing lines
         if (!line.includes(":")) {
           if (/confirmed|processed|succeeded|successful|completed|great|perfect/i.test(line)) {
             politeLine = line;
@@ -317,63 +334,44 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         let rawValue = kvMatch[2].trim();
         let value = rawValue.replace(/✅$/, "").trim();
   
-        // ---------- NORMALIZATION ----------
         if (/amount|total|paid/i.test(label)) {
           label = "Amount";
-  
-          // capture once
-          if (!canonicalAmount) {
-            canonicalAmount = value;
-          }
-  
-          value = canonicalAmount;
-        } 
-        else if (/date/i.test(label)) {
+          if (!canonicalAmount) canonicalAmount = value;
+          value = canonicalAmount || value;
+        } else if (/date/i.test(label)) {
           label = "Date";
-        } 
-        else if (/status/i.test(label)) {
+        } else if (/status/i.test(label)) {
           label = "Status";
-        } 
-        else if (/payment\s*id/i.test(label)) {
+        } else if (/payment\s*id/i.test(label)) {
           label = "Payment ID";
-        } 
-        else if (/receipt/i.test(label)) {
+        } else if (/receipt/i.test(label)) {
           label = "Receipt";
-  
           const mdLink = rawValue.match(/\[(.*?)\]\((https?:\/\/[^)\s]+)\)/);
           const plainLink = rawValue.match(/(https?:\/\/[^\s\)]+)/);
           receiptLink = mdLink?.[2] || plainLink?.[1] || "";
-  
           value = "View Receipt";
         }
   
-        // 🚫 prevent duplicates (especially Amount)
         if (seenLabels.has(label)) continue;
         seenLabels.add(label);
-  
         details.push({ label, value });
       }
   
-      // HARD SAFETY NET
       if (details.length === 0) {
         details.push({
           label: "Status",
-          value: /success|succeeded|confirmed|completed/i.test(text)
-            ? "Succeeded"
-            : "Processed",
+          value: /success|succeeded|confirmed|completed/i.test(text) ? "Succeeded" : "Processed",
         });
       }
   
       return (
         <div className="space-y-5">
-          {/* Payment ID */}
           <div className="flex justify-center">
             <span className="px-6 py-2.5 rounded-full bg-red-50 text-red-700 font-bold text-sm shadow-sm">
               {paymentId}
             </span>
           </div>
   
-          {/* Summary */}
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
             <div className="px-5 py-3 bg-gray-50 font-semibold text-gray-700">
               Payment Summary
@@ -394,7 +392,6 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
             </div>
           </div>
   
-          {/* Receipt */}
           {receiptLink && (
             <div className="flex justify-center">
               <a
@@ -408,7 +405,6 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
             </div>
           )}
   
-          {/* Closing */}
           {(politeLine || closingQuestion) && (
             <div className="text-center space-y-2">
               {politeLine && <p>{politeLine}</p>}
@@ -419,11 +415,164 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       );
     }
   
-    // ==================== TEXT FALLBACK ====================
+    // ==================== ORDER CARD (ONLY ONE – RETURNS EARLY) ====================
+    const orderIdMatch = text.match(/Order\s*#?([A-Za-z0-9]{10,})/i);
+    const hasOrderDetails = lines.some(l => /Placed|Date|Order Date|Total|Status|Payment|Delivered|Shipped|Processing|Tracking/i.test(l));
+    const hasBooks = lines.some(l => /by [A-Za-z]/i.test(l) && !l.includes(':'));
+  
+    if (orderIdMatch || (hasOrderDetails && hasBooks)) {
+      const orderId = orderIdMatch ? `#${orderIdMatch[1]}` : "Order Details";
+  
+      const details: { label: string; value: string }[] = [];
+      const books: string[] = [];
+      let politeLine = "";
+      let closingQuestion = "";
+  
+      const seenLabels = new Set<string>();
+  
+      for (const line of lines) {
+        if (line.length < 3) continue;
+  
+        if (!line.includes(":")) {
+          if (/thank|soon|today|arrive|out for delivery|dispatched|your order|excited/i.test(line)) {
+            politeLine = line;
+          } else if (/anything else|can I help|need anything|is there anything/i.test(line)) {
+            closingQuestion = line;
+          }
+        }
+  
+        if (/by [A-Za-z]/i.test(line) && !line.includes(':') && line.length > 15) {
+          const clean = line.replace(/^[\s•\-\*]+/, '').trim();
+          if (clean && !books.includes(clean)) {
+            books.push(clean);
+          }
+        }
+  
+        const kvMatch = line.match(/^[\s•\-\*]*(\*?\**)?([^:*]+?)\*?\**?\s*:\s*(.+)$/);
+        if (kvMatch) {
+          let label = kvMatch[2].trim().replace(/:$/, '');
+          let value = kvMatch[3].trim().replace(/✅$/, '').trim();
+  
+          if (/order.*date|placed/i.test(label)) label = "Placed";
+          else if (/total|amount/i.test(label)) label = "Total";
+          else if (/status|delivery.*status/i.test(label)) label = "Status";
+          else if (/payment/i.test(label)) label = "Payment";
+          else if (/track|tracking|carrier/i.test(label)) label = "Tracking";
+  
+          if (label.length > 2 && !seenLabels.has(label)) {
+            seenLabels.add(label);
+            details.push({ label, value });
+          }
+        }
+      }
+  
+      const desiredOrder = ["Placed", "Total", "Status", "Payment", "Tracking"];
+      const orderedDetails = desiredOrder
+        .map(l => details.find(d => d.label === l))
+        .filter((d): d is { label: string; value: string } => !!d);
+  
+      const otherDetails = details.filter(d => !desiredOrder.includes(d.label));
+      const finalDetails = [...orderedDetails, ...otherDetails];
+  
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-center">
+            <span className="px-6 py-2.5 rounded-full bg-indigo-100 text-indigo-800 font-bold text-base shadow-sm">
+              {orderId}
+            </span>
+          </div>
+  
+          {books.length > 0 && (
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Your Items</h4>
+              <div className="space-y-4">
+                {books.map((book, i) => (
+                  <div key={i} className="flex items-start gap-4">
+                    <div className="text-3xl flex-shrink-0">📖</div>
+                    <p className="font-medium text-gray-900 leading-relaxed">{book}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+  
+          {finalDetails.length > 0 && (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+              <div className="px-6 py-4 bg-indigo-600 text-white font-semibold text-lg">
+                Order Information
+              </div>
+              <div className="divide-y divide-gray-100">
+                {finalDetails.map((d, i) => (
+                  <div
+                    key={i}
+                    className={`flex justify-between items-center px-6 py-4 text-base ${
+                      d.label === "Status" && /delivered|shipped|out for delivery|dispatched/i.test(d.value.toLowerCase())
+                        ? "bg-green-50"
+                        : ""
+                    }`}
+                  >
+                    <span className="text-gray-600 font-medium">{d.label}</span>
+                    <div className="font-semibold text-gray-900 flex items-center gap-2.5">
+                      <span>{d.value}</span>
+                      {d.label === "Status" && /delivered|shipped|out for delivery|dispatched/i.test(d.value.toLowerCase()) && (
+                        <span className="text-green-600 text-xl">✓</span>
+                      )}
+                      {d.label === "Payment" && /paid|completed|succeeded/i.test(d.value.toLowerCase()) && (
+                        <span className="text-green-600 text-xl">✓</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+  
+          {(politeLine || closingQuestion) && (
+            <div className="text-center space-y-2.5 mt-4">
+              {politeLine && <p className="text-gray-700 font-medium">{politeLine}</p>}
+              {closingQuestion && <p className="text-gray-600 italic">{closingQuestion}</p>}
+            </div>
+          )}
+        </div>
+      );
+    }
+  
+    // ==================== GENERAL TEXT FALLBACK – ONLY IF NOTHING ELSE MATCHED ====================
+    const paragraphs = displayText
+      .split("\n\n")
+      .map((p) => p.trim())
+      .filter(Boolean);
+  
     return (
-      <p className="text-sm leading-relaxed whitespace-pre-wrap">
-        {text}
-      </p>
+      <div className="space-y-4 text-gray-800 leading-relaxed">
+        {paragraphs.map((paragraph, i) => {
+          const paraLines = paragraph.split("\n");
+          const isList = paraLines.every((l) => /^[\*\-\•\s]/.test(l.trim()));
+  
+          if (isList) {
+            return (
+              <ul key={i} className="space-y-2 ml-6">
+                {paraLines.map((line, j) => {
+                  const content = line.replace(/^[\*\-\•\s]+/, "").trim();
+                  return (
+                    <li key={j} className="flex items-start gap-3">
+                      <span className="text-red-600 mt-1.5">•</span>
+                      <span dangerouslySetInnerHTML={{ __html: content }} />
+                    </li>
+                  );
+                })}
+              </ul>
+            );
+          }
+  
+          return (
+            <div
+              key={i}
+              dangerouslySetInnerHTML={{ __html: paragraph.replace(/\n/g, "<br/>") }}
+            />
+          );
+        })}
+      </div>
     );
   };
   
