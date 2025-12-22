@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/authContext';
 import { useCart } from '../context/cartContext';
+import { fetchCategories } from "../data/books"; // Assuming your API utility is in this path
 import toast from 'react-hot-toast';
 
 // --- SVG ICONS --- //
@@ -73,9 +74,9 @@ const UserIcon = (props) => (
   </svg>
 );
 
-const HeartIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+const ChevronDown = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m6 9 6 6 6-6"/>
   </svg>
 );
 
@@ -154,6 +155,11 @@ const TopBar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // States for Categories Modal
+  const [categories, setCategories] = useState([]);
+  const [isCategoryHovered, setIsCategoryHovered] = useState(false);
+  
   const searchRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
@@ -166,6 +172,19 @@ const TopBar = () => {
     setSearchQuery('');
     setSearchResults([]);
   };
+
+  // Fetch Categories from your API utility
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Failed to load categories for modal", err);
+      }
+    };
+    loadCategories();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -231,7 +250,6 @@ const TopBar = () => {
     <header className="shadow-md sticky top-0 z-50">
       {/* ==================== MOBILE TOPBAR ==================== */}
       <div className="sm:hidden bg-white border-b">
-        {/* First row: menu + logo + cart */}
         <div className="flex items-center justify-between p-4">
           <button onClick={toggleMobileMenu} className="p-2">
             <MenuIcon className="h-6 w-6 text-gray-700" />
@@ -245,7 +263,6 @@ const TopBar = () => {
           </Link>
         </div>
 
-        {/* NEW: Search bar in mobile top bar */}
         <div className="px-4 pb-4" ref={searchRef}>
           <div className="relative">
             <input
@@ -258,7 +275,6 @@ const TopBar = () => {
             <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           </div>
 
-          {/* Search Results Dropdown */}
           {searchQuery.trim() && (
             <div className="absolute left-4 right-4 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg max-h-96 overflow-y-auto z-40">
               {isLoading && <p className="p-4 text-center text-gray-500">Loading...</p>}
@@ -283,7 +299,7 @@ const TopBar = () => {
         </div>
       </div>
 
-      {/* ==================== MOBILE MENU (NO SEARCH ANYMORE) ==================== */}
+      {/* ==================== MOBILE MENU ==================== */}
       <div className={`fixed inset-0 z-50 bg-white transform transition-transform duration-300 ease-in-out sm:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-4 border-b">
@@ -294,13 +310,9 @@ const TopBar = () => {
               <XIcon className="h-6 w-6 text-gray-700" />
             </button>
           </div>
-
-          {/* REMOVED SEARCH BAR FROM HERE */}
-
           <nav className="flex flex-col p-4 space-y-4 text-lg font-medium">
             {navLinks}
           </nav>
-
           <div className="mt-auto p-4 border-t text-center text-red-600 font-bold">
             Phone 01234 567890
           </div>
@@ -334,7 +346,7 @@ const TopBar = () => {
         </div>
       </div>
 
-      {/* ==================== DESKTOP (COMPLETELY UNCHANGED) ==================== */}
+      {/* DESKTOP MIDDLE BAR */}
       <div className="bg-white px-1 py-1">
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center relative">
           <div className="hidden sm:block absolute top-0 left-0 h-36 sm:h-40 z-10">
@@ -389,13 +401,65 @@ const TopBar = () => {
 
       {/* Bottom nav */}
       <div className="bg-white border-t border-gray-200 px-4">
-        <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16">
+        <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
           <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
 
           <nav className="hidden sm:flex flex-1 justify-between items-center font-medium text-gray-600">
             <div className="flex space-x-8">
               <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Home </Link>
-              <Link to="/category" className={`py-3 ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Shop by Category </Link>
+              
+              {/* SHOP BY CATEGORY WITH MEGA MODAL (World of Books Style) */}
+              <div 
+                className="h-full flex items-center"
+                onMouseEnter={() => setIsCategoryHovered(true)}
+                onMouseLeave={() => setIsCategoryHovered(false)}
+              >
+                <Link 
+                  to="/category" 
+                  className={`py-3 flex items-center space-x-1 ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
+                >
+                  <span>Shop by Category</span>
+                  <ChevronDown className={`transition-transform duration-200 ${isCategoryHovered ? 'rotate-180' : ''}`} />
+                </Link>
+
+                {/* THE MEGA MODAL */}
+                {isCategoryHovered && categories.length > 0 && (
+                  <div className="absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-4 gap-12 p-10">
+                      {/* Sidebar Section */}
+                      <div className="col-span-1 border-r border-gray-100 pr-8">
+                        <h3 className="text-red-600 text-lg font-black mb-4 normal-case">Top Categories</h3>
+                        <p className="text-gray-400 text-xs normal-case font-normal mb-6 leading-relaxed">
+                          Discover thousands of used books across hundreds of genres.
+                        </p>
+                        <Link to="/category" className="bg-red-600 text-white px-4 py-2 rounded text-xs inline-block hover:bg-red-700 transition-colors uppercase font-bold tracking-wider">
+                          View All
+                        </Link>
+                      </div>
+                      
+                      {/* Categories Grid Section */}
+                      <div className="col-span-3 grid grid-cols-3 gap-y-4 gap-x-8">
+                        {categories.map((cat) => (
+                          <Link 
+                            key={cat}
+                            to={`/category?genre=${encodeURIComponent(cat)}`}
+                            className="text-[13px] text-gray-600 hover:text-red-600 transition-colors font-medium normal-case flex items-center group"
+                            onClick={() => setIsCategoryHovered(false)}
+                          >
+                            <span className="w-1 h-1 bg-red-600 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                            {cat}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Bottom Promo Strip */}
+                    <div className="bg-gray-50 py-3 px-10 text-center border-t border-gray-100">
+                      <span className="text-[11px] text-gray-400 font-bold tracking-widest uppercase">Fast Delivery on all UK orders</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Link to="/popular-books" className={`py-3 ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Popular Books </Link>
               <Link to="/new-arrivals" className={`py-3 ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> New Arrivals </Link>
               <Link to="/bestsellers" className={`py-3 ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Best Sellers </Link>
