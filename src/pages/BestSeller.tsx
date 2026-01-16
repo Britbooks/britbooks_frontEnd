@@ -202,7 +202,7 @@ const BestsellersPage: React.FC = () => {
           limit: BOOKS_PER_PAGE,
           sort: "rating",
           order: "desc",
-          filters: selectedCategory ? { genre: selectedCategory } : undefined,
+          filters: selectedCategory ? { category: selectedCategory } : undefined,
         });
         setBooks(fetchedBooks);
         setIsLoading(false);
@@ -219,17 +219,20 @@ const BestsellersPage: React.FC = () => {
     const fetchCategoryData = async () => {
       try {
         const fetchedCategories = await fetchCategories();
-        const categoryObjects = fetchedCategories.map((name, index) => ({
-          id: name.toLowerCase().replace(/\s+/g, "-"),
-          name,
-          imageUrl: `https://picsum.photos/seed/category-${index}/300/200`,
+  
+        const categoryObjects = fetchedCategories.map((cat, index) => ({
+          id: cat._id,
+          name: cat.name,
+          imageUrl: `https://picsum.photos/seed/category-${cat.slug || cat._id || index}/300/200`,
         }));
+  
         setCategories(categoryObjects);
       } catch (err) {
         console.error("Failed to fetch categories:", err);
         setCategories([]);
       }
     };
+  
     fetchCategoryData();
   }, []);
 

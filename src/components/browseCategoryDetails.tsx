@@ -60,13 +60,13 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
   };
 
   return (
-    <div className="group relative flex-shrink-0 w-[180px] text-left p-2">
+    <div className="group relative flex-shrink-0 w-[180px] text-left">
       <div className="relative">
         <Link to={`/browse/${id}`}>
           <img
             src={displayImage}
             alt={title}
-            className="w-full h-48 object-cover mb-2 rounded-md transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-48 object-cover mb-3 rounded-md transition-transform duration-300 group-hover:scale-105"
             onError={() => setImageError(true)}
             loading="lazy"
           />
@@ -79,18 +79,20 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
           </Link>
         </div>
       </div>
-      <div className="p-2 flex flex-col items-start">
-        <h3 className="font-semibold text-sm truncate mt-1">{title}</h3>
-        <p className="text-gray-500 text-xs mb-1">{author}</p>
-        <div className="flex items-center text-gray-300 mb-1">
+
+      {/* Text container with more generous padding */}
+      <div className="px-2 pb-3 pt-1 flex flex-col items-start">
+        <h3 className="font-semibold text-sm line-clamp-2 mb-2 leading-tight">{title}</h3>
+        <p className="text-gray-500 text-xs mb-2">{author}</p>
+        <div className="flex items-center text-gray-300 mb-3">
           {[...Array(5)].map((_, i) => (
             <StarIcon key={i} filled={i < Math.round(rating || 0)} rating={rating || 0} />
           ))}
         </div>
-        <p className="text-lg font-bold text-gray-900">£{numericPrice.toFixed(2)}</p>
+        <p className="text-lg font-bold text-gray-900 mb-3">£{numericPrice.toFixed(2)}</p>
         <button
           onClick={handleAddToCart}
-          className="bg-red-600 text-white font-medium px-3 py-1 rounded-md text-xs w-full transition-colors hover:bg-red-700 mt-2"
+          className="bg-red-600 text-white font-medium px-3 py-1.5 rounded-md text-xs w-full transition-colors hover:bg-red-700"
         >
           ADD TO BASKET
         </button>
@@ -98,7 +100,6 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
     </div>
   );
 };
-
 // --- BookShelf Component with Pagination ---
 const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetchParams: any; currentBookId: string }) => {
   const [books, setBooks] = useState<Book[]>([]);
@@ -211,7 +212,6 @@ const BrowseCategoryDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "info" | "reviews">("details");
-  const { categoryId } = useParams<{ categoryId?: string }>();
 
   const previousCategory = (location.state as { category?: string })?.category || "Browse";
   const FALLBACK_IMAGE = "https://placehold.co/300x450?text=Book+Cover";
@@ -235,7 +235,7 @@ const BrowseCategoryDetail = () => {
         const placeholderImage = generatePlaceholderImage({
           title: data.title || "book",
           isbn: data.isbn || data.title || "unknown",
-          genre: data.category || "default",
+          category: data.category || "default",   // ← fixed: use category
         });
   
         const foundBook: Book = {
@@ -243,8 +243,8 @@ const BrowseCategoryDetail = () => {
           title: data.title || "Untitled Book",
           author: data.author || "Unknown Author",
           price: data.price || 0,
-          imageUrl: placeholderImage, // ← ALWAYS valid & beautiful
-          genre: data.category || "General",
+          imageUrl: placeholderImage,
+          category: data.category || "General",   // ← fixed: use category consistently
           condition: data.condition || "Good",
           description: data.description || data.notes || "",
           stock: data.stock ?? 1,
@@ -336,10 +336,10 @@ const BrowseCategoryDetail = () => {
               </li>
               <li>
                 <Link
-                  to={`/category/?genre=${encodeURIComponent(book?.genre || "Books")}`}
+                  to={`/category?category=${encodeURIComponent(book?.category || "Books")}`}   // ← fixed
                   className="text-gray-700 hover:text-blue-600 capitalize font-medium transition"
                 >
-                  {book?.genre || "Books"}
+                  {book?.category || "Books"}   
                 </Link>
               </li>
               <li>
@@ -507,7 +507,7 @@ const BrowseCategoryDetail = () => {
                 <li><span className="font-semibold">ISBN:</span> {book.isbn || "N/A"}</li>
                 <li><span className="font-semibold">Pages:</span> {book.pages || "N/A"}</li>
                 <li><span className="font-semibold">Release Date:</span> {book.releaseDate || "N/A"}</li>
-                <li><span className="font-semibold">Genre:</span> {book.genre || "N/A"}</li>
+                <li><span className="font-semibold">Category:</span> {book.category || "N/A"}</li> {/* ← fixed label */}
               </ul>
             )}
             {activeTab === "reviews" && (
@@ -517,12 +517,12 @@ const BrowseCategoryDetail = () => {
         </div>
         <BookShelf
           title="You may also like"
-          fetchParams={{ filters: { genre: book.genre }, sort: "rating", order: "desc" }}
+          fetchParams={{ filters: { category: book.category }, sort: "rating", order: "desc" }}   // ← fixed: category
           currentBookId={id}
         />
         <BookShelf
           title="Related Products"
-          fetchParams={{ filters: { genre: book.genre }, sort: "createdAt", order: "desc" }}
+          fetchParams={{ filters: { category: book.category }, sort: "createdAt", order: "desc" }}   // ← fixed: category
           currentBookId={id}
         />
       </main>

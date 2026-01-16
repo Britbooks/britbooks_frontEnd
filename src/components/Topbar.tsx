@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/authContext';
 import { useCart } from '../context/cartContext';
-import { fetchCategories } from "../data/books"; // Assuming your API utility is in this path
+import { fetchCategories } from "../data/books";
 import toast from 'react-hot-toast';
 
 // --- SVG ICONS --- //
@@ -155,9 +155,11 @@ const TopBar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+  const [book, setBook] = useState<Book | null>(null);
+
+  const navigate = useNavigate();
   // States for Categories Modal
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [isCategoryHovered, setIsCategoryHovered] = useState(false);
   
   const searchRef = useRef(null);
@@ -173,14 +175,28 @@ const TopBar = () => {
     setSearchResults([]);
   };
 
-  // Fetch Categories from your API utility
+  // Fetch Categories → always store as string[]
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await fetchCategories();
-        setCategories(data);
+
+        // Convert whatever comes back into clean string array
+        const categoryNames = Array.isArray(data)
+          ? data
+              .map(item =>
+                typeof item === 'string'
+                  ? item
+                  : (item?.name || item?.title || '').trim()
+              )
+              .filter(name => name.length > 0)
+              .sort((a, b) => a.localeCompare(b))
+          : [];
+
+        setCategories(categoryNames);
       } catch (err) {
         console.error("Failed to load categories for modal", err);
+        setCategories([]);
       }
     };
     loadCategories();
@@ -408,7 +424,7 @@ const TopBar = () => {
             <div className="flex space-x-8">
               <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Home </Link>
               
-              {/* SHOP BY CATEGORY WITH MEGA MODAL (World of Books Style) */}
+              {/* SHOP BY CATEGORY WITH MEGA MODAL */}
               <div 
                 className="h-full flex items-center"
                 onMouseEnter={() => setIsCategoryHovered(true)}
@@ -438,19 +454,26 @@ const TopBar = () => {
                       </div>
                       
                       {/* Categories Grid Section */}
-                      <div className="col-span-3 grid grid-cols-3 gap-y-4 gap-x-8">
-                        {categories.map((cat) => (
-                          <Link 
-                            key={cat}
-                            to={`/category?genre=${encodeURIComponent(cat)}`}
-                            className="text-[13px] text-gray-600 hover:text-red-600 transition-colors font-medium normal-case flex items-center group"
-                            onClick={() => setIsCategoryHovered(false)}
-                          >
-                            <span className="w-1 h-1 bg-red-600 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                            {cat}
-                          </Link>
-                        ))}
-                      </div>
+              {/* Categories Grid Section */}
+<div className="col-span-3 grid grid-cols-3 gap-y-4 gap-x-8">
+  {categories.map((cat) => {
+    const safeCategory = (cat || "Books").trim();
+
+    return (
+      <div
+        key={safeCategory}
+        onClick={() => {
+          setIsCategoryHovered(false); // close menu first
+          navigate(`/category?category=${encodeURIComponent(safeCategory)}`);
+        }}
+        className="text-[13px] text-gray-600 hover:text-red-600 transition-colors font-medium capitalize flex items-center group py-1 cursor-pointer"
+      >
+        <span className="w-1 h-1 bg-red-600 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+        {safeCategory}
+      </div>
+    );
+  })}
+</div>
                     </div>
                     {/* Bottom Promo Strip */}
                     <div className="bg-gray-50 py-3 px-10 text-center border-t border-gray-100">

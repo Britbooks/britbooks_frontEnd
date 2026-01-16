@@ -110,7 +110,7 @@ const BookCard: React.FC<BookCardProps> = React.memo(({ book }) => {
       <div className="p-3 flex flex-col flex-grow items-center text-center">
         <h4 className="font-semibold text-xs text-gray-800 h-10 leading-5 mb-2 line-clamp-2">{book.title}</h4>
         <p className="text-xs text-gray-500 mb-1">{book.author}</p>
-        <p className="text-xs text-gray-500 mb-1">{book.genre}</p>
+        <p className="text-xs text-gray-500 mb-1">{book.category}</p>
         <div className="mb-1">
           <StarRating rating={book.rating || 0} />
         </div>
@@ -255,7 +255,7 @@ const NewArrivalsPage: React.FC = () => {
           limit: BOOKS_PER_PAGE,
           sort: "createdAt",
           order: "desc",
-          filters: selectedCategory ? { genre: selectedCategory } : undefined,
+          filters: selectedCategory ? { category: selectedCategory } : undefined,
         });
         setBooks(mainBooks);
 
@@ -282,17 +282,20 @@ const NewArrivalsPage: React.FC = () => {
     const fetchCategoryData = async () => {
       try {
         const fetchedCategories = await fetchCategories();
-        const categoryObjects = fetchedCategories.map((name, index) => ({
-          id: name.toLowerCase().replace(/\s+/g, "-"),
-          name,
-          imageUrl: `https://picsum.photos/seed/category-${index}/300/200`,
+  
+        const categoryObjects = fetchedCategories.map((cat, index) => ({
+          id: cat._id,
+          name: cat.name,
+          imageUrl: `https://picsum.photos/seed/category-${cat.slug || cat._id || index}/300/200`,
         }));
+  
         setCategories(categoryObjects);
       } catch (err) {
-        console.error("❌ Failed to fetch categories:", err);
+        console.error("Failed to fetch categories:", err);
         setCategories([]);
       }
     };
+  
     fetchCategoryData();
   }, []);
 

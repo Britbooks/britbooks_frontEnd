@@ -407,8 +407,7 @@ const openCategoryModal = async (category: string) => {
     let filters: any = {};
 
     if (category !== "All Books") {
-      // THIS IS WHAT YOUR BACKEND ACTUALLY SUPPORTS
-      filters.genre = category;
+      filters.category = category;          // ← changed from .genre to .category
     }
 
     const response = await fetchBooks({
@@ -441,7 +440,7 @@ const loadMoreBooks = useCallback(async () => {
   try {
     let filters: any = {};
     if (selectedCategory !== "All Books") {
-      filters.genre = selectedCategory; // EXACTLY LIKE BREADCRUMB
+      filters.category = selectedCategory;   // ← fixed
     }
 
     const response = await fetchBooks({
@@ -501,7 +500,7 @@ const loadMoreBooks = useCallback(async () => {
         limit: BOOKS_PER_PAGE,
         filters: selectedCategory === "All Books"
           ? {}
-          : { genre: selectedCategory },   // ✅ FIXED
+          : { category: selectedCategory },   // ← fixed
         sort: "createdAt",
         order: "desc",
       });
@@ -525,8 +524,7 @@ const loadMoreBooks = useCallback(async () => {
       setIsLoadingCategories(true);
   
       try {
-        // 1. Get real categories from your fixed fetchCategories()
-        const realCategoryNames = await fetchCategories();
+        const realCategoryNames = await fetchCategories();  // ← This calls your API endpoint
   
         if (realCategoryNames.length === 0) {
           console.warn("No categories found");
@@ -534,42 +532,37 @@ const loadMoreBooks = useCallback(async () => {
           return;
         }
   
-        // 2. Get accurate book count for each category
         const categoryData = await Promise.all(
-          realCategoryNames.map(async (name) => {
+          realCategoryNames.map(async (cat) => {
             try {
               const { total = 0 } = await fetchBooks({
                 page: 1,
                 limit: 1,
-                filters: { genre: name },
+                filters: { category: cat.name },  // ← FIXED: uses category field
               });
-              return { name, count: total };
+              return { name: cat.name, count: total };
             } catch {
-              return { name, count: 0 };
+              return { name: cat.name, count: 0 };
             }
           })
         );
   
-        // Filter out empty categories & sort by popularity
         const validCategories = categoryData
           .filter(c => c.count > 0)
           .sort((a, b) => b.count - a.count)
-          .slice(0, 18); // Show top 18
+          .slice(0, 18);
   
-        // Get total books for "All Books"
         const { total: totalBooks = 50000 } = await fetchBooks({ page: 1, limit: 1 });
   
-        // Prepend "All Books"
         const finalList = [
           { name: "All Books", count: totalBooks },
           ...validCategories,
         ];
   
         setCategories(finalList);
-        console.log("REAL categories loaded (homepage):", finalList.map(c => `${c.name} (${c.count})`));
+        console.log("REAL categories loaded:", finalList.map(c => `${c.name} (${c.count})`));
       } catch (err) {
-        console.error("Failed to load homepage categories", err);
-        // Optional: tiny graceful fallback (still better than 60 fake ones)
+        console.error("Failed to load categories", err);
         setCategories([
           { name: "All Books", count: 48500 },
           { name: "Fiction", count: 18200 },
@@ -784,12 +777,12 @@ const loadMoreBooks = useCallback(async () => {
   
     // 👶 Children’s books — category matches any child/kids pattern
     childrensBooks: {
-      shelf: "childrensBooks",
+      shelf: "children",
       label: "Children’s Books",
       sort: "createdAt",
       order: "desc",
       filters: {
-        category: { $regex: /(child|kids|young|nursery|fairy|juvenile)/i },
+        category: "Children's Books",           // ← exact string match
       },
     },
   

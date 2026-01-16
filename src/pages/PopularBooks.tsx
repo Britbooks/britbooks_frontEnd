@@ -9,13 +9,13 @@ import { useCart } from "../context/cartContext";
 
 // --- Mock fetchBooks for Testing (Remove in Production) ---
 const mockFetchBooks = async ({ page, limit, filters, sort, order }: { page: number; limit: number; filters?: any; sort?: string; order?: string }) => {
-  const genre = filters?.genre || "Fiction";
+  const category = filters?.category || "Fiction";
   return {
     books: Array(limit).fill(0).map((_, i) => ({
       id: `${page}-${i}`,
       title: `Book ${i + 1} (Page ${page})`,
       author: "Author Name",
-      genre,
+      category,
       price: 10 + i,
       rating: 4 + Math.random(),
       imageUrl: "https://via.placeholder.com/150",
@@ -170,7 +170,7 @@ const BookCard: React.FC<BookCardProps> = React.memo(({ book, rank }) => {
       <div className="p-3 flex flex-col flex-grow items-center text-center">
         <h4 className="font-semibold text-xs text-gray-800 h-10 leading-5 mb-2 line-clamp-2">{book.title}</h4>
         <p className="text-xs text-gray-500 mb-1">{book.author}</p>
-        <p className="text-xs text-gray-500 mb-1">{book.genre}</p>
+        <p className="text-xs text-gray-500 mb-1">{book.category}</p>
         <div className="mb-1">
           <StarRating rating={book.rating || 0} />
         </div>
@@ -292,20 +292,23 @@ const PopularBooksPage: React.FC = () => {
     const fetchCategoryData = async () => {
       try {
         const fetchedCategories = await fetchCategories();
-        if (!Array.isArray(fetchedCategories)) throw new Error("Invalid categories response");
-        const categoryObjects = fetchedCategories.map((name: string, index: number) => ({
-          id: name.toLowerCase().replace(/\s+/g, "-"),
-          name,
-          imageUrl: `https://picsum.photos/seed/category-${index}/300/200`,
+  
+        const categoryObjects = fetchedCategories.map((cat, index) => ({
+          id: cat._id,
+          name: cat.name,
+          imageUrl: `https://picsum.photos/seed/category-${cat.slug || cat._id || index}/300/200`,
         }));
+  
         setCategories(categoryObjects);
       } catch (err) {
         console.error("Failed to fetch categories:", err);
         setCategories([]);
       }
     };
+  
     fetchCategoryData();
   }, []);
+  
 
   // Fetch books when page, category, search, or sort changes
   useEffect(() => {
@@ -313,8 +316,8 @@ const PopularBooksPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const filters: { genre?: string; search?: string } = { search: searchTerm || undefined };
-        if (selectedCategory) filters.genre = selectedCategory;
+        const filters: { category?: string; search?: string } = { search: searchTerm || undefined };
+        if (selectedCategory) filters.category = selectedCategory;
         const { books: fetchedBooks, total } = await (fetchBooks({
           page: currentPage,
           limit: BOOKS_PER_PAGE,

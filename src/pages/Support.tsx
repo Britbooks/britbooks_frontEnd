@@ -7,6 +7,19 @@ import { useAuth } from '../context/authContext';
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusIcon, XMarkIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
+import { 
+  Package, 
+  Truck, 
+  Receipt, 
+  Calendar, 
+  CreditCard, 
+  Info, 
+  BookOpen, 
+  CheckCircle2 ,
+  ArrowRight,
+  ShoppingBag,
+  ChevronRight
+} from 'lucide-react';
 
 
 
@@ -416,148 +429,176 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
     }
   
     // ==================== ORDER CARD (ONLY ONE – RETURNS EARLY) ====================
-    const orderIdMatch = text.match(/Order\s*#?([A-Za-z0-9]{10,})/i);
-    const hasOrderDetails = lines.some(l => /Placed|Date|Order Date|Total|Status|Payment|Delivered|Shipped|Processing|Tracking/i.test(l));
-    const hasBooks = lines.some(l => /by [A-Za-z]/i.test(l) && !l.includes(':'));
-  
-    if (orderIdMatch || (hasOrderDetails && hasBooks)) {
-      const orderId = orderIdMatch ? `#${orderIdMatch[1]}` : "Order Details";
-  
+    const orderKeywordMatch = text.match(/\bOrder\b/i);
+    const orderIdMatch = text.match(/Order\s*#?([A-Za-z0-9]{8,})/i);
+    const isLogisticsQuery = lines.some(l => 
+      /Recent|History|Status|Track|Refund|Return|Deliver|Cancel|Ship/i.test(l)
+    );
+    
+    if (orderIdMatch || (orderKeywordMatch && isLogisticsQuery)) {
+      const orderId = orderIdMatch ? `#${orderIdMatch[1]}` : "Order Summary";
       const details: { label: string; value: string }[] = [];
-      const books: string[] = [];
+      const bookItems: string[] = []; // Specifically for the list of books in the order
+      const narrativeText: string[] = []; // For the AI's descriptive response
       let politeLine = "";
       let closingQuestion = "";
-  
       const seenLabels = new Set<string>();
-  
+    
       for (const line of lines) {
-        if (line.length < 3) continue;
-  
-        if (!line.includes(":")) {
-          if (/thank|soon|today|arrive|out for delivery|dispatched|your order|excited/i.test(line)) {
-            politeLine = line;
-          } else if (/anything else|can I help|need anything|is there anything/i.test(line)) {
-            closingQuestion = line;
-          }
-        }
-  
-        if (/by [A-Za-z]/i.test(line) && !line.includes(':') && line.length > 15) {
-          const clean = line.replace(/^[\s•\-\*]+/, '').trim();
-          if (clean && !books.includes(clean)) {
-            books.push(clean);
-          }
-        }
-  
-        const kvMatch = line.match(/^[\s•\-\*]*(\*?\**)?([^:*]+?)\*?\**?\s*:\s*(.+)$/);
+        const trimmed = line.trim();
+        if (trimmed.length < 2) continue;
+    
+        // 1. Capture Key-Value Details (Status, Date, Total)
+        const kvMatch = trimmed.match(/^[\s•\-\*]*(\*?\**)?([^:*]+?)\*?\**?\s*:\s*(.+)$/);
         if (kvMatch) {
-          let label = kvMatch[2].trim().replace(/:$/, '');
+          let label = kvMatch[2].trim().replace(/\*/g, '').replace(/:$/, '');
           let value = kvMatch[3].trim().replace(/✅$/, '').trim();
-  
-          if (/order.*date|placed/i.test(label)) label = "Placed";
-          else if (/total|amount/i.test(label)) label = "Total";
-          else if (/status|delivery.*status/i.test(label)) label = "Status";
-          else if (/payment/i.test(label)) label = "Payment";
-          else if (/track|tracking|carrier/i.test(label)) label = "Tracking";
-  
+    
+          if (/date|placed/i.test(label)) label = "Date";
+          else if (/total|amount|price|cost/i.test(label)) label = "Total";
+          else if (/status|progress/i.test(label)) label = "Status";
+          else if (/track|carrier|shipped|shipping/i.test(label)) label = "Shipping";
+          
           if (label.length > 2 && !seenLabels.has(label)) {
             seenLabels.add(label);
             details.push({ label, value });
+            continue;
           }
         }
+    
+        // 2. Capture Book Listings (Specific items in the order)
+        // Filters for lines that look like product titles (often start with numbers or bullets)
+        const isBookItem = (/^[\s•\-\*0-9]+[\s\.]/.test(trimmed) || /by [A-Z]/i.test(trimmed)) 
+                           && trimmed.length > 5 && !trimmed.includes('?');
+        
+        if (isBookItem && !trimmed.includes(':')) {
+          const cleanBook = trimmed.replace(/^[\s•\-\*0-9\.]+/, '').trim();
+          if (!bookItems.includes(cleanBook)) {
+            bookItems.push(cleanBook);
+            continue;
+          }
+        }
+    
+        // 3. Context & Politeness
+        if (/thank|soon|today|arrive|delivery|dispatched|confirm|sorry|help|update/i.test(trimmed) && trimmed.length < 50) {
+          politeLine = trimmed;
+        } else if (/anything else|can I help|need anything/i.test(trimmed)) {
+          closingQuestion = trimmed;
+        } else {
+          // 4. Narrative Fallback (The AI's actual sentences)
+          narrativeText.push(trimmed);
+        }
       }
-  
-      const desiredOrder = ["Placed", "Total", "Status", "Payment", "Tracking"];
-      const orderedDetails = desiredOrder
-        .map(l => details.find(d => d.label === l))
-        .filter((d): d is { label: string; value: string } => !!d);
-  
-      const otherDetails = details.filter(d => !desiredOrder.includes(d.label));
-      const finalDetails = [...orderedDetails, ...otherDetails];
-  
+    
       return (
-        <div className="space-y-6">
-          <div className="flex justify-center">
-            <span className="px-6 py-2.5 rounded-full bg-indigo-100 text-indigo-800 font-bold text-base shadow-sm">
-              {orderId}
-            </span>
-          </div>
-  
-          {books.length > 0 && (
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">Your Items</h4>
-              <div className="space-y-4">
-                {books.map((book, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <div className="text-3xl flex-shrink-0">📖</div>
-                    <p className="font-medium text-gray-900 leading-relaxed">{book}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-  
-          {finalDetails.length > 0 && (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 bg-indigo-600 text-white font-semibold text-lg">
-                Order Information
-              </div>
-              <div className="divide-y divide-gray-100">
-                {finalDetails.map((d, i) => (
-                  <div
-                    key={i}
-                    className={`flex justify-between items-center px-6 py-4 text-base ${
-                      d.label === "Status" && /delivered|shipped|out for delivery|dispatched/i.test(d.value.toLowerCase())
-                        ? "bg-green-50"
-                        : ""
-                    }`}
-                  >
-                    <span className="text-gray-600 font-medium">{d.label}</span>
-                    <div className="font-semibold text-gray-900 flex items-center gap-2.5">
-                      <span>{d.value}</span>
-                      {d.label === "Status" && /delivered|shipped|out for delivery|dispatched/i.test(d.value.toLowerCase()) && (
-                        <span className="text-green-600 text-xl">✓</span>
-                      )}
-                      {d.label === "Payment" && /paid|completed|succeeded/i.test(d.value.toLowerCase()) && (
-                        <span className="text-green-600 text-xl">✓</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-  
-          {(politeLine || closingQuestion) && (
-            <div className="text-center space-y-2.5 mt-4">
-              {politeLine && <p className="text-gray-700 font-medium">{politeLine}</p>}
-              {closingQuestion && <p className="text-gray-600 italic">{closingQuestion}</p>}
-            </div>
-          )}
+        <div className="mx-auto w-full max-w-[200px] space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
+    {/* Minimalist Header */}
+    <div className="flex items-center justify-between px-1">
+      <div className="flex items-center gap-2">
+        <div className="h-8 w-8 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg ring-4 ring-slate-50">
+          <ShoppingBag className="w-4 h-4 text-white" />
         </div>
+        <div className="min-w-0">
+          <h3 className="text-[11px] font-black text-slate-800 leading-none tracking-tight">Purchase</h3>
+          <p className="text-[8px] font-bold text-indigo-500 uppercase tracking-tighter mt-1">{orderId}</p>
+        </div>
+      </div>
+    </div>
+
+    {/* AI Narrative Text - Clean Typography */}
+    {narrativeText.length > 0 && (
+      <div className="px-1 space-y-1">
+        {narrativeText.map((t, i) => (
+          <p key={i} className="text-[10px] text-slate-500 leading-relaxed font-medium">{t}</p>
+        ))}
+      </div>
+    )}
+
+    {/* Modern Book Items - Card Style */}
+    {bookItems.length > 0 && (
+      <div className="space-y-1.5">
+        {bookItems.map((book, i) => (
+          <div key={i} className="group relative flex items-start gap-2.5 p-2 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+            <div className="h-6 w-6 shrink-0 bg-slate-50 rounded-lg flex items-center justify-center text-[10px] group-hover:bg-indigo-50 transition-colors">
+              📖
+            </div>
+            <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-2 pt-0.5">
+              {book}
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* Summary Card - Soft Glass Look */}
+    {details.length > 0 && (
+      <div className="bg-slate-50/50 backdrop-blur-sm rounded-[20px] border border-white p-1.5 shadow-inner">
+        <div className="bg-white rounded-[14px] border border-slate-100 overflow-hidden divide-y divide-slate-50 shadow-sm">
+          {details.map((d, i) => {
+             const isStatus = d.label === "Status";
+             return (
+              <div key={i} className="p-2 flex flex-col gap-0.5">
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">{d.label}</span>
+                <p className={`text-[10px] font-black leading-tight truncate ${isStatus ? 'text-indigo-600' : 'text-slate-900'}`}>
+                  {d.value}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    {/* Floating Footer Notification */}
+    {(politeLine || closingQuestion) && (
+      <div className="relative overflow-hidden p-2.5 bg-slate-900 rounded-2xl shadow-xl shadow-slate-200">
+        <div className="absolute top-0 right-0 p-1 opacity-20">
+          <div className="w-8 h-8 rounded-full border-2 border-white/20 -mr-4 -mt-4" />
+        </div>
+        {politeLine && (
+          <p className="text-[9px] text-white font-bold leading-tight relative z-10">
+            {politeLine}
+          </p>
+        )}
+        {closingQuestion && (
+          <p className="text-[8px] text-slate-400 font-medium italic mt-1 relative z-10">
+            {closingQuestion}
+          </p>
+        )}
+      </div>
+    )}
+  </div>
       );
     }
   
-    // ==================== GENERAL TEXT FALLBACK – ONLY IF NOTHING ELSE MATCHED ====================
+    // ==================== GENERAL TEXT FALLBACK – IMPROVED STYLE FOR CHATS ====================
     const paragraphs = displayText
       .split("\n\n")
       .map((p) => p.trim())
       .filter(Boolean);
   
     return (
-      <div className="space-y-4 text-gray-800 leading-relaxed">
+      <div className="space-y-5 text-gray-800 leading-relaxed">
         {paragraphs.map((paragraph, i) => {
           const paraLines = paragraph.split("\n");
-          const isList = paraLines.every((l) => /^[\*\-\•\s]/.test(l.trim()));
+          // Detect bullet lists (lines starting with *, -, •, or spaces before them)
+          const isList = paraLines.length > 1 && paraLines.every((l) => /^[\*\-\•\s]/.test(l.trimStart()));
   
           if (isList) {
             return (
-              <ul key={i} className="space-y-2 ml-6">
+              <ul key={i} className="space-y-3 ml-5">
                 {paraLines.map((line, j) => {
                   const content = line.replace(/^[\*\-\•\s]+/, "").trim();
+                  // Re-apply bold markup inside list items
+                  const processedContent = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  
                   return (
                     <li key={j} className="flex items-start gap-3">
-                      <span className="text-red-600 mt-1.5">•</span>
-                      <span dangerouslySetInnerHTML={{ __html: content }} />
+                      <span className="text-red-600 mt-1.5 flex-shrink-0 text-lg">•</span>
+                      <span
+                        className="text-gray-800"
+                        dangerouslySetInnerHTML={{ __html: processedContent }}
+                      />
                     </li>
                   );
                 })}
@@ -565,13 +606,28 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
             );
           }
   
+          // Regular paragraph – preserve line breaks and bold
+          const processedParagraph = paragraph
+            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\n/g, "<br/>");
+  
           return (
-            <div
+            <p
               key={i}
-              dangerouslySetInnerHTML={{ __html: paragraph.replace(/\n/g, "<br/>") }}
+              className="text-gray-800 text-base leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: processedParagraph }}
             />
           );
         })}
+  
+        {/* Optional friendly emoji touch for short, warm responses */}
+        {rawText.trim().length < 300 && /😊|📚|♥/.test(rawText) && (
+          <div className="mt-6 text-center">
+            <span className="text-4xl">
+              {rawText.includes("😊") ? "😊" : rawText.includes("📚") ? "📚" : "♥"}
+            </span>
+          </div>
+        )}
       </div>
     );
   };
