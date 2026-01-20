@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/authContext';
 import { useCart } from '../context/cartContext';
-import { fetchCategories } from "../data/books";
+import { fetchCategories, CategoryNode } from "../data/books";
 import toast from 'react-hot-toast';
 
 // --- SVG ICONS --- //
@@ -150,20 +150,19 @@ const TopBar = () => {
   const user = authContext?.auth.user;
   const logout = authContext?.logout;
   const location = useLocation();
+  const navigate = useNavigate();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [book, setBook] = useState<Book | null>(null);
 
-  const navigate = useNavigate();
-  // States for Categories Modal
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [isCategoryHovered, setIsCategoryHovered] = useState(false);
-  
-  const searchRef = useRef(null);
+  const [hoveredMainCat, setHoveredMainCat] = useState<CategoryNode | null>(null);
 
+  const searchRef = useRef(null);
   const isActive = (path) => location.pathname === path;
 
   const toggleMobileMenu = () => {
@@ -175,27 +174,15 @@ const TopBar = () => {
     setSearchResults([]);
   };
 
-  // Fetch Categories → always store as string[]
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await fetchCategories();
-
-        // Convert whatever comes back into clean string array
-        const categoryNames = Array.isArray(data)
-          ? data
-              .map(item =>
-                typeof item === 'string'
-                  ? item
-                  : (item?.name || item?.title || '').trim()
-              )
-              .filter(name => name.length > 0)
-              .sort((a, b) => a.localeCompare(b))
-          : [];
-
-        setCategories(categoryNames);
+        setCategories(data);
+        if (data.length > 0) setHoveredMainCat(data[0]);
       } catch (err) {
-        console.error("Failed to load categories for modal", err);
+        console.error("Failed to load categories", err);
+        toast.error("Failed to load categories");
         setCategories([]);
       }
     };
@@ -335,7 +322,7 @@ const TopBar = () => {
         </div>
       </div>
 
-      {/* Top Bar (Welcome + Account) */}
+      {/* Top Bar */}
       <div className="bg-indigo-900 text-white px-4 py-1">
         <div className="container mx-auto flex justify-between items-center text-xs">
           <span>{user ? `Welcome back, ${user.fullName}!` : 'Sign in to explore more!'}</span>
@@ -348,9 +335,7 @@ const TopBar = () => {
                 <Link to="/wishlist" className="hover:text-gray-300 flex items-center">
                   <BookmarkIcon className="w-5 h-5" />
                 </Link>
-                <button onClick={logout} className="hover:text-gray-300 focus:outline-none">
-                  Logout
-                </button>
+                <button onClick={logout} className="hover:text-gray-300 focus:outline-none">Logout</button>
               </>
             ) : (
               <>
@@ -370,9 +355,7 @@ const TopBar = () => {
               <img src="/logobrit.png" alt="BritBooks Logo" className="h-full w-auto object-contain" />
             </Link>
           </div>
-          
           <div className="hidden sm:block h-24 sm:h-24 w-44 sm:w-60 flex-shrink-0"></div>
-
           <div className="hidden sm:block w-full sm:max-w-lg mx-0 sm:mx-4 mt-2 sm:mt-0 relative" ref={searchRef}>
             <div className="relative">
               <input
@@ -394,37 +377,24 @@ const TopBar = () => {
                   <p className="p-4 text-gray-500 text-center">No results found.</p>
                 )}
                 {searchResults.map((book) => (
-                  <SearchResultCard
-                    key={book.id}
-                    id={book.id}
-                    imageUrl={book.imageUrl}
-                    title={book.title}
-                    author={book.author}
-                    price={`£${book.price.toFixed(2)}`}
-                    rating={book.rating}
-                    onSelect={clearSearch}
-                  />
+                  <SearchResultCard key={book.id} {...book} price={`£${book.price.toFixed(2)}`} onSelect={clearSearch} />
                 ))}
               </div>
             )}
           </div>
-
-           <div className="hidden sm:block text-red-600 font-bold text-lg mt-2 sm:mt-0">
-            📞 01234 567890
-          </div>
+          <div className="hidden sm:block text-red-600 font-bold text-lg mt-2 sm:mt-0">📞 01234 567890</div>
         </div>
       </div>
 
-      {/* Bottom nav */}
+      {/* Navigation & Modern Mega Modal */}
       <div className="bg-white border-t border-gray-200 px-4">
         <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
           <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
-
           <nav className="hidden sm:flex flex-1 justify-between items-center font-medium text-gray-600">
             <div className="flex space-x-8">
               <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Home </Link>
-              
-              {/* SHOP BY CATEGORY WITH MEGA MODAL */}
+
+              {/* MODERN BOOKSTORE MEGA MODAL (Waterstones/Barnes & Noble style) */}
               <div 
                 className="h-full flex items-center"
                 onMouseEnter={() => setIsCategoryHovered(true)}
@@ -438,46 +408,71 @@ const TopBar = () => {
                   <ChevronDown className={`transition-transform duration-200 ${isCategoryHovered ? 'rotate-180' : ''}`} />
                 </Link>
 
-                {/* THE MEGA MODAL */}
                 {isCategoryHovered && categories.length > 0 && (
-                  <div className="absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="grid grid-cols-4 gap-12 p-10">
-                      {/* Sidebar Section */}
-                      <div className="col-span-1 border-r border-gray-100 pr-8">
-                        <h3 className="text-red-600 text-lg font-black mb-4 normal-case">Top Categories</h3>
-                        <p className="text-gray-400 text-xs normal-case font-normal mb-6 leading-relaxed">
-                          Discover thousands of used books across hundreds of genres.
-                        </p>
-                        <Link to="/category" className="bg-red-600 text-white px-4 py-2 rounded text-xs inline-block hover:bg-red-700 transition-colors uppercase font-bold tracking-wider">
-                          View All
-                        </Link>
+                  <div className="absolute top-full left-[-240px] w-[1000px] bg-white shadow-2xl z-[100] animate-in fade-in slide-in-from-top-1 duration-200 flex border border-gray-100 rounded-b-xl overflow-hidden min-h-[450px]">
+                    
+                    {/* LEFT SIDEBAR: MAIN CATEGORIES */}
+                    <div className="w-1/3 bg-gray-50/80 border-r border-gray-100">
+                      <div className="py-4">
+                        {categories.map((cat) => (
+                          <div
+                            key={cat.name}
+                            onMouseEnter={() => setHoveredMainCat(cat)}
+                            onClick={() => {
+                              setIsCategoryHovered(false);
+                              navigate(`/category?category=${encodeURIComponent(cat.name)}`);
+                            }}
+                            className={`px-8 py-3 cursor-pointer flex items-center justify-between transition-all ${
+                              hoveredMainCat?.name === cat.name 
+                              ? 'bg-white text-red-600 font-bold shadow-sm' 
+                              : 'text-gray-600 hover:bg-white hover:text-red-500'
+                            }`}
+                          >
+                            <span className="text-sm uppercase tracking-wide">{cat.name}</span>
+                            <ChevronDown className="-rotate-90 w-3 h-3 opacity-40" />
+                          </div>
+                        ))}
                       </div>
-                      
-                      {/* Categories Grid Section */}
-              {/* Categories Grid Section */}
-<div className="col-span-3 grid grid-cols-3 gap-y-4 gap-x-8">
-  {categories.map((cat) => {
-    const safeCategory = (cat || "Books").trim();
-
-    return (
-      <div
-        key={safeCategory}
-        onClick={() => {
-          setIsCategoryHovered(false); // close menu first
-          navigate(`/category?category=${encodeURIComponent(safeCategory)}`);
-        }}
-        className="text-[13px] text-gray-600 hover:text-red-600 transition-colors font-medium capitalize flex items-center group py-1 cursor-pointer"
-      >
-        <span className="w-1 h-1 bg-red-600 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-        {safeCategory}
-      </div>
-    );
-  })}
-</div>
                     </div>
-                    {/* Bottom Promo Strip */}
-                    <div className="bg-gray-50 py-3 px-10 text-center border-t border-gray-100">
-                      <span className="text-[11px] text-gray-400 font-bold tracking-widest uppercase">Fast Delivery on all UK orders</span>
+
+                    {/* RIGHT CONTENT: SUBCATEGORIES + PROMO */}
+                    <div className="w-2/3 p-10 flex flex-col justify-between bg-white">
+                      <div>
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-8">
+                          <h3 className="text-2xl font-serif italic text-gray-900">{hoveredMainCat?.name}</h3>
+                          <Link 
+                            to={`/category?category=${encodeURIComponent(hoveredMainCat?.name || '')}`}
+                            className="text-xs font-bold text-red-600 uppercase tracking-widest hover:underline"
+                            onClick={() => setIsCategoryHovered(false)}
+                          >
+                            View All {hoveredMainCat?.name}
+                          </Link>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                          {hoveredMainCat?.children?.map((sub) => (
+                            <Link
+                              key={sub.name}
+                              to={`/category?category=${encodeURIComponent(hoveredMainCat.name)}&subcategory=${encodeURIComponent(sub.name)}`}
+                              onClick={() => setIsCategoryHovered(false)}
+                              className="text-gray-500 hover:text-red-600 transition-colors text-[15px] border-b border-transparent hover:border-red-100 py-1"
+                            >
+                              {sub.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* FEATURED STRIP */}
+                      <div className="mt-12 p-6 bg-red-50 rounded-xl flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-red-600 font-bold text-sm">Monthly Recommendation</span>
+                          <span className="text-gray-700 text-xs mt-1">Check out our best-selling {hoveredMainCat?.name} titles this week.</span>
+                        </div>
+                        <button className="bg-red-600 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95">
+                          Shop Now
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

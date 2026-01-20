@@ -218,7 +218,7 @@ const BrowseCategoryDetail = () => {
 
   useEffect(() => {
     const findBookById = async () => {
-      setIsLoading(true);
+      setIsLoading(true);    
       setError(null);
       try {
         const response = await axios.get(

@@ -8,7 +8,7 @@ export interface Book {
   author: string;
   price: number;
   imageUrl?: string;
-  category: string; // ← Matches backend schema
+  category: string;
   condition: string;
   description?: string;
   stock: number;
@@ -35,6 +35,10 @@ export interface ApiCategory {
   count?: number;
 }
 
+export interface CategoryNode extends ApiCategory {
+  children: CategoryNode[];
+}
+
 // ── Placeholder images ───────────────────────────────────────────────────
 export const generatePlaceholderImage = (book: { title: string; isbn?: string; category?: string }): string => {
   const input = book.isbn || book.title || "unknown-book";
@@ -42,19 +46,9 @@ export const generatePlaceholderImage = (book: { title: string; isbn?: string; c
 
   const categorySeeds: Record<string, string> = {
     "Children's Books": "children",
-    "Children's Fiction": "children",
-    "Young Adult": "ya",
     Fiction: "fiction",
-    "Contemporary Fiction": "fiction",
-    "Literary Fiction": "fiction",
-    Mystery: "mystery",
-    Fantasy: "fantasy",
-    "Science Fiction": "scifi",
-    Biography: "bio",
+    "Non-fiction": "nonfiction",
     "Self-Help": "selfhelp",
-    History: "history",
-    "Non-Fiction": "nonfiction",
-    Poetry: "poetry",
     default: "book",
   };
 
@@ -65,7 +59,7 @@ export const generatePlaceholderImage = (book: { title: string; isbn?: string; c
 const generateCategoryPlaceholder = (name: string) =>
   `https://picsum.photos/seed/category-${MD5(name).toString().slice(0, 8)}/300/200`;
 
-// ── Caching ─────────────────────────────────────────────────────────────
+// ── Caching for books ───────────────────────────────────────────────────
 interface CacheEntry {
   books: Book[];
   total: number;
@@ -90,7 +84,7 @@ const generateCacheKey = (params: Required<FetchBooksParams>): string => {
   });
 };
 
-// ── Fetch books aligned with backend ──────────────────────────────────────
+// ── Fetch books (unchanged except small cleanup) ────────────────────────
 export const fetchBooks = async ({
   page = 1,
   limit = 20,
@@ -105,11 +99,10 @@ export const fetchBooks = async ({
 
   const cached = booksCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log(`[fetchBooks] Cache HIT: ${cacheKey.slice(0, 60)}...`);
+    console.log(`[fetchBooks] Cache HIT`);
     return { books: cached.books, total: cached.total };
   }
 
-  // ── Shelf logic matching backend ────────────────────────────────────────
   const queryParams: Record<string, any> = { page, limit, sort, order, ...filters };
   switch (shelf) {
     case "newArrivals":
@@ -117,25 +110,21 @@ export const fetchBooks = async ({
       queryParams.sort = "createdAt";
       queryParams.order = "desc";
       break;
-
     case "popularBooks":
       queryParams.stock = { $gt: 0 };
       queryParams.sort = ["salesCount", "rating"];
       queryParams.order = ["desc", "desc"];
       break;
-
     case "bestSellers":
       queryParams.stock = { $gt: 0 };
       queryParams.sort = "salesCount";
       queryParams.order = "desc";
       break;
-
     case "childrensBooks":
       queryParams.category = { $regex: /(child|kids|young|nursery|fairy|juvenile)/i };
       queryParams.sort = "createdAt";
       queryParams.order = "desc";
       break;
-
     case "clearanceItems":
       Object.assign(queryParams, {
         "discount.isActive": true,
@@ -146,7 +135,6 @@ export const fetchBooks = async ({
       queryParams.sort = "discount.value";
       queryParams.order = "desc";
       break;
-
     case "recentlyViewed":
       queryParams.sort = "lastViewedAt";
       queryParams.order = "desc";
@@ -165,13 +153,12 @@ export const fetchBooks = async ({
 
     const books: Book[] = response.data.listings.map((raw: any) => {
       const imageUrl =
-      raw.coverImageUrl ||
-      generatePlaceholderImage({
-        title: raw.title,
-        isbn: raw.isbn,
-        category: raw.category,
-      });
-    
+        raw.coverImageUrl ||
+        generatePlaceholderImage({
+          title: raw.title,
+          isbn: raw.isbn,
+          category: raw.category,
+        });
 
       return {
         id: String(raw._id ?? raw.id ?? ""),
@@ -191,8 +178,6 @@ export const fetchBooks = async ({
     });
 
     const total = response.data.meta?.count ?? response.data.meta?.total ?? books.length;
-
-    // ── Cache results ─────────────────────────────────────────────────────
     booksCache.set(cacheKey, { books, total, timestamp: Date.now() });
 
     return { books, total };
@@ -202,42 +187,53 @@ export const fetchBooks = async ({
   }
 };
 
-// ── Categories ───────────────────────────────────────────────────────────
-export async function fetchCategories(): Promise<ApiCategory[]> {
+// ── fetchCategories – NOW PERFECTLY MATCHES YOUR BACKEND ───────────────
+export async function fetchCategories(signal?: AbortSignal): Promise<CategoryNode[]> {
   try {
     const response = await axios.get(
-      "https://britbooks-api-production.up.railway.app/api/market/categories"
+      "https://britbooks-api-production.up.railway.app/api/market/categories",
+      { signal }
     );
 
     if (!response.data?.success || !Array.isArray(response.data.categories)) {
-      throw new Error("Invalid response");
+      throw new Error("Invalid categories response");
     }
 
-    return response.data.categories
-      .map((c: any) => ({
-        _id: String(c._id ?? c.id ?? "unknown"),
-        name: String(c.name ?? "").trim(),
-        slug: String(c.slug ?? ""),
-        count: Number(c.count ?? 0),
-      }))
-      .filter(
-        (c) =>
-          c.name.length > 0 &&
-          !["uncategorized", "unknown", "undetermined"].includes(c.name.toLowerCase())
-      )
-      .filter((cat) => cat.count >= 5)
-      .sort((a, b) => b.count - a.count);
-  } catch (err) {
-    console.error("[fetchCategories] Failed:", err);
-    return [
-      { _id: "fb-fiction", name: "Fiction" },
-      { _id: "fb-nonfiction", name: "Non-Fiction" },
-      { _id: "fb-childrens", name: "Children's Books" },
-      { _id: "fb-selfhelp", name: "Self-Help" },
-    ];
+    // Map backend structure directly — clean only
+    const categories: CategoryNode[] = response.data.categories
+      .filter((cat: any) => cat.name?.trim() && Number(cat.count) > 0)
+      .map((cat: any) => {
+        const subs = (cat.subcategories || [])
+          .filter((sub: any) => sub.name?.trim() && Number(sub.count) > 0)
+          .map((sub: any) => ({
+            _id: sub.slug || `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            name: sub.name.trim(),
+            slug: sub.slug || "",
+            count: Number(sub.count),
+            children: [],
+          }))
+          .sort((a, b) => b.count - a.count); // optional: sort by popularity
+
+        return {
+          _id: cat.slug || `main-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: cat.name.trim(),
+          slug: cat.slug || "",
+          count: Number(cat.count),
+          children: subs,
+        };
+      })
+      .sort((a, b) => b.count - a.count); // biggest first
+
+    console.log(`Loaded ${categories.length} main categories with real subcategories`);
+
+    return categories;
+
+  } catch (err: any) {
+    console.error("[fetchCategories] Failed:", err.message);
+    toast.error("Failed to load categories");
+    return [];
   }
 }
-
 // ── Utils ───────────────────────────────────────────────────────────────
 export const clearBooksCache = () => {
   booksCache.clear();
