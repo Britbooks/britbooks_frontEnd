@@ -196,7 +196,7 @@ const ClearancePage = () => {
                   <li className="text-slate-300">/</li>
                 </>
               )}
-              <li className="text-slate-900 border-b-2 border-indigo-500 pb-0.5">BESTSELLERS</li>
+              <li className="text-slate-900 border-b-2 border-indigo-500 pb-0.5">CLEARANCE-ITEMS</li>
             </ol>
           </nav>
         </div>
