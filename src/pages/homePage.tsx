@@ -374,32 +374,28 @@ const Homepage = () => {
     setModalBooks([]);
     setModalPage(1);
     setHasMoreBooks(true);
-
+  
     try {
-      let filters: any = {};
-
-      if (category !== "All Books") {
-        filters.category = category;
-      }
-
-      const response = await fetchBooks({
+      const reqBody = {
         page: 1,
         limit: BOOKS_PER_PAGE,
-        filters,
+        category: category === "All Books" ? undefined : category, // flat field
         sort: "createdAt",
-        order: "desc"
-      });
-
-      const books = response.listings || response.books || [];
+        order: "desc",
+      };
+  
+      const response = await fetchBooks(reqBody);
+  
+      const books = response.listings || [];
       const formatted = formatBooksForHomepage(books);
-
+  
       setModalBooks(formatted);
       setHasMoreBooks(books.length === BOOKS_PER_PAGE);
-
-      console.log(`SUCCESS: ${formatted.length} books loaded for "${category}"`);
+  
+      console.log(`Loaded ${formatted.length} books for "${category}"`);
     } catch (err) {
-      console.error("Failed:", err);
-      toast.error("Failed to load category");
+      console.error("Category modal fetch failed:", err);
+      toast.error("Could not load books for this category");
     } finally {
       setModalLoading(false);
     }
@@ -408,29 +404,27 @@ const Homepage = () => {
   const loadMoreBooks = useCallback(async () => {
     if (isLoadingMore || !hasMoreBooks || !selectedCategory) return;
     setIsLoadingMore(true);
-
+  
     try {
-      let filters: any = {};
-      if (selectedCategory !== "All Books") {
-        filters.category = selectedCategory;
-      }
-
-      const response = await fetchBooks({
+      const reqBody = {
         page: modalPage + 1,
         limit: BOOKS_PER_PAGE,
-        filters,
+        category: selectedCategory === "All Books" ? undefined : selectedCategory,
         sort: "createdAt",
-        order: "desc"
-      });
-
-      const newBooks = response.listings || response.books || [];
+        order: "desc",
+      };
+  
+      const response = await fetchBooks(reqBody);
+  
+      const newBooks = response.listings || [];
       const formatted = formatBooksForHomepage(newBooks);
-
+  
       setModalBooks(prev => [...prev, ...formatted]);
       setModalPage(p => p + 1);
       setHasMoreBooks(newBooks.length === BOOKS_PER_PAGE);
     } catch (err) {
-      toast.error("Failed to load more");
+      console.error("Load more failed:", err);
+      toast.error("Failed to load more books");
     } finally {
       setIsLoadingMore(false);
     }
@@ -466,22 +460,23 @@ const Homepage = () => {
     setIsLoadingMore(true);
   
     try {
-      const response = await fetchBooks({
+      const reqBody = {
         page,
         limit: BOOKS_PER_PAGE,
-        filters: selectedCategory === "All Books"
-          ? {}
-          : { category: selectedCategory },
+        category: selectedCategory === "All Books" ? undefined : selectedCategory,
         sort: "createdAt",
         order: "desc",
-      });
+      };
   
-      const books = response.listings || response.books || [];
+      const response = await fetchBooks(reqBody);
+  
+      const books = response.listings || [];
       setModalBooks(formatBooksForHomepage(books));
   
       setModalPage(page);
       setHasMoreBooks(books.length === BOOKS_PER_PAGE);
     } catch (err) {
+      console.error("Go to page failed:", err);
       toast.error("Failed to load page");
     } finally {
       setIsLoadingMore(false);
@@ -491,61 +486,75 @@ const Homepage = () => {
   useEffect(() => {
     const loadCategories = async () => {
       setIsLoadingCategories(true);
-  
+    
       try {
         const realCategoryNames = await fetchCategories();
-
+    
         if (realCategoryNames.length === 0) {
           console.warn("No categories found");
           setCategories([]);
           return;
         }
-  
+    
+        let totalBooks = 50000;
+        try {
+          const totalRes = await fetchBooks({ page: 1, limit: 1 });
+          totalBooks = totalRes.meta?.count || totalBooks;
+        } catch (err) {
+          console.warn("Failed to fetch total books count", err);
+        }
+    
         const categoryData = await Promise.all(
-          realCategoryNames.map(async (cat) => {
+          realCategoryNames.map(async (cat: any) => {
             try {
               const { meta } = await fetchBooks({
                 page: 1,
                 limit: 1,
-                filters: { category: cat.name },
+                category: cat.name,
               });
-              return { name: cat.name, count: meta?.count || 0 };
-            } catch {
-              return { name: cat.name, count: 0 };
+              return {
+                name: cat.name,
+                slug: cat.slug || cat.name
+                  .toLowerCase()
+                  .replace(/\s+/g, '-')
+                  .replace(/[^a-z0-9-]/g, ''),
+                count: meta?.count || 0,
+              };
+            } catch (err) {
+              console.warn(`Failed to count books for category "${cat.name}"`, err);
+              return null;
             }
           })
         );
-  
+    
         const validCategories = categoryData
-          .filter(c => c.count > 0)
+          .filter((c): c is NonNullable<typeof c> => c !== null && c.count > 0)
           .sort((a, b) => b.count - a.count)
           .slice(0, 18);
-  
-        const { meta } = await fetchBooks({ page: 1, limit: 1 });
-        const totalBooks = meta?.count || 50000;
-  
+    
         const finalList = [
-          { name: "All Books", count: totalBooks },
+          { name: "All Books", slug: "all", count: totalBooks },
           ...validCategories,
         ];
-  
+    
         setCategories(finalList);
         console.log("REAL categories loaded:", finalList.map(c => `${c.name} (${c.count})`));
       } catch (err) {
         console.error("Failed to load categories", err);
         setCategories([
-          { name: "All Books", count: 48500 },
-          { name: "Fiction", count: 18200 },
-          { name: "Children's Books", count: 9800 },
+          { name: "All Books", slug: "all", count: 48500 },
+          { name: "Fiction", slug: "fiction", count: 18200 },
+          { name: "Children's Books", slug: "childrens-books", count: 9800 },
         ]);
       } finally {
         setIsLoadingCategories(false);
       }
     };
-  
-    loadCategories();
-  }, []);
 
+    loadCategories();
+  }, []); // ← This closes the useEffect correctly
+
+  // ── Now handleScroll comes AFTER the useEffect ─────────────────────────────
   const handleScroll = (direction: 'left' | 'right') => {
     if (categoryRef.current) {
       const scrollAmount = 160;
