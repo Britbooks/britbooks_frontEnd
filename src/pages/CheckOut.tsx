@@ -139,7 +139,11 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
 };
 
 // --- BookShelf Component ---
-const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetchParams: any; currentBookId: string }) => {
+const BookShelf = ({ title, fetchParams, currentBookId }: {
+  title: string;
+  fetchParams: Record<string, any>;
+  currentBookId?: string;           // make optional
+}) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -152,22 +156,36 @@ const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetch
       setIsLoading(true);
       setError(null);
       try {
-        const { books: fetchedBooks } = await fetchBooks({
+        const response = await fetchBooks({
           page: 1,
-          limit: 10,
+          limit: 12,                    // ← pick a reasonable number
           ...fetchParams,
         });
-        const filteredBooks = fetchedBooks.filter((book) => book.id !== currentBookId);
-        setBooks(filteredBooks);
-        setIsLoading(false);
+
+        let fetchedBooks = response.listings || [];
+
+        // Filter out current book(s) if we have ID(s)
+        if (currentBookId) {
+          fetchedBooks = fetchedBooks.filter(b => b.id !== currentBookId);
+        }
+
+        // Optional: take more than visible → allows better pagination feel
+        setBooks(fetchedBooks);
       } catch (err) {
-        setError(`Failed to load ${title.toLowerCase()}. Please try again.`);
+        console.error(err);
+        setError(`Failed to load ${title.toLowerCase()}`);
+      } finally {
         setIsLoading(false);
-        console.error(`Failed to fetch ${title}:`, err instanceof Error ? err.message : err);
       }
     };
+
     fetchShelfBooks();
-  }, [fetchParams, title, currentBookId]);
+  }, [fetchParams, currentBookId, title]);
+
+  // … rest remains similar, but consider:
+  // - showing skeleton loaders instead of just text
+  // - increasing booksPerPage to 6–8 on larger screens
+  // - optional "See more" link at the end instead of internal pagination
 
   const totalPages = Math.min(Math.ceil(books.length / booksPerPage), maxPages);
   const startIndex = (currentPage - 1) * booksPerPage;
