@@ -80,7 +80,7 @@ const BookCard: React.FC<{ book: Book }> = React.memo(({ book }) => {
           />
         </Link>
         {isNew && (
-          <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg backdrop-blur-md">
+          <div className="absolute top-3 left-3 bg-red-700 text-white text-[10px] font-bold px-1.5 py-1 rounded-full shadow-lg backdrop-blur-md">
             NEW
           </div>
         )}
@@ -286,8 +286,8 @@ const NewArrivalsPage: React.FC = () => {
       `}</style>
 
       {/* Hero Header */}
-      <div className="relative overflow-hidden bg-white border-b border-slate-100 py-16 md:py-24">
-        <div className="absolute top-0 -left-4 w-72 h-72 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+      <div className="relative   overflow-hidden bg-white border-b border-slate-100 py-16 md:py-24">
+        <div className="absolute   top-0 -left-4 w-72 h-72 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
         <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
         
         <div className="max-w-7xl mx-auto px-6 relative z-10">

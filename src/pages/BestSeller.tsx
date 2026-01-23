@@ -223,7 +223,7 @@ const BestsellersPage: React.FC = () => {
 
       <main>
         {/* Modern Hero Section */}
-        <header className="relative py-16 sm:py-24 px-6 bg-slate-950 text-center overflow-hidden">
+        <header className="relative -mt-20 py-16 sm:py-24 px-6 bg-slate-950 text-center overflow-hidden">
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,#4f46e5,transparent)]" />
           <div className="relative z-10 max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
