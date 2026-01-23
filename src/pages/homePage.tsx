@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -10,9 +10,6 @@ import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { MD5 } from "crypto-js";
 
-
-
-
 // Interface for BookCard props
 interface BookCardProps {
   id: string;
@@ -23,7 +20,6 @@ interface BookCardProps {
 }
 
 // Convert API books to homepage format
-
 const generatePlaceholderImage = (book: {
   title: string;
   isbn?: string;
@@ -44,11 +40,8 @@ const formatBooksForHomepage = (books: Book[]): BookCardProps[] => {
   }));
 };
 
-
-
 // --- Reusable Components ---
 
-// Book Card Component for the shelves
 const BookCard = ({ id, img, title, author, price }: BookCardProps) => {
   const { addToCart } = useCart();
 
@@ -57,24 +50,20 @@ const BookCard = ({ id, img, title, author, price }: BookCardProps) => {
     toast.success(`${title} added to your basket!`);
   };
 
-  
-
-
-
   return (
     <div className="relative group flex-shrink-0 w-full max-w-[180px] text-center border border-gray-200 rounded-lg p-3 transition-shadow hover:shadow-lg">
       <div className="relative">
-      <img
-  src={img}
-  alt={title}
-  loading="lazy"
-  className="w-full h-60 object-cover mb-3 rounded"
-  onError={(e) => {
-    const target = e.currentTarget;
-    target.onerror = null; // prevents infinite loop
-    target.src = `https://picsum.photos/seed/fallback-${id}/300/450`;
-  }}
-/>
+        <img
+          src={img}
+          alt={title}
+          loading="lazy"
+          className="w-full h-60 object-cover mb-3 rounded"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.onerror = null;
+            target.src = `https://picsum.photos/seed/fallback-${id}/300/450`;
+          }}
+        />
         <div className="absolute inset-x-0 top-0 h-60 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-100 flex items-center justify-center">
           <Link to={`/browse/${id}`}>
             <button className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-100">
@@ -99,7 +88,6 @@ const BookCard = ({ id, img, title, author, price }: BookCardProps) => {
   );
 };
 
-// Category Card Component with Explore on Hover
 const CategoryCard = ({ 
   name, 
   count, 
@@ -109,7 +97,6 @@ const CategoryCard = ({
   count: number; 
   onOpenModal: (category: string) => void;
 }) => {
-  
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.15,
@@ -139,9 +126,8 @@ const CategoryCard = ({
         }}
       />
 
-<div className="absolute inset-0 bg-black/90 group-hover:bg-black/70 transition-all duration-300" />
+      <div className="absolute inset-0 bg-black/90 group-hover:bg-black/70 transition-all duration-300" />
       
-      {/* Name + Count */}
       <div className="absolute bottom-0 left-0 right-0 p-6 text-white text-left">
         <h3 className="text-2xl font-bold leading-tight drop-shadow-lg">
           {name}
@@ -151,7 +137,6 @@ const CategoryCard = ({
         </p>
       </div>
 
-      {/* Hover overlay */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 
         group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-sm">
         <span className="text-4xl font-bold tracking-wider text-white drop-shadow-2xl">
@@ -161,23 +146,21 @@ const CategoryCard = ({
     </motion.button>
   );
 };
-// Updated Book Shelf Component with Grid View for Mobile
+
 const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) => {
   const [books, setBooks] = useState<BookCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalBooks, setTotalBooks] = useState(0); // From API if available
+  const [totalBooks, setTotalBooks] = useState(0);
 
-  const itemsPerPage = 5; // Show more books per page → feels "plenty" instantly
-  const initialLimit = 100; // Safe first load – fast & gives 5 pages of content
+  const itemsPerPage = 5;
+  const initialLimit = 100;
 
-  // Cache for prefetched pages
   const pageCache = useRef<Map<number, BookCardProps[]>>(new Map());
 
   const loadPage = useCallback(async (pageNum: number, append = false) => {
-    // If already cached, use instantly
     if (pageCache.current.has(pageNum)) {
       const cached = pageCache.current.get(pageNum)!;
       setBooks(prev => append ? [...prev, ...cached] : cached);
@@ -189,7 +172,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
     else setIsLoadingMore(true);
 
     try {
-      const { books: fetchedBooks, total } = await fetchBooks({
+      const { listings: fetchedBooks, meta } = await fetchBooks({
         page: pageNum,
         limit: itemsPerPage,
         ...fetchParams,
@@ -197,17 +180,15 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 
       const formatted = formatBooksForHomepage(fetchedBooks || []);
 
-      // Cache it
       pageCache.current.set(pageNum, formatted);
 
-      // Update state
       if (append) {
         setBooks(prev => [...prev, ...formatted]);
       } else {
         setBooks(formatted);
       }
 
-      setTotalBooks(total || 0);
+      setTotalBooks(meta?.count || 0);
       setCurrentPage(pageNum);
     } catch (err) {
       setError(`Failed to load ${title.toLowerCase()}.`);
@@ -218,13 +199,12 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
     }
   }, [fetchParams, title]);
 
-  // Initial load – get first 100 books fast
   useEffect(() => {
     const fetchInitial = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const { books: fetchedBooks, total } = await fetchBooks({
+        const { listings: fetchedBooks, meta } = await fetchBooks({
           page: 1,
           limit: initialLimit,
           ...fetchParams,
@@ -232,9 +212,8 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 
         const formatted = formatBooksForHomepage(fetchedBooks || []);
         setBooks(formatted);
-        setTotalBooks(total || formatted.length);
+        setTotalBooks(meta?.count || formatted.length);
 
-        // Cache first few pages
         for (let p = 1; p <= Math.ceil(formatted.length / itemsPerPage); p++) {
           const slice = formatted.slice((p - 1) * itemsPerPage, p * itemsPerPage);
           pageCache.current.set(p, slice);
@@ -250,11 +229,9 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
     fetchInitial();
   }, [fetchParams]);
 
-  // Prefetch next page when user is on current page
   useEffect(() => {
     if (currentPage < Math.ceil(books.length / itemsPerPage)) return;
 
-    // Prefetch next page in background
     const nextPage = currentPage + 1;
     if (!pageCache.current.has(nextPage)) {
       fetchBooks({
@@ -262,7 +239,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
         limit: itemsPerPage,
         ...fetchParams,
       }).then(res => {
-        const formatted = formatBooksForHomepage(res.books || []);
+        const formatted = formatBooksForHomepage(res.listings || []);
         pageCache.current.set(nextPage, formatted);
       }).catch(() => {});
     }
@@ -308,7 +285,6 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-blue-800">{title}</h2>
 
-        {/* Enhanced Pagination */}
         <div className="flex items-center gap-4">
           <button
             onClick={() => {
@@ -331,7 +307,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
             onClick={() => {
               const next = currentPage + 1;
               setCurrentPage(next);
-              loadPage(next, true); // append if needed
+              loadPage(next, true);
             }}
             disabled={currentPage >= totalPages}
             className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
@@ -341,7 +317,6 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
         </div>
       </div>
 
-      {/* Books Grid – Now 20 books visible instantly */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
         {paginatedBooks.map(book => (
           <BookCard key={book.id} {...book} />
@@ -371,12 +346,12 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
   );
 };
 
-
 // --- Main Homepage Component ---
 
 const Homepage = () => {
   const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);  const categoryRef = useRef<HTMLDivElement>(null);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const categoryRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -392,79 +367,75 @@ const Homepage = () => {
   const BOOKS_PER_PAGE = 24;
   const observer = useRef<IntersectionObserver | null>(null);
 
+  const openCategoryModal = async (category: string) => {
+    setSelectedCategory(category);
+    setModalOpen(true);
+    setModalLoading(true);
+    setModalBooks([]);
+    setModalPage(1);
+    setHasMoreBooks(true);
 
-// PERFECT — ONLY SHOWS BOOKS THAT ACTUALLY HAVE THE TAG
-// FINAL — WORKS EXACTLY LIKE BREADCRUMB (uses `genre` field)
-const openCategoryModal = async (category: string) => {
-  setSelectedCategory(category);
-  setModalOpen(true);
-  setModalLoading(true);
-  setModalBooks([]);
-  setModalPage(1);
-  setHasMoreBooks(true);
+    try {
+      let filters: any = {};
 
-  try {
-    let filters: any = {};
+      if (category !== "All Books") {
+        filters.category = category;
+      }
 
-    if (category !== "All Books") {
-      filters.category = category;          // ← changed from .genre to .category
+      const response = await fetchBooks({
+        page: 1,
+        limit: BOOKS_PER_PAGE,
+        filters,
+        sort: "createdAt",
+        order: "desc"
+      });
+
+      const books = response.listings || response.books || [];
+      const formatted = formatBooksForHomepage(books);
+
+      setModalBooks(formatted);
+      setHasMoreBooks(books.length === BOOKS_PER_PAGE);
+
+      console.log(`SUCCESS: ${formatted.length} books loaded for "${category}"`);
+    } catch (err) {
+      console.error("Failed:", err);
+      toast.error("Failed to load category");
+    } finally {
+      setModalLoading(false);
     }
+  };
 
-    const response = await fetchBooks({
-      page: 1,
-      limit: BOOKS_PER_PAGE,
-      filters,
-      sort: "createdAt",
-      order: "desc"
-    });
+  const loadMoreBooks = useCallback(async () => {
+    if (isLoadingMore || !hasMoreBooks || !selectedCategory) return;
+    setIsLoadingMore(true);
 
-    const books = response.listings || response.books || [];
-    const formatted = formatBooksForHomepage(books);
+    try {
+      let filters: any = {};
+      if (selectedCategory !== "All Books") {
+        filters.category = selectedCategory;
+      }
 
-    setModalBooks(formatted);
-    setHasMoreBooks(books.length === BOOKS_PER_PAGE);
+      const response = await fetchBooks({
+        page: modalPage + 1,
+        limit: BOOKS_PER_PAGE,
+        filters,
+        sort: "createdAt",
+        order: "desc"
+      });
 
-    console.log(`SUCCESS: ${formatted.length} books loaded for "${category}" using genre field`);
-  } catch (err) {
-    console.error("Failed:", err);
-    toast.error("Failed to load category");
-  } finally {
-    setModalLoading(false);
-  }
-};
+      const newBooks = response.listings || response.books || [];
+      const formatted = formatBooksForHomepage(newBooks);
 
-const loadMoreBooks = useCallback(async () => {
-  if (isLoadingMore || !hasMoreBooks || !selectedCategory) return;
-  setIsLoadingMore(true);
-
-  try {
-    let filters: any = {};
-    if (selectedCategory !== "All Books") {
-      filters.category = selectedCategory;   // ← fixed
+      setModalBooks(prev => [...prev, ...formatted]);
+      setModalPage(p => p + 1);
+      setHasMoreBooks(newBooks.length === BOOKS_PER_PAGE);
+    } catch (err) {
+      toast.error("Failed to load more");
+    } finally {
+      setIsLoadingMore(false);
     }
-
-    const response = await fetchBooks({
-      page: modalPage + 1,
-      limit: BOOKS_PER_PAGE,
-      filters,
-      sort: "createdAt",
-      order: "desc"
-    });
-
-    const newBooks = response.listings || response.books || [];
-    const formatted = formatBooksForHomepage(newBooks);
-
-    setModalBooks(prev => [...prev, ...formatted]);
-    setModalPage(p => p + 1);
-    setHasMoreBooks(newBooks.length === BOOKS_PER_PAGE);
-  } catch (err) {
-    toast.error("Failed to load more");
-  } finally {
-    setIsLoadingMore(false);
-  }
-}, [modalPage, selectedCategory, isLoadingMore, hasMoreBooks]);
+  }, [modalPage, selectedCategory, isLoadingMore, hasMoreBooks]);
   
-  // Intersection Observer for Infinite Scroll
   const lastBookRef = useCallback((node: HTMLDivElement | null) => {
     if (modalLoading || isLoadingMore || !hasMoreBooks) {
       if (observer.current) observer.current.disconnect();
@@ -481,7 +452,7 @@ const loadMoreBooks = useCallback(async () => {
       },
       { 
         root: document.querySelector('.modal-content-scroll'),
-        rootMargin: "100px",  // Only trigger when really near bottom
+        rootMargin: "100px",
         threshold: 0.1
       }
     );
@@ -500,13 +471,13 @@ const loadMoreBooks = useCallback(async () => {
         limit: BOOKS_PER_PAGE,
         filters: selectedCategory === "All Books"
           ? {}
-          : { category: selectedCategory },   // ← fixed
+          : { category: selectedCategory },
         sort: "createdAt",
         order: "desc",
       });
   
       const books = response.listings || response.books || [];
-      setModalBooks(formatBooksForHomepage(books));  // keep format consistent
+      setModalBooks(formatBooksForHomepage(books));
   
       setModalPage(page);
       setHasMoreBooks(books.length === BOOKS_PER_PAGE);
@@ -516,16 +487,14 @@ const loadMoreBooks = useCallback(async () => {
       setIsLoadingMore(false);
     }
   };
-  
-  
 
   useEffect(() => {
     const loadCategories = async () => {
       setIsLoadingCategories(true);
   
       try {
-        const realCategoryNames = await fetchCategories();  // ← This calls your API endpoint
-  
+        const realCategoryNames = await fetchCategories();
+
         if (realCategoryNames.length === 0) {
           console.warn("No categories found");
           setCategories([]);
@@ -535,12 +504,12 @@ const loadMoreBooks = useCallback(async () => {
         const categoryData = await Promise.all(
           realCategoryNames.map(async (cat) => {
             try {
-              const { total = 0 } = await fetchBooks({
+              const { meta } = await fetchBooks({
                 page: 1,
                 limit: 1,
-                filters: { category: cat.name },  // ← FIXED: uses category field
+                filters: { category: cat.name },
               });
-              return { name: cat.name, count: total };
+              return { name: cat.name, count: meta?.count || 0 };
             } catch {
               return { name: cat.name, count: 0 };
             }
@@ -552,7 +521,8 @@ const loadMoreBooks = useCallback(async () => {
           .sort((a, b) => b.count - a.count)
           .slice(0, 18);
   
-        const { total: totalBooks = 50000 } = await fetchBooks({ page: 1, limit: 1 });
+        const { meta } = await fetchBooks({ page: 1, limit: 1 });
+        const totalBooks = meta?.count || 50000;
   
         const finalList = [
           { name: "All Books", count: totalBooks },
@@ -576,17 +546,13 @@ const loadMoreBooks = useCallback(async () => {
     loadCategories();
   }, []);
 
-
   const handleScroll = (direction: 'left' | 'right') => {
     if (categoryRef.current) {
-      const scrollAmount = 160; // Adjust based on card width + gap
+      const scrollAmount = 160;
       categoryRef.current.scrollLeft += direction === 'right' ? scrollAmount : -scrollAmount;
     }
   };
 
-
-
-  // Modal Component
   const CategoryModal = () => {
     if (!modalOpen) return null;
   
@@ -600,7 +566,6 @@ const loadMoreBooks = useCallback(async () => {
             className="bg-white rounded-3xl shadow-2xl max-w-7xl mx-auto overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white sticky top-0 z-20">
               <div className="px-8 py-14 text-center relative">
                 <h1 className="text-5xl sm:text-7xl font-bold mb-4 tracking-tight">
@@ -637,7 +602,6 @@ const loadMoreBooks = useCallback(async () => {
               </div>
             </div>
   
-            {/* Content */}
             <div className="p-8 sm:p-12 bg-gray-50">
               {modalLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
@@ -655,7 +619,6 @@ const loadMoreBooks = useCallback(async () => {
                     ))}
                   </div>
   
-                  {/* CLEAN PAGINATION – CLICK ONLY */}
                   <div className="flex flex-col items-center gap-10">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-gray-800">
@@ -666,7 +629,6 @@ const loadMoreBooks = useCallback(async () => {
                       </p>
                     </div>
   
-                    {/* Page Number Buttons */}
                     <div className="flex gap-4 flex-wrap justify-center">
                       {Array.from({ length: Math.min(10, modalPage + 5) }, (_, i) => i + 1)
                         .filter(page => page >= modalPage - 3)
@@ -689,7 +651,6 @@ const loadMoreBooks = useCallback(async () => {
                       )}
                     </div>
   
-                    {/* BIG LOAD MORE BUTTON – ONLY WAY TO LOAD */}
                     {hasMoreBooks && (
                       <button
                         onClick={loadMoreBooks}
@@ -701,7 +662,6 @@ const loadMoreBooks = useCallback(async () => {
                     )}
                   </div>
   
-                  {/* Loading Spinner */}
                   {isLoadingMore && (
                     <div className="text-center py-20">
                       <div className="inline-block animate-spin rounded-full h-24 w-24 border-12 border-purple-600 border-t-transparent"></div>
@@ -727,7 +687,6 @@ const loadMoreBooks = useCallback(async () => {
               )}
             </div>
   
-            {/* Mobile Close */}
             <div className="sticky bottom-0 p-6 bg-white border-t-4 border-purple-600 shadow-2xl sm:hidden">
               <button
                 onClick={() => setModalOpen(false)}
@@ -742,9 +701,7 @@ const loadMoreBooks = useCallback(async () => {
     );
   };
 
-  let seenBookIds = new Set();
   const shelfFetchParams = {
-    // 🆕 Latest arrivals — uses `stock > 0` and sorts by creation date
     newArrivals: {
       shelf: "newArrivals",
       label: "New Arrivals",
@@ -753,7 +710,6 @@ const loadMoreBooks = useCallback(async () => {
       filters: { stock: { $gt: 0 } },
     },
   
-    // 🌟 Popular books — rating ≥ 4.3 sorted by rating
     popularBooks: {
       shelf: "popularBooks",
       label: "Popular Books",
@@ -766,41 +722,29 @@ const loadMoreBooks = useCallback(async () => {
       shelf: "bestSellers",
       label: "Best Sellers",
       sort: "salesCount",
-      horder: "desc",
-      filters: { 
-        stock: { $gt: 0 },
-       
-        _id: { $nin: Array.from(seenBookIds) } 
-      },
-    }, 
-
-  
-    // 👶 Children’s books — category matches any child/kids pattern
-    childrensBooks: {
-      shelf: "children",
-      label: "Children’s Books",
-      sort: "createdAt",
       order: "desc",
-      filters: {
-        category: "Children's Books",           // ← exact string match
-      },
+      filters: { stock: { $gt: 0 } },
     },
   
-    // 🔖 Clearance — active discount, valid date, ≥ 10% off
+    childrensBooks: {
+      shelf: "childrensBooks",
+      label: "Children's Books",
+      sort: "createdAt",
+      order: "desc",
+      filters: { category: "Children's Books" },
+    },
+  
     clearanceItems: {
       shelf: "clearanceItems",
-      label: "Clearance",
+      label: "Clearance Items",
       sort: "discount.value",
       order: "desc",
       filters: {
         "discount.isActive": true,
         "discount.value": { $gte: 10 },
-        // frontend doesn’t need to include date checks;
-        // backend already validates `validFrom` / `validUntil`
       },
     },
   
-    // 👀 Recently viewed — based on `lastViewedAt`
     recentlyViewed: {
       shelf: "recentlyViewed",
       label: "Recently Viewed",
@@ -808,8 +752,6 @@ const loadMoreBooks = useCallback(async () => {
       order: "desc",
     },
   };
-  
-  
   
   return (
     <>
@@ -881,7 +823,7 @@ const loadMoreBooks = useCallback(async () => {
         <TopBar />
         
         <main className="container mx-auto px-4 sm:px-8">
-          {/* Hero Section with Video Background (Visible only on non-mobile) */}
+          {/* Hero Section */}
           <section className="sm:block hidden relative text-white my-4 sm:my-8 py-12 sm:py-20 px-4 sm:px-12 rounded-lg overflow-hidden">
             <video
               autoPlay
@@ -916,7 +858,7 @@ const loadMoreBooks = useCallback(async () => {
                 src="https://media.istockphoto.com/id/185266132/photo/portrait-of-a-cute-teenage-girl.jpg?s=612x612&w=0&k=20&c=7oyxKo75xTGO_k5v2zsCBeu7GWG-7eryUyyu42o8Ra0="
                 alt="Woman Reading"
                 className="w-full max-w-4xl sm:max-w-3xl object-contain"
-                />
+              />
             </div>
             <div className="w-full sm:w-1/2 sm:py-10">
               <h2 className="text-3xl sm:text-5xl font-light leading-tight mb-4 sm:mb-6">
@@ -933,8 +875,7 @@ const loadMoreBooks = useCallback(async () => {
           </div>
 
           {/* Shop by Category Section */}
-        {/* Shop by Category Section */}
-        <section className="category-section animate-on-scroll">
+          <section className="category-section animate-on-scroll">
             <div className="max-w-7xl mx-auto px-4 sm:px-8">
               <h3 className="text-white">Shop by Category</h3>
               <div className="relative flex items-center">
@@ -953,12 +894,13 @@ const loadMoreBooks = useCallback(async () => {
                     ))
                   ) : (
                     categories.map((category) => (
-<CategoryCard 
-    key={category.name}
-    name={category.name}
-    count={category.count}
-    onOpenModal={openCategoryModal}
-  />                   ))
+                      <CategoryCard 
+                        key={category.name}
+                        name={category.name}
+                        count={category.count}
+                        onOpenModal={openCategoryModal}
+                      />
+                    ))
                   )}
                   <Link to="/category" className="flex-shrink-0 w-40 h-40 bg-blue-700 text-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
                     <div className="relative w-full h-full flex items-center justify-center">
@@ -1012,7 +954,7 @@ const loadMoreBooks = useCallback(async () => {
             <BookShelf title="Recently Viewed" fetchParams={shelfFetchParams.recentlyViewed} />
           </div>
 
-          {/* Promotional Banners with Image Backgrounds */}
+          {/* Promotional Banners */}
           <div className="max-w-7xl mx-auto py-8 sm:py-12 px-4 sm:px-8 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[
               { title: "Free Shipping", subtitle: "Orders Over £100", image: "https://media.istockphoto.com/id/1309243817/vector/fast-delivery-truck-with-motion-lines-online-delivery-express-delivery-quick-move-fast.jpg?s=612x612&w=0&k=20&c=l2JlE6VQ4uRS6jABMS558puDgTyhEJW0bSiPhbBgXMc=" },

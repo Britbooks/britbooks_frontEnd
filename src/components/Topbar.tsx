@@ -388,27 +388,38 @@ const TopBar = () => {
 
       {/* Navigation & Modern Mega Modal */}
       <div className="bg-white border-t border-gray-200 px-4">
-        <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
-          <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
-          <nav className="hidden sm:flex flex-1 justify-between items-center font-medium text-gray-600">
-            <div className="flex space-x-8">
-              <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Home </Link>
+  <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
 
-              {/* MODERN BOOKSTORE MEGA MODAL (Waterstones/Barnes & Noble style) */}
-              <div 
-                className="h-full flex items-center"
-                onMouseEnter={() => setIsCategoryHovered(true)}
-                onMouseLeave={() => setIsCategoryHovered(false)}
-              >
-                <Link 
-                  to="/category" 
-                  className={`py-3 flex items-center space-x-1 ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
-                >
-                  <span>Shop by Category</span>
-                  <ChevronDown className={`transition-transform duration-200 ${isCategoryHovered ? 'rotate-180' : ''}`} />
-                </Link>
+    {/* Keep this spacer so logo doesn't overlap nav */}
+    <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
 
-                {isCategoryHovered && categories.length > 0 && (
+    {/* ─── MAIN CHANGE ─── */}
+    <nav className="hidden sm:flex flex-1 justify-center items-center font-medium text-gray-600">
+
+      {/* Wrap the links + cart in a container that stays centered */}
+      <div className="flex items-center justify-between w-full max-w-5xl">
+
+        {/* Left side – nav links – will be centered because of justify-between + max-w */}
+        <div className="flex space-x-8">
+          <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+            Home
+          </Link>
+
+          {/* Shop by Category with mega menu – keep as is */}
+          <div 
+            className="h-full flex items-center"
+            onMouseEnter={() => setIsCategoryHovered(true)}
+            onMouseLeave={() => setIsCategoryHovered(false)}
+          >
+            <Link 
+              to="/category" 
+              className={`py-3 flex items-center space-x-1 ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
+            >
+              <span>Shop by Category</span>
+              <ChevronDown className={`transition-transform duration-200 ${isCategoryHovered ? 'rotate-180' : ''}`} />
+            </Link>
+            {/* ... mega menu code remains unchanged ... */}
+            {isCategoryHovered && categories.length > 0 && (
                   <div className="absolute top-full left-[-240px] w-[1000px] bg-white shadow-2xl z-[100] animate-in fade-in slide-in-from-top-1 duration-200 flex border border-gray-100 rounded-b-xl overflow-hidden min-h-[450px]">
                     
                     {/* LEFT SIDEBAR: MAIN CATEGORIES */}
@@ -476,21 +487,36 @@ const TopBar = () => {
                     </div>
                   </div>
                 )}
-              </div>
+          </div>
 
-              <Link to="/popular-books" className={`py-3 ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Popular Books </Link>
-              <Link to="/new-arrivals" className={`py-3 ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> New Arrivals </Link>
-              <Link to="/bestsellers" className={`py-3 ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Best Sellers </Link>
-              <Link to="/clearance" className={`py-3 ${isActive('/clearance') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Clearance </Link>
-              <Link to="/help" className={`py-3 ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}> Contact Us </Link>
-            </div>
-            <Link to="/checkout" className="flex items-center space-x-2 text-gray-700">
-              <ShoppingCartIcon className="h-6 w-6 text-gray-600" />
-              <span>Cart {cartCount} Items</span>
-            </Link>
-          </nav>
+          <Link to="/popular-books" className={`py-3 ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+            Popular Books
+          </Link>
+          <Link to="/new-arrivals" className={`py-3 ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+            New Arrivals
+          </Link>
+          <Link to="/bestsellers" className={`py-3 ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+            Best Sellers
+          </Link>
+          <Link to="/clearance" className={`py-3 ${isActive('/clearance') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+            Clearance
+          </Link>
+          <Link to="/help" className={`py-3 ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+            Contact Us
+          </Link>
         </div>
+
+        {/* Right side – cart stays on the far right */}
+        <Link to="/checkout" className="flex items-center space-x-2 text-gray-700 whitespace-nowrap">
+          <ShoppingCartIcon className="h-6 w-6 text-gray-600" />
+          <span>Cart {cartCount} Items</span>
+        </Link>
+
       </div>
+    </nav>
+
+  </div>
+</div>
     </header>
   );
 };

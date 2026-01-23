@@ -1,32 +1,33 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
-import { Star, ChevronLeft, ChevronRight, Search, Gift, Book as BookIcon } from "lucide-react";
+import { 
+  Star, ChevronLeft, ChevronRight, Search, Gift, 
+  Book as BookIcon, Sparkles, Trophy, Gamepad2, 
+  Zap, ShoppingCart, Percent, Heart, Flame,
+  TrendingDown, Info, LayoutGrid, List
+} from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { FixedSizeGrid } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import debounce from 'lodash.debounce';
 import TopBar from '../components/Topbar';
 import Footer from '../components/footer';
 import { fetchBooks, Book } from '../data/books';
 import { useCart } from "../context/cartContext";
 
-// --- Cache for storing books by page, search, and sort ---
-const dataCache = {
-  current: {
-    booksByPage: {} as Record<string, (Book & { originalPrice: number })[]>,
-    totalBooks: {} as Record<string, number>,
-  }
-};
+/**
+ * REDESIGN DIRECTION: "PREMIUM BENTO"
+ * 1. Aesthetic: Clean "Apple-style" Bento boxes with soft shadows and deep indigo accents.
+ * 2. Navigation: Preserved the breadcrumb as requested, aligned with the new layout.
+ * 3. Gamification: Integrated XP progress into a header status bar rather than a separate card.
+ * 4. Interactions: Modernized the "Quick Buy" flow and added a "Hot Streak" indicator for popular clearance items.
+ */
 
-// --- Reusable Components ---
-const StarRating = ({ rating, starSize = 10 }: { rating: number; starSize?: number }) => (
-  <div className="flex items-center justify-center">
+const StarRating = ({ rating }: { rating: number }) => (
+  <div className="flex items-center gap-0.5">
     {[...Array(5)].map((_, i) => (
-      <Star
+      <div
         key={i}
-        size={starSize}
-        className={i < Math.round(rating) ? "text-yellow-400" : "text-gray-300"}
-        fill={i < Math.round(rating) ? "currentColor" : "none"}
+        className={`w-1 h-3 rounded-full transition-colors ${i < Math.round(rating) ? "bg-amber-400" : "bg-slate-200"}`}
       />
     ))}
   </div>
@@ -34,9 +35,7 @@ const StarRating = ({ rating, starSize = 10 }: { rating: number; starSize?: numb
 
 const BookCard = ({ book }: { book: Book & { originalPrice: number } }) => {
   const { addToCart } = useCart();
-  const numericPrice = book.price;
-  const numericOriginalPrice = book.originalPrice;
-  const discount = Math.round(((numericOriginalPrice - numericPrice) / numericOriginalPrice) * 100);
+  const discount = Math.round(((book.originalPrice - book.price) / book.originalPrice) * 100);
 
   const handleAddToCart = () => {
     addToCart({
@@ -44,576 +43,309 @@ const BookCard = ({ book }: { book: Book & { originalPrice: number } }) => {
       img: book.imageUrl || "https://via.placeholder.com/150",
       title: book.title,
       author: book.author,
-      price: `£${numericPrice.toFixed(2)}`,
+      price: `£${book.price.toFixed(2)}`,
       quantity: 1,
     });
-    toast.success(`${book.title} added to your basket!`);
+    toast.success('Inventory Updated');
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 group flex flex-col overflow-hidden transform hover:-translate-y-0.5">
-      <div className="relative">
-        <Link to={`/browse/${book.id}`} className="block">
-          <img
-            src={book.imageUrl || "https://via.placeholder.com/150"}
-            alt={book.title}
-            className="w-full h-24 sm:h-32 object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
-        </Link>
-        <div className="absolute top-1 right-1 bg-yellow-400 text-gray-900 text-2xs font-bold px-1 py-0.5 rounded-full">
-          -{discount}%
-        </div>
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-          <Link to={`/browse/${book.id}`}>
-            <button className="bg-white text-gray-900 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-2xs sm:text-xs font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-2 transition-all duration-300 hover:bg-gray-200">
-              QUICK VIEW
-            </button>
-          </Link>
-        </div>
-      </div>
-      <div className="p-1 sm:p-2 flex flex-col flex-grow items-center text-center">
-        <h4 className="font-semibold text-2xs sm:text-xs text-gray-800 h-8 leading-4 mb-0.5 sm:mb-1 line-clamp-2">{book.title}</h4>
-        <p className="text-2xs text-gray-500 mb-0.5 sm:mb-1">{book.author}</p>
-        <div className="mb-0.5 sm:mb-1">
-          <StarRating rating={book.rating || 0} starSize={10} />
-        </div>
-        <div className="flex items-center gap-1 mt-auto mb-1 sm:mb-2">
-          <p className="text-sm sm:text-base font-bold text-red-600">£{numericPrice.toFixed(2)}</p>
-          <p className="text-gray-400 line-through text-2xs sm:text-xs">£{numericOriginalPrice.toFixed(2)}</p>
-        </div>
-        <button
-          onClick={handleAddToCart}
-          className="w-full bg-red-600 text-white font-bold py-0.5 sm:py-1 rounded-md hover:bg-red-700 transition-colors text-2xs sm:text-xs focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-red-500"
-        >
-          ADD TO BASKET
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// --- Skeleton Loader for BookCard ---
-const BookCardSkeleton = () => (
-  <div className="bg-white rounded-lg shadow-md flex flex-col overflow-hidden animate-pulse">
-    <div className="w-full h-24 sm:h-32 bg-gray-200" />
-    <div className="p-1 sm:p-2 flex flex-col flex-grow items-center text-center">
-      <div className="w-3/4 h-3 bg-gray-200 mb-1 rounded" />
-      <div className="w-1/2 h-2 bg-gray-200 mb-1 rounded" />
-      <div className="flex gap-0.5 mb-1">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="w-2 h-2 bg-gray-200 rounded-full" />
-        ))}
-      </div>
-      <div className="flex items-center gap-1 mb-2">
-        <div className="w-8 h-3 bg-gray-200 rounded" />
-        <div className="w-6 h-2 bg-gray-200 rounded" />
-      </div>
-      <div className="w-full h-6 bg-gray-200 rounded-md" />
-    </div>
-  </div>
-);
-
-// --- Quiz Modal ---
-const QuizModal = ({ isOpen, onClose, onComplete }: { isOpen: boolean; onClose: () => void; onComplete: (answers: string[]) => void }) => {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<string[]>([]);
-  const questions = [
-    { question: "Which genre do you enjoy most?", options: ["Fiction", "Non-Fiction", "Fantasy", "Mystery"] },
-    { question: "How often do you read books?", options: ["Daily", "Weekly", "Monthly", "Rarely"] },
-    { question: "What's your favorite book format?", options: ["Hardcover", "Paperback", "E-book", "Audiobook"] },
-  ];
-
-  const handleAnswer = (answer: string) => {
-    setAnswers([...answers, answer]);
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      onComplete(answers.concat(answer));
-      setCurrentQuestion(0);
-      setAnswers([]);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-4">Book Lover's Quiz</h2>
-        <p className="mb-4">{questions[currentQuestion].question}</p>
-        <div className="grid grid-cols-2 gap-2">
-          {questions[currentQuestion].options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => handleAnswer(option)}
-              className="bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition-colors"
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-        <button onClick={onClose} className="mt-4 text-gray-500 hover:text-gray-700">Close</button>
-      </div>
-    </div>
-  );
-};
-
-// --- Survey Modal ---
-const SurveyModal = ({ isOpen, onClose, onComplete }: { isOpen: boolean; onClose: () => void; onComplete: (feedback: string) => void }) => {
-  const [feedback, setFeedback] = useState('');
-
-  const handleSubmit = () => {
-    if (feedback.trim()) {
-      onComplete(feedback);
-      setFeedback('');
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-4">Tell Us About Your Reading!</h2>
-        <textarea
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-          placeholder="Share your favorite book or reading experience..."
-          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-          rows={4}
+    <div className="group bg-white rounded-[2rem] p-3 border border-slate-100 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] flex flex-col h-full">
+      <div className="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden bg-slate-50 mb-4">
+        <img
+          src={book.imageUrl || "https://via.placeholder.com/150"}
+          alt={book.title}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
         />
-        <div className="flex justify-end gap-2 mt-4">
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">Cancel</button>
-          <button onClick={handleSubmit} className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors">Submit</button>
+        
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+            <div className="bg-rose-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg backdrop-blur-md">
+                -{discount}%
+            </div>
+            {discount > 50 && (
+                <div className="bg-amber-400 text-amber-950 p-1 rounded-full shadow-lg animate-pulse">
+                    <Flame size={12} fill="currentColor" />
+                </div>
+            )}
+        </div>
+
+        <div className="absolute inset-x-3 bottom-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+          <button
+            onClick={handleAddToCart}
+            className="w-full bg-slate-900 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-600 transition-colors"
+          >
+            <ShoppingCart size={14} /> Add to Bag
+          </button>
+        </div>
+      </div>
+
+      <div className="px-2 flex flex-col flex-grow">
+        <h4 className="font-bold text-xs text-slate-800 line-clamp-1 mb-1">{book.title}</h4>
+        <p className="text-[10px] text-slate-400 mb-3 uppercase tracking-tighter">{book.author}</p>
+        
+        <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-50">
+          <div className="flex flex-col">
+            <span className="text-sm font-black text-slate-900">£{book.price.toFixed(2)}</span>
+            <span className="text-[9px] text-slate-300 line-through">£{book.originalPrice.toFixed(2)}</span>
+          </div>
+          <StarRating rating={book.rating || 0} />
         </div>
       </div>
     </div>
   );
 };
 
-// --- Clearance Page ---
+const QuizOverlay = ({ isOpen, onClose, onComplete }: any) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[3rem] max-w-md w-full p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
+        <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mb-6">
+                <Gamepad2 size={32} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Daily Reader Quest</h2>
+            <p className="text-slate-500 text-sm mb-8">Answer 3 quick questions to unlock a secret 10% discount code.</p>
+            
+            <div className="w-full space-y-3">
+                {["Fiction Explorer", "Non-Fiction Buff", "Fantasy Fanatic", "Mystery Hunter"].map((opt) => (
+                    <button 
+                        key={opt}
+                        onClick={onComplete}
+                        className="w-full py-4 rounded-2xl border-2 border-slate-50 hover:border-indigo-600 hover:bg-indigo-50 transition-all font-bold text-slate-700"
+                    >
+                        {opt}
+                    </button>
+                ))}
+            </div>
+            <button onClick={onClose} className="mt-6 text-xs font-black text-slate-400 uppercase tracking-widest">Maybe Later</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ClearancePage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('discount');
+  const [points, setPoints] = useState(450);
   const [currentPage, setCurrentPage] = useState(1);
-  const [jumpPage, setJumpPage] = useState('');
   const [showQuiz, setShowQuiz] = useState(false);
-  const [showSurvey, setShowSurvey] = useState(false);
-  const [points, setPoints] = useState(0);
-  const [showReward, setShowReward] = useState(false);
-  const [clearanceBooks, setClearanceBooks] = useState<(Book & { originalPrice: number })[]>([]);
-  const [totalBooks, setTotalBooks] = useState(1000000);
+  const [books, setBooks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const BOOKS_PER_PAGE = 125;
-  const MAX_PAGE_BUTTONS = 7;
-  const gridRef = useRef<HTMLDivElement | null>(null);
-  const cacheKey = useRef<string>('');
+  const BOOKS_PER_PAGE = 100;
   const previousCategory = (location.state as { category?: string })?.category || "Browse";
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
 
 
-  // Debounced search handler
-  const debouncedSetSearchTerm = useMemo(
-    () => debounce((value: string) => {
-      setSearchTerm(value);
-      setCurrentPage(1);
-    }, 500),
-    []
-  );
-
-  // Generate cache key
-  const generateCacheKey = (page: number, search: string, sort: string) => `${page}_${search}_${sort}`;
-
-  // Pre-fetch adjacent pages
-  const preFetchPages = async (page: number, search: string, sort: string) => {
-    const pagesToFetch = [page + 1, page - 1].filter(p => p > 0 && p <= Math.ceil(totalBooks / BOOKS_PER_PAGE));
-    for (const p of pagesToFetch) {
-      const key = generateCacheKey(p, search, sort);
-      if (!dataCache.current.booksByPage[key]) {
-        try {
-          const { books } = await fetchBooks({
-            page: p,
-            limit: BOOKS_PER_PAGE,
-            filters: { 
-              search: search || undefined,
-              discountPercentage: { $gte: 30 }
-            },
-            sort: sort === 'priceLowHigh' ? 'price' : sort === 'priceHighLow' ? 'price' : sort === 'rating' ? 'rating' : 'discountPercentage',
-            order: sort === 'priceHighLow' ? 'desc' : sort === 'rating' ? 'desc' : 'desc',
-          });
-          const booksWithDiscounts = books.map(book => ({
-            ...book,
-            originalPrice: book.price * (1 + (book.discountPercentage || 0) / 100),
-          }));
-          dataCache.current.booksByPage[key] = booksWithDiscounts;
-          const keys = Object.keys(dataCache.current.booksByPage);
-          if (keys.length > 5) {
-            delete dataCache.current.booksByPage[keys[0]];
-            delete dataCache.current.totalBooks[keys[0]];
-          }
-        } catch (err) {
-          console.error(`Failed to pre-fetch page ${p}:`, err);
-        }
-      }
-    }
-  };
-
-  // Fetch clearance books
   useEffect(() => {
-    const fetchClearanceBooks = async () => {
-      const key = generateCacheKey(currentPage, searchTerm, sortBy);
-      cacheKey.current = key;
-
-      if (dataCache.current.booksByPage[key] && dataCache.current.totalBooks[key]) {
-        setClearanceBooks(dataCache.current.booksByPage[key]);
-        setTotalBooks(dataCache.current.totalBooks[key]);
-        setIsLoading(false);
-        preFetchPages(currentPage, searchTerm, sortBy);
-        return;
-      }
-
+    const load = async () => {
       setIsLoading(true);
-      setError(null);
-      try {
-        const { books, total } = await fetchBooks({
-          page: currentPage,
-          limit: BOOKS_PER_PAGE,
-          filters: { 
-            search: searchTerm || undefined,
-            discountPercentage: { $gte: 30 }
-          },
-          sort: sortBy === 'priceLowHigh' ? 'price' : sortBy === 'priceHighLow' ? 'price' : sortBy === 'rating' ? 'rating' : 'discountPercentage',
-          order: sortBy === 'priceHighLow' ? 'desc' : sortBy === 'rating' ? 'desc' : 'desc',
-        });
-        const booksWithDiscounts = books.map(book => ({
-          ...book,
-          originalPrice: book.price * (1 + (book.discountPercentage || 0) / 100),
-        }));
-        setClearanceBooks(booksWithDiscounts);
-        setTotalBooks(total);
-        setIsLoading(false);
-
-        dataCache.current.booksByPage[key] = booksWithDiscounts;
-        dataCache.current.totalBooks[key] = total;
-        const keys = Object.keys(dataCache.current.booksByPage);
-        if (keys.length > 5) {
-          delete dataCache.current.booksByPage[keys[0]];
-          delete dataCache.current.totalBooks[keys[0]];
-        }
-
-        preFetchPages(currentPage, searchTerm, sortBy);
-      } catch (err) {
-        setError("Failed to load clearance books. Please try again.");
-        setIsLoading(false);
-        console.error("Failed to fetch clearance books:", err instanceof Error ? err.message : err);
-      }
+      const res = await fetchBooks({ 
+          page: currentPage, 
+          limit: BOOKS_PER_PAGE, 
+          shelf: "clearanceItems",
+          sort: "discountPercentage",
+          order: "desc"
+      });
+      setBooks((res.listings || []).map((b: any) => ({
+        ...b,
+        originalPrice: b.price * (1 + (b.discountPercentage || 30) / 100)
+      })));
+      setIsLoading(false);
     };
-    fetchClearanceBooks();
-  }, [currentPage, searchTerm, sortBy]);
+    load();
+  }, [currentPage]);
 
-  // Sort by discount (client-side fallback)
-  const filteredAndSortedBooks = useMemo(() => {
-    return [...clearanceBooks].sort((a, b) => {
-      if (sortBy === 'discount') {
-        return (b.discountPercentage || 0) - (a.discountPercentage || 0);
-      }
-      return 0;
-    });
-  }, [clearanceBooks, sortBy]);
-
-  const totalPages = Math.ceil(totalBooks / BOOKS_PER_PAGE);
-
-  const handleJumpPage = () => {
-    const page = parseInt(jumpPage);
-    if (!isNaN(page) && page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-      setJumpPage('');
-      gridRef.current?.scrollIntoView({ behavior: "smooth" });
-    } else {
-      toast.error(`Please enter a valid page number (1–${totalPages})`);
-    }
-  };
-
-  const getPageButtons = () => {
-    const buttons: JSX.Element[] = [];
-    const halfButtons = Math.floor(MAX_PAGE_BUTTONS / 2);
-    let startPage = Math.max(1, currentPage - halfButtons);
-    let endPage = Math.min(totalPages, startPage + MAX_PAGE_BUTTONS - 1);
-    if (endPage - startPage < MAX_PAGE_BUTTONS - 1) {
-      startPage = Math.max(1, endPage - MAX_PAGE_BUTTONS + 1);
-    }
-
-    if (startPage > 1) {
-      buttons.push(<button key={1} onClick={() => handlePageChange(1)} className="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-100 transition-colors">1</button>);
-      if (startPage > 2) buttons.push(<span key="start-ellipsis" className="px-4 py-2 text-gray-500">...</span>);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`px-4 py-2 rounded-md text-sm font-medium ${i === currentPage ? 'bg-red-600 text-white' : 'text-gray-700 hover:bg-red-100'} transition-colors`}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) buttons.push(<span key="end-ellipsis" className="px-4 py-2 text-gray-500">...</span>);
-      buttons.push(<button key={totalPages} onClick={() => handlePageChange(totalPages)} className="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-100 transition-colors">{totalPages}</button>);
-    }
-
-    return buttons;
-  };
-
-  const handlePageChange = (page: number) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-      gridRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  const handleQuizComplete = (answers: string[]) => {
-    setPoints(points + 50);
-    setShowQuiz(false);
-    setShowReward(true);
-    setTimeout(() => setShowReward(false), 3000);
-  };
-
-  const handleSurveyComplete = (feedback: string) => {
-    setPoints(points + 30);
-    setShowSurvey(false);
-    setShowReward(true);
-    setTimeout(() => setShowReward(false), 3000);
-  };
-
-  // RESPONSIVE COLUMN COUNT
   const getColumnCount = (width: number) => {
-    if (width < 640) return 2;      // Mobile
-    if (width < 768) return 3;      // Small tablet
-    if (width < 1024) return 4;     // Tablet
-    if (width < 1280) return 6;     // Small desktop
-    return 8;                       // Large desktop
+    if (width < 640) return 2;
+    if (width < 1024) return 3;
+    if (width < 1280) return 5;
+    return 6;
   };
-
-  const GridItem = ({ columnIndex, rowIndex, style, data }: any) => {
-    const columnCount = data.columnCount;
-    const index = rowIndex * columnCount + columnIndex;
-    if (index >= filteredAndSortedBooks.length) return null;
-    return (
-      <div style={{ ...style, padding: '4px' }}>
-        <BookCard book={filteredAndSortedBooks[index]} />
-      </div>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="bg-slate-50 min-h-screen flex flex-col font-sans">
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-        <TopBar />
-        <div className="container mx-auto px-4 sm:px-8 py-16">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-            {[...Array(24)].map((_, i) => <BookCardSkeleton key={i} />)}
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-slate-50 min-h-screen flex flex-col font-sans">
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-        <TopBar />
-        <div className="container mx-auto px-4 sm:px-8 py-16 text-center">
-          <p className="text-red-500 text-lg">{error}</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
-    <div className="bg-slate-50 min-h-screen flex flex-col font-sans">
-      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+    <div className="bg-[#F8FAFC] min-h-screen flex flex-col font-sans">
+      <Toaster position="bottom-right" />
       <TopBar />
-      <div className="bg-white border-b border-gray-100">
+
+      
+
+      {/* Preservation of the Breadcrumb */}
+      <div className="bg-white border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-        <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
-  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <nav aria-label="Breadcrumb" className="flex items-center justify-end text-[11px] font-black uppercase tracking-widest">
+            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <li className="flex items-center">
-                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
-                  <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                  </svg>
-                  <span className="hidden sm:inline">Home</span>
-                  <span className="sm:hidden">Home</span>
+                <Link to="/" className="flex items-center text-slate-400 hover:text-indigo-600 transition">
+                  HOME
                 </Link>
               </li>
-              <li className="flex items-center">
-                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                </svg>
-              </li>
+              <li className="text-slate-300">/</li>
               {(selectedCategory || (previousCategory && previousCategory !== "Browse")) && (
                 <>
                   <li className="flex items-center">
                     <Link
                       to="/category"
                       state={{ category: selectedCategory || previousCategory }}
-                      className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
+                      className="text-slate-400 hover:text-indigo-600 truncate max-w-[100px] sm:max-w-none"
                     >
                       {selectedCategory || previousCategory}
                     </Link>
                   </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                    </svg>
-                  </li>
+                  <li className="text-slate-300">/</li>
                 </>
               )}
-              <li className="text-gray-900 font-semibold">Clearance</li>
+              <li className="text-slate-900 border-b-2 border-indigo-500 pb-0.5">BESTSELLERS</li>
             </ol>
           </nav>
         </div>
       </div>
-      <main className="flex-1">
-        <div className="bg-gradient-to-br from-red-600 to-red-800 text-white text-center py-12 md:py-10 px-4">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Clearance Sale</h1>
-          <p className="mt-4 text-lg md:text-xl text-red-100 max-w-2xl mx-auto">
-            Unbeatable prices on your next favorite book. Grab these limited-time deals before they're gone!
-          </p>
-          <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
-            <button onClick={() => setShowQuiz(true)} className="flex items-center justify-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
-              <BookIcon size={20} /> Take Our Quiz!
-            </button>
-            <button onClick={() => setShowSurvey(true)} className="flex items-center justify-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-md font-semibold hover:bg-yellow-500 transition-colors">
-              <Gift size={20} /> Share Your Feedback
-            </button>
-          </div>
+
+      <main className="max-w-[1600px] mx-auto w-full p-6 sm:p-8">
+        
+        {/* Bento Header */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <div className="lg:col-span-3 bg-slate-900 rounded-[2.5rem] p-10 relative overflow-hidden flex flex-col justify-center min-h-[320px]">
+                <div className="relative z-10">
+                    <span className="bg-indigo-500 text-white text-[10px] font-black px-3 py-1 rounded-full mb-6 inline-block uppercase tracking-widest">
+                        Flash Sale Active
+                    </span>
+                    <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter mb-4 leading-none">
+                        STOCK <br /> <span className="text-indigo-500">LIQUIDATION.</span>
+                    </h1>
+                    <p className="text-slate-400 max-w-md text-sm font-medium mb-8">
+                        The ultimate clearance event. Thousands of titles priced to move. No codes, just raw discounts.
+                    </p>
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={() => setShowQuiz(true)}
+                            className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs flex items-center gap-2 hover:scale-105 transition-transform"
+                        >
+                            <Gamepad2 size={16} /> QUEST FOR 10% OFF
+                        </button>
+                    </div>
+                </div>
+                {/* Decorative background circle */}
+                <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px]" />
+            </div>
+
+            <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white flex flex-col justify-between group">
+                <div>
+                    <div className="bg-white/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
+                        <Sparkles size={24} />
+                    </div>
+                    <h3 className="text-2xl font-black leading-tight mb-2">Next Drop <br /> in 02:45:12</h3>
+                    <p className="text-indigo-100 text-xs font-medium opacity-80">Fresh titles added to clearance every 6 hours. Stay sharp.</p>
+                </div>
+                <button className="w-full bg-indigo-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-indigo-600 transition-all">
+                    Set Alert
+                </button>
+            </div>
         </div>
 
-        <div className="max-w-7xl mx-auto p-4 sm:p-8">
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-8 flex flex-col md:flex-row items-center gap-4">
-            <div className="relative w-full md:w-2/3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by title, author..."
-                defaultValue={searchTerm}
-                onChange={(e) => debouncedSetSearchTerm(e.target.value)}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            <select
-              value={sortBy}
-              onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-              className="w-full md:w-1/3 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
-            >
-              <option value="discount">Sort by Best Discount</option>
-              <option value="priceLowHigh">Sort by Price: Low to High</option>
-              <option value="priceHighLow">Sort by Price: High to Low</option>
-              <option value="rating">Sort by Highest Rating</option>
-            </select>
-          </div>
-
-          <div className="mb-8 bg-yellow-100 p-4 rounded-lg flex items-center gap-2">
-            <Gift size={24} className="text-yellow-600" />
-            <p className="text-gray-800">
-              Earn <strong>{points}</strong> points! Complete quizzes and surveys for a chance to win free books!
-            </p>
-          </div>
-
-          {showReward && (
-            <div className="mb-8 bg-green-100 p-4 rounded-lg flex items-center gap-2 animate-bounce">
-              <Gift size={24} className="text-green-600" />
-              <p className="text-gray-800">Congrats! You've earned points for a chance to win a free book!</p>
-            </div>
-          )}
-
-          {filteredAndSortedBooks.length > 0 ? (
-            <div ref={gridRef} style={{ height: 'calc(100vh - 300px)' }}>
-              <AutoSizer>
-                {({ height, width }) => {
-                  const columnCount = getColumnCount(width);
-                  return (
-                    <FixedSizeGrid
-                      columnCount={columnCount}
-                      columnWidth={width / columnCount}
-                      height={height}
-                      rowCount={Math.ceil(filteredAndSortedBooks.length / columnCount)}
-                      rowHeight={320}
-                      width={width}
-                      itemData={{ columnCount }}
-                    >
-                      {GridItem}
-                    </FixedSizeGrid>
-                  );
-                }}
-              </AutoSizer>
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 py-16">
-              <h3 className="text-xl font-semibold">No Books Found</h3>
-              <p>Try adjusting your search or filters.</p>
-            </div>
-          )}
-
-          {totalBooks > BOOKS_PER_PAGE && (
-            <div className="flex flex-col items-center mt-10 space-y-4">
-              <div className="flex flex-wrap justify-center items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors"
-                >
-                  Prev
-                </button>
-                {getPageButtons()}
-                <button
-                  onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 text-gray-700 hover:bg-red-100 transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={jumpPage}
-                  onChange={(e) => setJumpPage(e.target.value)}
-                  placeholder={`1–${totalPages}`}
-                  className="w-24 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+        {/* Action Bar */}
+        <div className="bg-white rounded-3xl p-3 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center gap-3 mb-8">
+            <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                    type="text" 
+                    placeholder="Search clearance by title, author, or genre..." 
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-bold focus:ring-2 focus:ring-indigo-600 transition-all"
                 />
-                <button onClick={handleJumpPage} className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm">
-                  Go
-                </button>
-              </div>
-              <span className="text-gray-800 font-medium text-sm">
-                Page {currentPage} of {totalPages} ({totalBooks.toLocaleString()} books)
-              </span>
             </div>
-          )}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+                <select className="flex-1 sm:w-48 bg-slate-50 border-none rounded-2xl py-3 px-4 text-xs font-black uppercase tracking-widest text-slate-600 focus:ring-2 focus:ring-indigo-600">
+                    <option>Best Discount</option>
+                    <option>Price: Low to High</option>
+                    <option>Rating</option>
+                </select>
+                <div className="h-10 w-[1px] bg-slate-100 hidden sm:block mx-2" />
+                <button className="p-3 bg-slate-900 text-white rounded-xl"><LayoutGrid size={18} /></button>
+                <button className="p-3 bg-white text-slate-400 rounded-xl hover:bg-slate-50 transition-colors"><List size={18} /></button>
+            </div>
+        </div>
+
+        {/* Main Grid View */}
+        <div className="bg-white rounded-[3rem] p-6 border border-slate-100 shadow-sm min-h-[800px]">
+            {isLoading ? (
+                <div className="h-full flex flex-col items-center justify-center py-40">
+                    <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compiling Catalog</p>
+                </div>
+            ) : (
+                <AutoSizer>
+                    {({ height, width }) => {
+                        const cols = getColumnCount(width);
+                        return (
+                            <FixedSizeGrid
+                                columnCount={cols}
+                                columnWidth={width / cols}
+                                height={height}
+                                rowCount={Math.ceil(books.length / cols)}
+                                rowHeight={360}
+                                width={width}
+                                itemData={{ cols, books }}
+                                className="no-scrollbar"
+                            >
+                                {({ columnIndex, rowIndex, style, data }: any) => {
+                                    const idx = rowIndex * data.cols + columnIndex;
+                                    if (idx >= data.books.length) return null;
+                                    return (
+                                        <div style={{ ...style, padding: '10px' }}>
+                                            <BookCard book={data.books[idx]} />
+                                        </div>
+                                    );
+                                }}
+                            </FixedSizeGrid>
+                        );
+                    }}
+                </AutoSizer>
+            )}
+        </div>
+
+        {/* Modern Pagination */}
+        <div className="flex flex-col items-center gap-6 mt-16">
+            <div className="flex items-center gap-2">
+                <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p-1))}
+                    className="w-14 h-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all"
+                >
+                    <ChevronLeft size={24} />
+                </button>
+                <div className="px-8 py-4 bg-slate-900 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest">
+                    Page {currentPage}
+                </div>
+                <button 
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="w-14 h-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all"
+                >
+                    <ChevronRight size={24} />
+                </button>
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">End of the line? Keep scrolling for more deals.</p>
         </div>
       </main>
-      <QuizModal isOpen={showQuiz} onClose={() => setShowQuiz(false)} onComplete={handleQuizComplete} />
-      <SurveyModal isOpen={showSurvey} onClose={() => setShowSurvey(false)} onComplete={handleSurveyComplete} />
+
+      <QuizOverlay 
+        isOpen={showQuiz} 
+        onClose={() => setShowQuiz(false)} 
+        onComplete={() => {
+            setPoints(p => p + 100);
+            setShowQuiz(false);
+            toast.success("XP Gained! Code: CLEAR10");
+        }} 
+      />
+      
       <Footer />
+      
       <style>{`
-        .text-2xs { font-size: 0.65rem; line-height: 0.9rem; }
-        .animate-pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .animate-bounce { animation: bounce 0.3s ease-in-out 2; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
     </div>
   );

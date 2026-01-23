@@ -23,7 +23,7 @@ import { useCart } from "../context/cartContext";
 const formatBooksForDisplay = (books: Book[]) => {
   return books.map((book) => ({
     id: book.id,
-    img: book.imageUrl || "https://via.placeholder.com/150",
+    img: book.imageUrl?.trim() || "https://via.placeholder.com/150",
     title: book.title,
     author: book.author,
     price: `£${book.price.toFixed(2)}`,
@@ -136,7 +136,7 @@ export default function BrowsePage() {
     setHeaderBg(getRandomHeaderBg());
   }, [selectedCategoryName, selectedSubcategoryName]);
 
-  const LIMIT = 16;
+  const LIMIT = 16; // per fetch
 
   // Load categories once
   useEffect(() => {
@@ -158,45 +158,50 @@ export default function BrowsePage() {
   // Load books
   useEffect(() => {
     const loadBooks = async () => {
-      if (page === 1) setIsLoading(true);
+      const isFirstPage = page === 1;
+      if (isFirstPage) setIsLoading(true);
       else setIsLoadingMore(true);
-
+  
       try {
-        let result;
-
-        if (!selectedCategoryName) {
-          result = await fetchBooks({ page, limit: LIMIT });
-        } else {
-          let filters: Record<string, any> = { category: selectedCategoryName };
-
-          // If a subcategory is selected → filter on subcategory field
-          if (selectedSubcategoryName) {
-            filters.subcategory = selectedSubcategoryName;
+        const params: any = {
+          page,
+          limit: LIMIT,
+        };
+  
+        if (selectedSubcategoryName) {
+          params.subcategory = selectedSubcategoryName.trim();
+          // Optional: add parent for stricter filter (backend still uses $or on sub)
+          if (selectedCategoryName) {
+            params.category = selectedCategoryName;
           }
-
-          const params = {
-            page,
-            limit: LIMIT,
-            filters,
-          };
-
-          result = await fetchBooks(params);
+        } else if (selectedCategoryName) {
+          params.category = selectedCategoryName; // ← this fetches ALL under the category
         }
-
-        const formatted = formatBooksForDisplay(result.books);
-
-        setBooks((prev) => (page === 1 ? formatted : [...prev, ...formatted]));
-        setTotalBooks(result.total);
-        setHasMore(result.books.length === LIMIT && page * LIMIT < result.total);
+  
+        console.log("[loadBooks] Fetching:", JSON.stringify(params, null, 2));
+  
+        const result = await fetchBooks(params);
+        const fetchedBooks = result.listings || [];
+  
+        console.log("[loadBooks] Received:", fetchedBooks.length, "books");
+  
+        const formatted = formatBooksForDisplay(fetchedBooks);
+  
+        setBooks((prev) => isFirstPage ? formatted : [...prev, ...formatted]);
+  
+        setTotalBooks(result.meta?.count || 0);
+  
+        setHasMore(fetchedBooks.length === LIMIT);
+  
       } catch (err) {
-        console.error("[loadBooks] Error:", err);
-        toast.error("Failed to load books");
+        console.error("[loadBooks] failed:", err);
+        toast.error("Could not load books – please try again");
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
       }
     };
-
+  
     loadBooks();
   }, [page, selectedCategoryName, selectedSubcategoryName]);
 

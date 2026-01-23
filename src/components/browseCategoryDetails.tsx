@@ -80,7 +80,6 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
         </div>
       </div>
 
-      {/* Text container with more generous padding */}
       <div className="px-2 pb-3 pt-1 flex flex-col items-start">
         <h3 className="font-semibold text-sm line-clamp-2 mb-2 leading-tight">{title}</h3>
         <p className="text-gray-500 text-xs mb-2">{author}</p>
@@ -100,6 +99,7 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
     </div>
   );
 };
+
 // --- BookShelf Component with Pagination ---
 const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetchParams: any; currentBookId: string }) => {
   const [books, setBooks] = useState<Book[]>([]);
@@ -114,18 +114,24 @@ const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetch
       setIsLoading(true);
       setError(null);
       try {
-        const { books: fetchedBooks } = await fetchBooks({
+        // FIXED: use listings (what fetchBooks actually returns), not books
+        const { listings: fetchedBooks } = await fetchBooks({
           page: 1,
           limit: 10,
           ...fetchParams,
         });
-        const filteredBooks = fetchedBooks.filter((book) => book.id !== currentBookId);
+
+        // Safe guard: ensure fetchedBooks is array before filter
+        const filteredBooks = Array.isArray(fetchedBooks)
+          ? fetchedBooks.filter((book) => book.id !== currentBookId)
+          : [];
+
         setBooks(filteredBooks);
         setIsLoading(false);
       } catch (err) {
         setError(`Failed to load ${title.toLowerCase()}. Please try again.`);
         setIsLoading(false);
-        console.error(`❌ Failed to fetch ${title}:`, err instanceof Error ? err.message : err);
+        console.error(`Failed to fetch ${title}:`, err);
       }
     };
     fetchShelfBooks();
@@ -231,11 +237,10 @@ const BrowseCategoryDetail = () => {
   
         const data = response.data.listing;
   
-        // Generate the SAME placeholder as in fetchBooks()
         const placeholderImage = generatePlaceholderImage({
           title: data.title || "book",
           isbn: data.isbn || data.title || "unknown",
-          category: data.category || "default",   // ← fixed: use category
+          category: data.category || "default",
         });
   
         const foundBook: Book = {
@@ -243,8 +248,8 @@ const BrowseCategoryDetail = () => {
           title: data.title || "Untitled Book",
           author: data.author || "Unknown Author",
           price: data.price || 0,
-          imageUrl: placeholderImage,
-          category: data.category || "General",   // ← fixed: use category consistently
+          imageUrl: data.coverImageUrl || placeholderImage,
+          category: data.category || "General",
           condition: data.condition || "Good",
           description: data.description || data.notes || "",
           stock: data.stock ?? 1,
@@ -336,7 +341,7 @@ const BrowseCategoryDetail = () => {
               </li>
               <li>
                 <Link
-                  to={`/category?category=${encodeURIComponent(book?.category || "Books")}`}   // ← fixed
+                  to={`/category?category=${encodeURIComponent(book?.category || "Books")}`}
                   className="text-gray-700 hover:text-blue-600 capitalize font-medium transition"
                 >
                   {book?.category || "Books"}   
@@ -507,7 +512,7 @@ const BrowseCategoryDetail = () => {
                 <li><span className="font-semibold">ISBN:</span> {book.isbn || "N/A"}</li>
                 <li><span className="font-semibold">Pages:</span> {book.pages || "N/A"}</li>
                 <li><span className="font-semibold">Release Date:</span> {book.releaseDate || "N/A"}</li>
-                <li><span className="font-semibold">Category:</span> {book.category || "N/A"}</li> {/* ← fixed label */}
+                <li><span className="font-semibold">Category:</span> {book.category || "N/A"}</li>
               </ul>
             )}
             {activeTab === "reviews" && (
@@ -517,13 +522,13 @@ const BrowseCategoryDetail = () => {
         </div>
         <BookShelf
           title="You may also like"
-          fetchParams={{ filters: { category: book.category }, sort: "rating", order: "desc" }}   // ← fixed: category
-          currentBookId={id}
+          fetchParams={{ filters: { category: book.category }, sort: "rating", order: "desc" }}
+          currentBookId={id!}
         />
         <BookShelf
           title="Related Products"
-          fetchParams={{ filters: { category: book.category }, sort: "createdAt", order: "desc" }}   // ← fixed: category
-          currentBookId={id}
+          fetchParams={{ filters: { category: book.category }, sort: "createdAt", order: "desc" }}
+          currentBookId={id!}
         />
       </main>
       <Footer />
