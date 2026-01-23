@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import axios from "axios";
-import { MD5 } from "crypto-js";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import {
@@ -14,94 +13,205 @@ import {
   ChevronLeft,
   ChevronRight,
   ShoppingCart,
+  Eye,
+  ShoppingBag,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useCart } from "../context/cartContext";
 import { Book, fetchBooks } from "../data/books";
 import { generatePlaceholderImage } from "../data/books";
 
-// --- SVG ICONS ---
-const StarIcon = ({ filled, rating }: { filled: boolean; rating: number }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill={filled ? "currentColor" : "none"}
-    stroke={filled ? "#facc15" : "#d1d5db"}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={filled ? "text-yellow-400" : "text-gray-300"}
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
-
-// --- Book Card Component ---
-const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: Book & { price: string }) => {
-  const { addToCart } = useCart();
-  const [imageError, setImageError] = useState(false);
-  const numericPrice = typeof price === "string" ? parseFloat(price.replace("£", "")) : price;
-
-  const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
-  const displayImage = imageError ? fallbackImage : imageUrl;
-
-  const handleAddToCart = () => {
-    addToCart({
-      id,
-      imageUrl: displayImage,
-      title,
-      author,
-      price: `£${numericPrice.toFixed(2)}`,
-      quantity: 1,
-    });
-    toast.success(`${title} added to your basket!`);
-  };
+// --- Star Rating Component ---
+const StarRating = ({ rating = 0 }: { rating: number }) => {
+  const rounded = Math.round(rating);
 
   return (
-    <div className="group relative flex-shrink-0 w-[180px] text-left">
-      <div className="relative">
-        <Link to={`/browse/${id}`}>
-          <img
-            src={displayImage}
-            alt={title}
-            className="w-full h-48 object-cover mb-3 rounded-md transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImageError(true)}
-            loading="lazy"
-          />
-        </Link>
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
-          <Link to={`/browse/${id}`}>
-            <button className="bg-white text-gray-900 px-2 sm:px-4 py-1 sm:py-2 rounded-md text-xs sm:text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-300 hover:bg-gray-200">
-              QUICK VIEW
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="px-2 pb-3 pt-1 flex flex-col items-start">
-        <h3 className="font-semibold text-sm line-clamp-2 mb-2 leading-tight">{title}</h3>
-        <p className="text-gray-500 text-xs mb-2">{author}</p>
-        <div className="flex items-center text-gray-300 mb-3">
-          {[...Array(5)].map((_, i) => (
-            <StarIcon key={i} filled={i < Math.round(rating || 0)} rating={rating || 0} />
-          ))}
-        </div>
-        <p className="text-lg font-bold text-gray-900 mb-3">£{numericPrice.toFixed(2)}</p>
-        <button
-          onClick={handleAddToCart}
-          className="bg-red-600 text-white font-medium px-3 py-1.5 rounded-md text-xs w-full transition-colors hover:bg-red-700"
+    <div className="flex items-center gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <svg
+          key={i}
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill={i < rounded ? "currentColor" : "none"}
+          stroke={i < rounded ? "#facc15" : "#d1d5db"}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={i < rounded ? "text-yellow-400" : "text-gray-300"}
         >
-          ADD TO BASKET
-        </button>
-      </div>
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      ))}
     </div>
   );
 };
 
-// --- BookShelf Component with Pagination ---
-const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetchParams: any; currentBookId: string }) => {
+// --- Book Card Component ---
+interface BookCardProps {
+  book: Book;
+}
+
+const BookCard: React.FC<BookCardProps> = React.memo(({ book }) => {
+  const { addToCart } = useCart();
+
+  const {
+    id,
+    title = "Untitled Book",
+    author = "Unknown Author",
+    price = 0,
+    imageUrl,
+    category,
+    stock = 0,
+    rating = 0,
+  } = book;
+
+  const isOutOfStock = stock <= 0;
+  const displayPrice = `£${price.toFixed(2)}`;
+  const placeholderImage = "https://via.placeholder.com/300x450?text=Book+Cover";
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    addToCart({
+      id,
+      img: imageUrl || placeholderImage,
+      title,
+      author,
+      price: displayPrice,
+      quantity: 1,
+    });
+
+    toast.success("Added to basket!", {
+      style: {
+        borderRadius: "12px",
+        background: "#333",
+        color: "#fff",
+      },
+    });
+  };
+
+  const displayCategory =
+    !category || category === "Uncategorized" ? "General" : category;
+
+  return (
+    <div
+      className={`
+        group relative bg-white rounded-xl border border-slate-200 
+        overflow-hidden transition-all duration-300 
+        hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1
+        flex flex-col h-full
+        ${isOutOfStock ? "opacity-75" : ""}
+      `}
+    >
+      <div className="relative aspect-[3/4] bg-slate-50 overflow-hidden">
+        <Link to={`/browse/${id}`} className="block h-full">
+          <img
+            src={imageUrl || placeholderImage}
+            alt={title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="lazy"
+            onError={(e) => { e.currentTarget.src = placeholderImage; }}
+          />
+        </Link>
+
+        {isOutOfStock && (
+          <div className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+            SOLD OUT
+          </div>
+        )}
+
+        <div
+          className={`
+            absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent 
+            opacity-0 group-hover:opacity-100 transition-opacity duration-300
+            flex flex-col justify-end p-4 gap-2
+          `}
+        >
+          <Link
+            to={`/browse/${id}`}
+            className="w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75"
+          >
+            <button
+              className="
+                w-full bg-white/95 backdrop-blur-sm text-slate-900 
+                py-2.5 rounded-lg text-sm font-semibold 
+                flex items-center justify-center gap-2 shadow-md
+                hover:bg-white transition-colors
+              "
+            >
+              <Eye size={16} />
+              View Details
+            </button>
+          </Link>
+
+          <button
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className={`
+              w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2
+              transition-all duration-300 shadow-md
+              ${isOutOfStock
+                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white"}
+              translate-y-4 group-hover:translate-y-0 delay-100
+            `}
+          >
+            <ShoppingBag size={16} />
+            {isOutOfStock ? "Out of Stock" : "Add to Basket"}
+          </button>
+        </div>
+      </div>
+
+      <div className="p-4 flex flex-col flex-grow">
+        <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1.5">
+          {displayCategory}
+        </div>
+
+        <Link
+          to={`/browse/${id}`}
+          className="font-semibold text-base text-slate-800 line-clamp-2 mb-1 hover:text-indigo-700 transition-colors"
+        >
+          {title}
+        </Link>
+
+        <p className="text-sm text-slate-500 mb-3 line-clamp-1">{author}</p>
+
+        <div className="mt-auto flex items-center justify-between">
+          <span className="text-lg font-bold text-slate-900">
+            {displayPrice}
+          </span>
+          <div className="flex items-center gap-1">
+            <StarRating rating={rating} />
+            <span className="text-xs text-slate-400 ml-1">
+              {rating > 0 ? rating.toFixed(1) : ""}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm opacity-70 hover:opacity-100 transition-opacity z-10"
+        aria-label="Add to wishlist"
+      >
+        <Heart size={18} className="text-slate-600 hover:text-red-500" />
+      </button>
+    </div>
+  );
+});
+
+// --- BookShelf Component ---
+const BookShelf = ({
+  title,
+  fetchParams,
+  currentBookId,
+}: {
+  title: string;
+  fetchParams: any;
+  currentBookId: string;
+}) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,16 +224,14 @@ const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetch
       setIsLoading(true);
       setError(null);
       try {
-        // FIXED: use listings (what fetchBooks actually returns), not books
         const { listings: fetchedBooks } = await fetchBooks({
           page: 1,
           limit: 10,
           ...fetchParams,
         });
 
-        // Safe guard: ensure fetchedBooks is array before filter
         const filteredBooks = Array.isArray(fetchedBooks)
-          ? fetchedBooks.filter((book) => book.id !== currentBookId)
+          ? fetchedBooks.filter((b) => b?.id && b.id !== currentBookId)
           : [];
 
         setBooks(filteredBooks);
@@ -191,17 +299,17 @@ const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetch
           </button>
         </div>
       </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         {paginatedBooks.map((book) => (
-          <BookCard
-            key={book.id}
-            {...book}
-            price={`£${book.price.toFixed(2)}`}
-          />
+          <BookCard key={book.id} book={book} />
         ))}
       </div>
+
       {paginatedBooks.length === 0 && (
-        <p className="text-center text-gray-500 py-4">No {title.toLowerCase()} available.</p>
+        <p className="text-center text-gray-500 py-4">
+          No {title.toLowerCase()} available.
+        </p>
       )}
     </section>
   );
@@ -224,25 +332,25 @@ const BrowseCategoryDetail = () => {
 
   useEffect(() => {
     const findBookById = async () => {
-      setIsLoading(true);    
+      setIsLoading(true);
       setError(null);
       try {
         const response = await axios.get(
           `https://britbooks-api-production.up.railway.app/api/market/${id}`
         );
-  
+
         if (!response.data.success || !response.data.listing) {
           throw new Error("Book not found");
         }
-  
+
         const data = response.data.listing;
-  
+
         const placeholderImage = generatePlaceholderImage({
           title: data.title || "book",
           isbn: data.isbn || data.title || "unknown",
           category: data.category || "default",
         });
-  
+
         const foundBook: Book = {
           id: String(data._id || data.id),
           title: data.title || "Untitled Book",
@@ -258,7 +366,7 @@ const BrowseCategoryDetail = () => {
           pages: data.pages || 300,
           releaseDate: data.listedAt || "",
         };
-  
+
         setBook(foundBook);
         setIsLoading(false);
       } catch (err) {
@@ -268,7 +376,7 @@ const BrowseCategoryDetail = () => {
         toast.error("Book not found");
       }
     };
-  
+
     findBookById();
   }, [id]);
 
@@ -276,11 +384,11 @@ const BrowseCategoryDetail = () => {
     if (book) {
       addToCart({
         id: book.id,
-        imageUrl: book.imageUrl,
+        img: book.imageUrl || "https://via.placeholder.com/150",
         title: book.title,
         author: book.author,
         price: `£${book.price.toFixed(2)}`,
-        quantity: quantity,
+        quantity: 1,
       });
       toast.success(`${quantity} x ${book.title} added to your basket!`);
     }
@@ -341,10 +449,10 @@ const BrowseCategoryDetail = () => {
               </li>
               <li>
                 <Link
-                  to={`/category?category=${encodeURIComponent(book?.category || "Books")}`}
+                  to={`/category?category=${encodeURIComponent(book.category || "Books")}`}
                   className="text-gray-700 hover:text-blue-600 capitalize font-medium transition"
                 >
-                  {book?.category || "Books"}   
+                  {book.category || "Books"}
                 </Link>
               </li>
               <li>
@@ -353,12 +461,13 @@ const BrowseCategoryDetail = () => {
                 </svg>
               </li>
               <li className="text-gray-900 font-semibold truncate max-w-[200px] sm:max-w-md lg:max-w-none">
-                {book?.title}
+                {book.title}
               </li>
             </ol>
           </nav>
         </div>
       </div>
+
       <main className="container mx-auto px-4 sm:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="relative">
@@ -379,35 +488,50 @@ const BrowseCategoryDetail = () => {
               />
             )}
           </div>
+
           <div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">{book.title}</h1>
             <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
+
             <div className="flex items-center mb-3 text-sm">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
-                  <StarIcon key={i} filled={i < Math.round(book.rating || 0)} rating={book.rating || 0} />
+                  <svg
+                    key={i}
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill={i < Math.round(book.rating || 0) ? "currentColor" : "none"}
+                    stroke={i < Math.round(book.rating || 0) ? "#facc15" : "#d1d5db"}
+                    strokeWidth="2"
+                    className={i < Math.round(book.rating || 0) ? "text-yellow-400" : "text-gray-300"}
+                  >
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
                 ))}
               </div>
-              <a
-                href="#reviews"
-                className="ml-2 text-gray-500 hover:text-red-600 underline"
-              >
+              <a href="#reviews" className="ml-2 text-gray-500 hover:text-red-600 underline">
                 {book.rating ? `${book.rating.toFixed(1)} (${book.reviews || 5} Reviews)` : "No Reviews"}
               </a>
-              <a
-                href="#add-review"
-                className="ml-2 text-gray-500 hover:text-red-600 underline"
-              >
+              <a href="#add-review" className="ml-2 text-gray-500 hover:text-red-600 underline">
                 Add Your Review
               </a>
             </div>
+
             <p className="text-xl font-bold text-gray-900 mb-3">
               £{book.price.toFixed(2)}
             </p>
+
             <div className="text-sm mb-3">
-              <span className="text-green-600 font-semibold">{book.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}</span>
-              <span className="text-gray-500 ml-2">SKU: {book.isbn || `BBW0${book.id}`}</span>
+              <span className="text-green-600 font-semibold">
+                {book.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}
+              </span>
+              <span className="text-gray-500 ml-2">
+                SKU: {book.isbn || `BBW0${book.id}`}
+              </span>
             </div>
+
             {book.description ? (
               <p className="text-gray-600 leading-relaxed mb-3">
                 {book.description.substring(0, 150)}...
@@ -417,10 +541,12 @@ const BrowseCategoryDetail = () => {
                 No description available for this book.
               </p>
             )}
+
             <div className="mb-3">
               <span className="font-semibold">Condition: </span>
               <span className="text-gray-700">{book.condition}</span>
             </div>
+
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center">
                 <span className="mr-2 font-semibold text-gray-700">Qty:</span>
@@ -446,6 +572,7 @@ const BrowseCategoryDetail = () => {
                   </button>
                 </div>
               </div>
+
               <button
                 onClick={handleAddToCart}
                 className="bg-red-600 text-white font-bold px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center gap-1 disabled:opacity-50"
@@ -455,6 +582,7 @@ const BrowseCategoryDetail = () => {
                 ADD TO BASKET
               </button>
             </div>
+
             <div className="flex items-center gap-6 mb-3">
               <button className="flex items-center text-gray-600 hover:text-red-600">
                 <Heart size={18} className="mr-1" /> Add to Wish List
@@ -476,6 +604,7 @@ const BrowseCategoryDetail = () => {
             </div>
           </div>
         </div>
+
         <div className="mt-8 border rounded-md">
           <div className="border-b bg-gray-50 rounded-t-md">
             <nav className="flex space-x-1 p-2">
@@ -505,10 +634,11 @@ const BrowseCategoryDetail = () => {
               </button>
             </nav>
           </div>
+
           <div className="p-4 text-gray-600 leading-relaxed">
             {activeTab === "details" && <p>{book.description || "No description available."}</p>}
             {activeTab === "info" && (
-              <ul>
+              <ul className="space-y-2">
                 <li><span className="font-semibold">ISBN:</span> {book.isbn || "N/A"}</li>
                 <li><span className="font-semibold">Pages:</span> {book.pages || "N/A"}</li>
                 <li><span className="font-semibold">Release Date:</span> {book.releaseDate || "N/A"}</li>
@@ -520,17 +650,20 @@ const BrowseCategoryDetail = () => {
             )}
           </div>
         </div>
+
         <BookShelf
           title="You may also like"
           fetchParams={{ filters: { category: book.category }, sort: "rating", order: "desc" }}
           currentBookId={id!}
         />
+
         <BookShelf
           title="Related Products"
           fetchParams={{ filters: { category: book.category }, sort: "createdAt", order: "desc" }}
           currentBookId={id!}
         />
       </main>
+
       <Footer />
     </div>
   );
