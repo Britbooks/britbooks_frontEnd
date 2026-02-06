@@ -94,7 +94,7 @@ const BookCard = ({ id, img, title, author, price, rating, condition }: any) => 
           alt={title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/95 text-[8px] font-black uppercase rounded-md shadow-sm">
+        <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/95  text-[8px] font-black uppercase rounded-md shadow-sm">
           {condition}
         </div>
       </Link>
@@ -253,7 +253,7 @@ export default function BrowsePage() {
         <div className="relative z-10 max-w-[1440px] mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
             <div>
-              <span className="text-white/90 font-black uppercase tracking-[0.3em] mb-2 block">
+              <span className="text-white/90 text-white font-black uppercase tracking-[0.3em] mb-2 block">
                 Premium Marketplace
               </span>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter drop-shadow-xl capitalize">
