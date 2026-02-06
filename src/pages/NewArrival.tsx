@@ -217,7 +217,7 @@ const NewArrivalsPage: React.FC = () => {
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth">
             <button 
               onClick={() => setSelectedCategory(null)}
-              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${!selectedCategory ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${!selectedCategory ? 'bg-slate-900  shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
             >
               <Zap size={14} /> All New
             </button>
