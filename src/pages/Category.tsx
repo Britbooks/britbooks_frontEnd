@@ -32,6 +32,34 @@ const formatBooksForDisplay = (books: Book[]) => {
   }));
 };
 
+const getFilters = (
+  selectedCategory: string | null,
+  selectedSubcategory: string | null
+) => {
+  if (!selectedCategory) {
+    return {};
+  }
+
+  // When subcategory is selected → send BOTH for strict filtering
+  if (selectedSubcategory) {
+    return {
+      category: selectedCategory,
+      subcategory: selectedSubcategory,
+    };
+  }
+
+  // Only main category selected → filter broadly on category
+  return {
+    category: selectedCategory,
+  };
+};
+
+const computeCategoryCount = (cat: CategoryNode) => {
+  if (cat.count !== undefined) return cat.count;
+  if (!cat.children || cat.children.length === 0) return cat.count || 0;
+  return cat.children.reduce((sum, sub) => sum + (sub.count || 0), 0);
+};
+
 // ── COMPONENTS ───────────────────────────────────────────────────────────
 
 const StarRating = ({ rating }: { rating: number }) => (
@@ -104,27 +132,27 @@ export default function BrowsePage() {
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
     searchParams.get("category")
   );
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
+    searchParams.get("subcategory") || null
+  );
 
-  const [selectedSubcategoryName, setSelectedSubcategoryName] = useState<string | null>(null);
-
-  // Sync URL ↔ state
+  // Sync URL → state
   useEffect(() => {
-    const urlCat = searchParams.get("category");
-    setSelectedCategoryName(urlCat);
+    setSelectedCategory(searchParams.get("category"));
+    setSelectedSubcategory(searchParams.get("subcategory") || null);
   }, [searchParams]);
 
+  // Sync state → URL
   useEffect(() => {
-    if (selectedCategoryName) {
-      setSearchParams({ category: selectedCategoryName }, { replace: true });
-    } else {
-      setSearchParams({}, { replace: true });
-    }
-  }, [selectedCategoryName, setSearchParams]);
+    const params: Record<string, string> = {};
+    if (selectedCategory) params.category = selectedCategory;
+    if (selectedSubcategory) params.subcategory = selectedSubcategory;
+    setSearchParams(params, { replace: true });
+  }, [selectedCategory, selectedSubcategory, setSearchParams]);
 
-  // Random header background
   const getRandomHeaderBg = () => {
     const seed = Math.floor(Math.random() * 10000);
     return `https://picsum.photos/seed/${seed}/1600/900`;
@@ -134,26 +162,24 @@ export default function BrowsePage() {
 
   useEffect(() => {
     setHeaderBg(getRandomHeaderBg());
-  }, [selectedCategoryName, selectedSubcategoryName]);
+  }, [selectedCategory, selectedSubcategory]);
 
-  const LIMIT = 16; // per fetch
+  const LIMIT = 16;
 
   // Load categories once
   useEffect(() => {
     fetchCategories()
       .then(setCategories)
-      .catch(() => {
-        toast.error("Failed to load categories");
-      });
+      .catch(() => toast.error("Failed to load categories"));
   }, []);
 
-  // Reset pagination on category/subcategory change
+  // Reset pagination & books when filters change
   useEffect(() => {
     setPage(1);
     setBooks([]);
     setHasMore(true);
     setTotalBooks(0);
-  }, [selectedCategoryName, selectedSubcategoryName]);
+  }, [selectedCategory, selectedSubcategory]);
 
   // Load books
   useEffect(() => {
@@ -161,62 +187,49 @@ export default function BrowsePage() {
       const isFirstPage = page === 1;
       if (isFirstPage) setIsLoading(true);
       else setIsLoadingMore(true);
-  
+
       try {
         const params: any = {
           page,
           limit: LIMIT,
         };
-  
-        if (selectedSubcategoryName) {
-          params.subcategory = selectedSubcategoryName.trim();
-          // Optional: add parent for stricter filter (backend still uses $or on sub)
-          if (selectedCategoryName) {
-            params.category = selectedCategoryName;
-          }
-        } else if (selectedCategoryName) {
-          params.category = selectedCategoryName; // ← this fetches ALL under the category
-        }
-  
-        console.log("[loadBooks] Fetching:", JSON.stringify(params, null, 2));
-  
+
+        const filters = getFilters(selectedCategory, selectedSubcategory);
+        Object.assign(params, filters);
+
+        console.log("[Browse] Fetching →", params);
+
         const result = await fetchBooks(params);
-        const fetchedBooks = result.listings || [];
-  
-        console.log("[loadBooks] Received:", fetchedBooks.length, "books");
-  
-        const formatted = formatBooksForDisplay(fetchedBooks);
-  
-        setBooks((prev) => isFirstPage ? formatted : [...prev, ...formatted]);
-  
+        const fetched = result.listings || [];
+
+        const formatted = formatBooksForDisplay(fetched);
+
+        setBooks((prev) => (isFirstPage ? formatted : [...prev, ...formatted]));
         setTotalBooks(result.meta?.count || 0);
-  
-        setHasMore(fetchedBooks.length === LIMIT);
-  
+        setHasMore(fetched.length === LIMIT);
       } catch (err) {
-        console.error("[loadBooks] failed:", err);
-        toast.error("Could not load books – please try again");
+        console.error("[Browse] Load failed:", err);
+        toast.error("Could not load books");
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
       }
     };
-  
-    loadBooks();
-  }, [page, selectedCategoryName, selectedSubcategoryName]);
+
+    if (categories.length > 0 || !selectedCategory) {
+      loadBooks();
+    }
+  }, [page, selectedCategory, selectedSubcategory, categories]);
 
   const handleLoadMore = () => {
-    if (!isLoadingMore) setPage((prev) => prev + 1);
+    if (!isLoadingMore) setPage((p) => p + 1);
   };
 
   const toggleExpand = (catName: string) => {
     setExpandedCategories((prev) => {
       const next = new Set(prev);
-      if (next.has(catName)) {
-        next.delete(catName);
-      } else {
-        next.add(catName);
-      }
+      if (next.has(catName)) next.delete(catName);
+      else next.add(catName);
       return next;
     });
   };
@@ -240,11 +253,11 @@ export default function BrowsePage() {
         <div className="relative z-10 max-w-[1440px] mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
             <div>
-              <span className="text-white/90 font-black text-white uppercase tracking-[0.3em] mb-2 block">
+              <span className="text-white/90 font-black uppercase tracking-[0.3em] mb-2 block">
                 Premium Marketplace
               </span>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter drop-shadow-xl capitalize">
-                {selectedSubcategoryName || selectedCategoryName || "All Books"}
+                {selectedSubcategory || selectedCategory || "All Books"}
               </h1>
             </div>
 
@@ -293,14 +306,13 @@ export default function BrowsePage() {
               <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 <button
                   onClick={() => {
-                    setSelectedCategoryName(null);
-                    setSelectedSubcategoryName(null);
+                    setSelectedCategory(null);
+                    setSelectedSubcategory(null);
                     setIsSidebarOpen(false);
                   }}
                   className={`
                     w-full text-left px-5 py-4 rounded-xl text-sm font-bold mb-2
-                    transition-all
-                    ${!selectedCategoryName ? "bg-blue-600 text-white shadow-md" : "text-gray-800 hover:bg-gray-50"}
+                    ${!selectedCategory ? "bg-blue-600 text-white shadow-md" : "text-gray-800 hover:bg-gray-50"}
                   `}
                 >
                   All Books
@@ -309,54 +321,47 @@ export default function BrowsePage() {
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
                   <div className="space-y-1 pb-10">
                     {categories.map((cat) => (
-                      <div key={cat._id || cat.name}>
+                      <div key={cat.name}>
                         <button
                           onClick={() => {
-                            setSelectedCategoryName(cat.name);
-                            setSelectedSubcategoryName(null);
+                            setSelectedCategory(cat.name);
+                            setSelectedSubcategory(null);
                             toggleExpand(cat.name);
+                            setIsSidebarOpen(false);
                           }}
                           className={`
                             w-full flex justify-between items-center px-5 py-3.5 rounded-xl text-sm font-semibold
-                            transition-all
-                            ${selectedCategoryName === cat.name && !selectedSubcategoryName ? "bg-blue-600 text-white shadow-md" : "text-gray-800 hover:bg-gray-50"}
+                            ${selectedCategory === cat.name && !selectedSubcategory
+                              ? "bg-blue-600 text-white shadow-md"
+                              : "text-gray-800 hover:bg-gray-50"}
                           `}
                         >
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="truncate capitalize">{cat.name}</span>
-                            {cat.children?.length > 0 && (
-                              <span className="text-xs opacity-70">
-                                {expandedCategories.has(cat.name) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs font-medium ml-2 whitespace-nowrap opacity-90">
-                            {cat.count.toLocaleString()}
-                          </span>
+                          <span className="capitalize">{cat.name}</span>
+                          {cat.children?.length > 0 && (
+                            <span className="text-xs opacity-70 ml-2">
+                              {expandedCategories.has(cat.name) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </span>
+                          )}
                         </button>
 
                         {expandedCategories.has(cat.name) && cat.children?.length > 0 && (
                           <div className="ml-6 mt-1 space-y-0.5">
                             {cat.children.map((sub) => (
                               <button
-                                key={sub._id || sub.name}
+                                key={sub.name}
                                 onClick={() => {
-                                  setSelectedCategoryName(cat.name);
-                                  setSelectedSubcategoryName(sub.name);
+                                  setSelectedCategory(cat.name);
+                                  setSelectedSubcategory(sub.name);
                                   setIsSidebarOpen(false);
                                 }}
                                 className={`
                                   w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium
-                                  transition-all
-                                  ${selectedSubcategoryName === sub.name ? "bg-blue-100 text-blue-800 font-semibold" : "text-gray-600 hover:bg-gray-100"}
+                                  ${selectedSubcategory === sub.name
+                                    ? "bg-blue-100 text-blue-800 font-semibold"
+                                    : "text-gray-600 hover:bg-gray-100"}
                                 `}
                               >
-                                <div className="flex justify-between items-center">
-                                  <span className="truncate">{sub.name}</span>
-                                  <span className="text-xs text-gray-500 ml-2">
-                                    {sub.count.toLocaleString()}
-                                  </span>
-                                </div>
+                                {sub.name}
                               </button>
                             ))}
                           </div>
@@ -369,7 +374,7 @@ export default function BrowsePage() {
             </div>
           </aside>
 
-          {/* Results area */}
+          {/* Results */}
           <div className="flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-6 border-b border-gray-100 gap-4">
               <button
@@ -404,15 +409,15 @@ export default function BrowsePage() {
               <div className="text-center py-24 text-gray-600">
                 <h2 className="text-2xl font-bold mb-4">No books found</h2>
                 <p className="mb-8 max-w-md mx-auto">
-                  We couldn't find any books matching this selection right now.
+                  Try changing filters or browse all books.
                 </p>
                 <button
                   onClick={() => {
-                    setSelectedCategoryName(null);
-                    setSelectedSubcategoryName(null);
+                    setSelectedCategory(null);
+                    setSelectedSubcategory(null);
                     setPage(1);
                   }}
-                  className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-blue-700 transition"
+                  className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-blue-700"
                 >
                   View All Books
                 </button>
@@ -434,7 +439,7 @@ export default function BrowsePage() {
                         flex items-center gap-3 px-10 py-4 
                         border-2 border-gray-300 rounded-full font-semibold text-sm uppercase tracking-wide
                         hover:border-gray-900 hover:text-gray-900 transition-all
-                        disabled:opacity-50 disabled:pointer-events-none
+                        disabled:opacity-50
                       `}
                     >
                       {isLoadingMore ? "Loading..." : "Load More"}
@@ -445,7 +450,7 @@ export default function BrowsePage() {
 
                 {!hasMore && books.length > 0 && (
                   <div className="text-center text-gray-500 py-16 text-sm">
-                    End of collection • You've seen everything ✨
+                    End of results • You've reached the end ✨
                   </div>
                 )}
               </>
