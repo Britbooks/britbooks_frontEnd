@@ -363,6 +363,7 @@ const Homepage = () => {
   const [hasMoreBooks, setHasMoreBooks] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hoveredMainCat, setHoveredMainCat] = useState<CategoryNode | null>(null);
 
   const BOOKS_PER_PAGE = 24;
   const observer = useRef<IntersectionObserver | null>(null);
@@ -372,30 +373,26 @@ const Homepage = () => {
     setModalOpen(true);
     setModalLoading(true);
     setModalBooks([]);
-    setModalPage(1);
-    setHasMoreBooks(true);
+    // No need for page / hasMore in preview mode
   
     try {
       const reqBody = {
         page: 1,
-        limit: BOOKS_PER_PAGE,
-        category: category === "All Books" ? undefined : category, // flat field
+        limit: 12,           // ← Changed: only 12 books for preview
+        category: category === "All Books" ? undefined : category,
         sort: "createdAt",
         order: "desc",
       };
   
       const response = await fetchBooks(reqBody);
-  
       const books = response.listings || [];
       const formatted = formatBooksForHomepage(books);
   
       setModalBooks(formatted);
-      setHasMoreBooks(books.length === BOOKS_PER_PAGE);
-  
-      console.log(`Loaded ${formatted.length} books for "${category}"`);
+      console.log(`Preview loaded ${formatted.length} books for "${category}"`);
     } catch (err) {
-      console.error("Category modal fetch failed:", err);
-      toast.error("Could not load books for this category");
+      console.error("Category preview fetch failed:", err);
+      toast.error("Could not load category preview");
     } finally {
       setModalLoading(false);
     }
@@ -565,151 +562,118 @@ const Homepage = () => {
   const CategoryModal = () => {
     if (!modalOpen) return null;
   
+    const categorySlug =
+      selectedCategory === "All Books"
+        ? "all"
+        : selectedCategory
+            ?.toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "") || "";
+  
     return (
-      <div 
-        className="fixed inset-0 z-50 bg-black bg-opacity-95 overflow-y-auto"
+      // Overlay – does NOT scroll, captures clicks to close
+      <div
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-10 sm:pt-16 px-4 overflow-y-auto"
         onClick={() => setModalOpen(false)}
       >
-        <div className="min-h-screen py-10 px-4">
-          <div 
-            className="bg-white rounded-3xl shadow-2xl max-w-7xl mx-auto overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white sticky top-0 z-20">
-              <div className="px-8 py-14 text-center relative">
-                <h1 className="text-5xl sm:text-7xl font-bold mb-4 tracking-tight">
-                  {selectedCategory}
-                </h1>
-                <p className="text-xl opacity-90 max-w-3xl mx-auto">
-                  Quality used books • Fast delivery across the UK & Nigeria
-                </p>
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="absolute top-6 right-6 bg-white/20 hover:bg-white/40 rounded-full p-4 backdrop-blur-sm transition-all"
-                >
-                  <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+        {/* Modal card */}
+        <div
+          className="
+            bg-white rounded-2xl shadow-2xl
+            w-full max-w-4xl
+            max-h-[85vh]
+            flex flex-col
+            my-4 sm:my-8               // breathing room top/bottom
+          "
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header – fixed / non-scrolling */}
+          <div className="shrink-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white relative rounded-t-2xl">
+            <div className="px-5 py-5 sm:py-6 text-center">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                {selectedCategory}
+              </h1>
+              <p className="text-sm sm:text-base opacity-90 mt-1">
+                Quality used books • Quick preview
+              </p>
   
-              <div className="bg-white/10 backdrop-blur-sm py-6 px-8 border-t border-white/20">
-                <div className="flex flex-wrap justify-center gap-10 text-white font-bold text-lg">
-                  <div className="text-center">
-                    <div className="text-4xl">{modalBooks.length.toLocaleString()}+</div>
-                    <div className="text-sm opacity-90">Books Loaded</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl">From £2.99</div>
-                    <div className="text-sm opacity-90">Starting Price</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl">Free Delivery</div>
-                    <div className="text-sm opacity-90">Orders Over £50</div>
-                  </div>
-                </div>
-              </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-white/25 hover:bg-white/40 rounded-full p-2 transition"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
+          </div>
   
-            <div className="p-8 sm:p-12 bg-gray-50">
+          {/* Scrollable books/content area */}
+          <div className="flex-1 overflow-y-auto overscroll-contain bg-gray-50">
+            <div className="p-5 sm:p-6">
               {modalLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
-                  {[...Array(24)].map((_, i) => (
-                    <div key={i} className="bg-gray-200 rounded-2xl h-80 animate-pulse shadow-lg" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 sm:gap-6">
+                  {[...Array(8)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-gray-200 rounded-xl aspect-[3/4] animate-pulse shadow-sm"
+                    />
                   ))}
                 </div>
               ) : modalBooks.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 mb-16">
-                    {modalBooks.map((book) => (
-                      <div key={book.id}>
-                        <BookCard {...book} />
-                      </div>
+                <div className="space-y-8 sm:space-y-10">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 sm:gap-6">
+                    {modalBooks.slice(0, 12).map((book) => (
+                      <BookCard key={book.id} {...book} />
                     ))}
                   </div>
   
-                  <div className="flex flex-col items-center gap-10">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-gray-800">
-                        Page <span className="text-purple-600 text-5xl">{modalPage}</span>
-                      </p>
-                      <p className="text-lg text-gray-600 mt-3">
-                        {modalBooks.length.toLocaleString()} books shown
-                      </p>
-                    </div>
-  
-                    <div className="flex gap-4 flex-wrap justify-center">
-                      {Array.from({ length: Math.min(10, modalPage + 5) }, (_, i) => i + 1)
-                        .filter(page => page >= modalPage - 3)
-                        .map(page => (
-                          <button
-                            key={page}
-                            onClick={() => goToPage(page)}
-                            disabled={isLoadingMore}
-                            className={`w-14 h-14 rounded-full font-bold text-xl transition-all ${
-                              page === modalPage
-                                ? 'bg-purple-600 text-white shadow-2xl scale-110'
-                                : 'bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                      {hasMoreBooks && modalPage < 50 && (
-                        <span className="self-center px-6 text-2xl text-gray-500 font-bold">...</span>
-                      )}
-                    </div>
-  
-                    {hasMoreBooks && (
-                      <button
-                        onClick={loadMoreBooks}
-                        disabled={isLoadingMore}
-                        className="px-24 py-8 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold rounded-full hover:shadow-2xl transition-all disabled:opacity-60 transform hover:scale-105 shadow-2xl"
-                      >
-                        {isLoadingMore ? "Loading More Books..." : "Load More Books"}
-                      </button>
-                    )}
-                  </div>
-  
-                  {isLoadingMore && (
-                    <div className="text-center py-20">
-                      <div className="inline-block animate-spin rounded-full h-24 w-24 border-12 border-purple-600 border-t-transparent"></div>
-                      <p className="mt-8 text-3xl font-medium text-gray-700">
-                        Loading page {modalPage + 1}...
-                      </p>
-                    </div>
-                  )}
-                </>
+                  <div className="text-center pb-4 sm:pb-6">
+  <Link
+    to={`/category?category=${encodeURIComponent(selectedCategory || '')}`}
+    onClick={() => setModalOpen(false)}
+    className="
+      inline-block px-7 sm:px-8 py-3 
+      bg-gradient-to-r from-purple-600 to-pink-600 
+      text-white text-base font-bold 
+      rounded-full hover:shadow-xl hover:scale-105 
+      transition duration-300
+    "
+  >
+    View Full Collection →
+  </Link>
+</div>
+                </div>
               ) : (
-                <div className="text-center py-48 bg-white rounded-3xl shadow-2xl">
-                  <div className="text-9xl mb-8">Empty Book</div>
-                  <h3 className="text-5xl font-bold text-gray-800 mb-6">
-                    No books in {selectedCategory} yet
+                <div className="text-center py-12 sm:py-16">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+                    Nothing here yet in {selectedCategory}
                   </h3>
                   <button
                     onClick={() => setModalOpen(false)}
-                    className="px-32 py-10 bg-black text-white text-3xl font-bold rounded-full hover:bg-gray-900 transition"
+                    className="px-8 py-3 bg-gray-800 text-white text-base font-bold rounded-full hover:bg-gray-900 transition"
                   >
-                    Continue Shopping
+                    Close
                   </button>
                 </div>
               )}
             </div>
+          </div>
   
-            <div className="sticky bottom-0 p-6 bg-white border-t-4 border-purple-600 shadow-2xl sm:hidden">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="w-full py-7 bg-black text-white text-3xl font-bold rounded-2xl"
-              >
-                Close Modal
-              </button>
-            </div>
+          {/* Mobile-only bottom bar */}
+          <div className="shrink-0 p-4 bg-white border-t md:hidden">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="w-full py-3.5 bg-black text-white text-base font-bold rounded-xl hover:bg-gray-900 transition"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>
     );
   };
-
   const shelfFetchParams = {
     newArrivals: {
       shelf: "newArrivals",
