@@ -326,6 +326,8 @@ const BrowseCategoryDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "info" | "reviews">("details");
+ 
+
 
   const previousCategory = (location.state as { category?: string })?.category || "Browse";
   const FALLBACK_IMAGE = "https://placehold.co/300x450?text=Book+Cover";
@@ -344,16 +346,24 @@ const BrowseCategoryDetail = () => {
         }
 
         const data = response.data.listing;
+        const raw = data; 
 
         const placeholderImage = generatePlaceholderImage({
           title: data.title || "book",
           isbn: data.isbn || data.title || "unknown",
           category: data.category || "default",
         });
+        const originalTitle = raw.title?.trim() || "Untitled";
+
+        let cleanedTitle = originalTitle;
+        const skuMatch = originalTitle.match(/\((\d+)\)$/);
+        if (skuMatch) {
+          cleanedTitle = originalTitle.replace(/\s*\(\d+\)$/, '').trim();
+        }
 
         const foundBook: Book = {
           id: String(data._id || data.id),
-          title: data.title || "Untitled Book",
+          title: cleanedTitle || "Untitled",
           author: data.author || "Unknown Author",
           price: data.price || 0,
           imageUrl: data.coverImageUrl || placeholderImage,
@@ -652,16 +662,31 @@ const BrowseCategoryDetail = () => {
         </div>
 
         <BookShelf
-          title="You may also like"
-          fetchParams={{ filters: { category: book.category }, sort: "rating", order: "desc" }}
-          currentBookId={id!}
-        />
+  title="You may also like"
+  fetchParams={{
+    filters: { category: book.category },
+    sort: "rating",
+    order: "desc",
+    limit: 10,
+  }}
+  currentBookId={id!}
+/>
 
-        <BookShelf
-          title="Related Products"
-          fetchParams={{ filters: { category: book.category }, sort: "createdAt", order: "desc" }}
-          currentBookId={id!}
-        />
+<BookShelf
+  title="Related Products"
+  fetchParams={{
+    filters: {
+      category: book.category,
+      listedAt: {                   // or createdAt / releaseDate — check your API field name
+        $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()  // last ~60 days
+      }
+    },
+    sort: "listedAt",               // or createdAt
+    order: "desc",
+    limit: 10,
+  }}
+  currentBookId={id!}
+/>
       </main>
 
       <Footer />
