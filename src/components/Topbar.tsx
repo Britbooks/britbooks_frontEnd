@@ -162,11 +162,16 @@ const TopBar = () => {
   const [isCategoryHovered, setIsCategoryHovered] = useState(false);
   const [hoveredMainCat, setHoveredMainCat] = useState<CategoryNode | null>(null);
 
+  // ─── NEW STATES FOR MOBILE CATEGORY DROPDOWN ───
+  const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
+
   const searchRef = useRef(null);
   const isActive = (path) => location.pathname === path;
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+    // Optional: close category dropdown when closing main menu
+    if (isMobileMenuOpen) setIsMobileCategoriesOpen(false);
   };
 
   const clearSearch = () => {
@@ -240,7 +245,35 @@ const TopBar = () => {
   const navLinks = (
     <>
       <Link to="/" onClick={toggleMobileMenu} className={`py-3 ${isActive('/') ? 'text-red-600' : 'hover:text-red-600'}`}>Home</Link>
-      <Link to="/category" onClick={toggleMobileMenu} className={`py-3 ${isActive('/category') ? 'text-red-600' : 'hover:text-red-600'}`}>Shop by Category</Link>
+
+      {/* ─── MOBILE SHOP BY CATEGORY WITH DROPDOWN ─── */}
+      <div className="flex flex-col">
+        <button
+          onClick={() => setIsMobileCategoriesOpen(!isMobileCategoriesOpen)}
+          className={`py-3 flex items-center justify-between w-full text-left ${isActive('/category') ? 'text-red-600' : 'hover:text-red-600'}`}
+        >
+          <span>Shop by Category</span>
+          <ChevronDown
+            className={`transition-transform duration-200 ${isMobileCategoriesOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {isMobileCategoriesOpen && (
+          <div className="pl-6 pb-2 flex flex-col space-y-3 text-base">
+            {categories.map((cat) => (
+              <Link
+                key={cat.name}
+                to={`/category?category=${encodeURIComponent(cat.name)}`}
+                onClick={toggleMobileMenu}
+                className="hover:text-red-600 transition-colors"
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       <Link to="/popular-books" onClick={toggleMobileMenu} className={`py-3 ${isActive('/popular-books') ? 'text-red-600' : 'hover:text-red-600'}`}>Popular Books</Link>
       <Link to="/new-arrivals" onClick={toggleMobileMenu} className={`py-3 ${isActive('/new-arrivals') ? 'text-red-600' : 'hover:text-red-600'}`}>New Arrivals</Link>
       <Link to="/bestsellers" onClick={toggleMobileMenu} className={`py-3 ${isActive('/bestsellers') ? 'text-red-600' : 'hover:text-red-600'}`}>Best Sellers</Link>
@@ -313,7 +346,7 @@ const TopBar = () => {
               <XIcon className="h-6 w-6 text-gray-700" />
             </button>
           </div>
-          <nav className="flex flex-col p-4 space-y-4 text-lg font-medium">
+          <nav className="flex flex-col p-4 space-y-1 text-lg font-medium overflow-y-auto">
             {navLinks}
           </nav>
           <div className="mt-auto p-4 border-t text-center text-red-600 font-bold">
@@ -388,138 +421,129 @@ const TopBar = () => {
 
       {/* Navigation & Modern Mega Modal */}
       <div className="bg-white border-t border-gray-200 px-4">
-  <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
+        <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
 
-    {/* Keep this spacer so logo doesn't overlap nav */}
-    <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
+          {/* Keep this spacer so logo doesn't overlap nav */}
+          <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
 
-    {/* ─── MAIN CHANGE ─── */}
-    <nav className="hidden sm:flex flex-1 justify-center items-center font-medium text-gray-600">
+          <nav className="hidden sm:flex flex-1 justify-center items-center font-medium text-gray-600">
 
-      {/* Wrap the links + cart in a container that stays centered */}
-      <div className="flex items-center justify-between w-full max-w-5xl">
+            <div className="flex items-center justify-between w-full max-w-5xl">
 
-        {/* Left side – nav links – will be centered because of justify-between + max-w */}
-        <div className="flex space-x-8">
-          <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-            Home
-          </Link>
+              <div className="flex space-x-8">
+                <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                  Home
+                </Link>
 
-          {/* Shop by Category with mega menu – keep as is */}
-          <div 
-            className="h-full flex items-center"
-            onMouseEnter={() => setIsCategoryHovered(true)}
-            onMouseLeave={() => setIsCategoryHovered(false)}
-          >
-            <Link 
-              to="/category" 
-              className={`py-3 flex items-center space-x-1 ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
-            >
-              <span>Shop by Category</span>
-              <ChevronDown className={`transition-transform duration-200 ${isCategoryHovered ? 'rotate-180' : ''}`} />
-            </Link>
-            {/* ... mega menu code remains unchanged ... */}
-            {isCategoryHovered && categories.length > 0 && (
-                  <div className="absolute top-full left-[-240px] w-[1000px] bg-white shadow-2xl z-[100] animate-in fade-in slide-in-from-top-1 duration-200 flex border border-gray-100 rounded-b-xl overflow-hidden min-h-[450px]">
-                    
-                    {/* LEFT SIDEBAR: MAIN CATEGORIES */}
-                    <div className="w-1/3 bg-gray-50/80 border-r border-gray-100">
-                      <div className="py-4">
-                        {categories.map((cat) => (
-                          <div
-                            key={cat.name}
-                            onMouseEnter={() => setHoveredMainCat(cat)}
-                            onClick={() => {
-                              setIsCategoryHovered(false);
-                              navigate(`/category?category=${encodeURIComponent(cat.name)}`);
-                            }}
-                            className={`px-8 py-3 cursor-pointer flex items-center justify-between transition-all ${
-                              hoveredMainCat?.name === cat.name 
-                              ? 'bg-white text-red-600 font-bold shadow-sm' 
-                              : 'text-gray-600 hover:bg-white hover:text-red-500'
-                            }`}
-                          >
-                            <span className="text-sm uppercase tracking-wide">{cat.name}</span>
-                            <ChevronDown className="-rotate-90 w-3 h-3 opacity-40" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                <div 
+                  className="h-full flex items-center"
+                  onMouseEnter={() => setIsCategoryHovered(true)}
+                  onMouseLeave={() => setIsCategoryHovered(false)}
+                >
+                  <Link 
+                    to="/category" 
+                    className={`py-3 flex items-center space-x-1 ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
+                  >
+                    <span>Shop by Category</span>
+                    <ChevronDown className={`transition-transform duration-200 ${isCategoryHovered ? 'rotate-180' : ''}`} />
+                  </Link>
 
-                    {/* RIGHT CONTENT: SUBCATEGORIES + PROMO */}
-                    <div className="w-2/3 p-10 flex flex-col justify-between bg-white">
-                      <div>
-                        <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-8">
-                          <h3 className="text-2xl font-serif italic text-gray-900">{hoveredMainCat?.name}</h3>
-                          <Link 
-                            to={`/category?category=${encodeURIComponent(hoveredMainCat?.name || '')}`}
-                            className="text-xs font-bold text-red-600 uppercase tracking-widest hover:underline"
-                            onClick={() => setIsCategoryHovered(false)}
-                          >
-                            View All {hoveredMainCat?.name}
-                          </Link>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-x-12 gap-y-4">
-                          {hoveredMainCat?.children?.map((sub) => (
-                            <Link
-                              key={sub.name}
-                              to={`/category?category=${encodeURIComponent(hoveredMainCat.name)}&subcategory=${encodeURIComponent(sub.name)}`}
-                              onClick={() => setIsCategoryHovered(false)}
-                              className="text-gray-500 hover:text-red-600 transition-colors text-[15px] border-b border-transparent hover:border-red-100 py-1"
+                  {isCategoryHovered && categories.length > 0 && (
+                    <div className="absolute top-full left-[-240px] w-[1000px] bg-white shadow-2xl z-[100] animate-in fade-in slide-in-from-top-1 duration-200 flex border border-gray-100 rounded-b-xl overflow-hidden min-h-[450px]">
+                      
+                      <div className="w-1/3 bg-gray-50/80 border-r border-gray-100">
+                        <div className="py-4">
+                          {categories.map((cat) => (
+                            <div
+                              key={cat.name}
+                              onMouseEnter={() => setHoveredMainCat(cat)}
+                              onClick={() => {
+                                setIsCategoryHovered(false);
+                                navigate(`/category?category=${encodeURIComponent(cat.name)}`);
+                              }}
+                              className={`px-8 py-3 cursor-pointer flex items-center justify-between transition-all ${
+                                hoveredMainCat?.name === cat.name 
+                                ? 'bg-white text-red-600 font-bold shadow-sm' 
+                                : 'text-gray-600 hover:bg-white hover:text-red-500'
+                              }`}
                             >
-                              {sub.name}
-                            </Link>
+                              <span className="text-sm uppercase tracking-wide">{cat.name}</span>
+                              <ChevronDown className="-rotate-90 w-3 h-3 opacity-40" />
+                            </div>
                           ))}
                         </div>
                       </div>
 
-                      {/* FEATURED STRIP */}
-                      <div className="mt-12 p-6 bg-red-50 rounded-xl flex items-center justify-between">
-                        <div className="flex flex-col">
-                          <span className="text-red-600 font-bold text-sm">Monthly Recommendation</span>
-                          <span className="text-gray-700 text-xs mt-1">Check out our best-selling {hoveredMainCat?.name} titles this week.</span>
+                      <div className="w-2/3 p-10 flex flex-col justify-between bg-white">
+                        <div>
+                          <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-8">
+                            <h3 className="text-2xl font-serif italic text-gray-900">{hoveredMainCat?.name}</h3>
+                            <Link 
+                              to={`/category?category=${encodeURIComponent(hoveredMainCat?.name || '')}`}
+                              className="text-xs font-bold text-red-600 uppercase tracking-widest hover:underline"
+                              onClick={() => setIsCategoryHovered(false)}
+                            >
+                              View All {hoveredMainCat?.name}
+                            </Link>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                            {hoveredMainCat?.children?.map((sub) => (
+                              <Link
+                                key={sub.name}
+                                to={`/category?category=${encodeURIComponent(hoveredMainCat.name)}&subcategory=${encodeURIComponent(sub.name)}`}
+                                onClick={() => setIsCategoryHovered(false)}
+                                className="text-gray-500 hover:text-red-600 transition-colors text-[15px] border-b border-transparent hover:border-red-100 py-1"
+                              >
+                                {sub.name}
+                              </Link>
+                            ))}
+                          </div>
                         </div>
-                        <button className="bg-red-600 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95">
-                          Shop Now
-                        </button>
+
+                        <div className="mt-12 p-6 bg-red-50 rounded-xl flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-red-600 font-bold text-sm">Monthly Recommendation</span>
+                            <span className="text-gray-700 text-xs mt-1">Check out our best-selling {hoveredMainCat?.name} titles this week.</span>
+                          </div>
+                          <button className="bg-red-600 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95">
+                            Shop Now
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-          </div>
+                  )}
+                </div>
 
-          <Link to="/popular-books" className={`py-3 ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-            Popular Books
-          </Link>
-          <Link to="/new-arrivals" className={`py-3 ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-            New Arrivals
-          </Link>
-          <Link to="/bestsellers" className={`py-3 ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-            Best Sellers
-          </Link>
-          <Link to="/clearance" className={`py-3 ${isActive('/clearance') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-            Clearance
-          </Link>
-          <Link to="/help" className={`py-3 ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-            Contact Us
-          </Link>
+                <Link to="/popular-books" className={`py-3 ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                  Popular Books
+                </Link>
+                <Link to="/new-arrivals" className={`py-3 ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                  New Arrivals
+                </Link>
+                <Link to="/bestsellers" className={`py-3 ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                  Best Sellers
+                </Link>
+                <Link to="/clearance" className={`py-3 ${isActive('/clearance') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                  Clearance
+                </Link>
+                <Link to="/help" className={`py-3 ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                  Contact Us
+                </Link>
+              </div>
+
+              <Link to="/checkout" className="flex items-center space-x-2 text-gray-700 whitespace-nowrap">
+                <ShoppingCartIcon className="h-6 w-6 text-gray-600" />
+                <span>Cart {cartCount} Items</span>
+              </Link>
+
+            </div>
+          </nav>
+
         </div>
-
-        {/* Right side – cart stays on the far right */}
-        <Link to="/checkout" className="flex items-center space-x-2 text-gray-700 whitespace-nowrap">
-          <ShoppingCartIcon className="h-6 w-6 text-gray-600" />
-          <span>Cart {cartCount} Items</span>
-        </Link>
-
       </div>
-    </nav>
-
-  </div>
-</div>
     </header>
   );
 };
 
 export default TopBar;
-
