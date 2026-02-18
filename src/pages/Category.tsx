@@ -94,9 +94,7 @@ const BookCard = ({ id, img, title, author, price, rating, condition }: any) => 
           alt={title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/95  text-[8px] font-black uppercase rounded-md shadow-sm">
-          {condition}
-        </div>
+        {/* Condition badge removed */}
       </Link>
       <div className="flex-grow">
         <h3 className="font-black text-[13px] text-gray-900 line-clamp-2 mb-1">{title}</h3>
@@ -116,7 +114,6 @@ const BookCard = ({ id, img, title, author, price, rating, condition }: any) => 
     </div>
   );
 };
-
 // ── MAIN PAGE ────────────────────────────────────────────────────────────
 
 export default function BrowsePage() {
