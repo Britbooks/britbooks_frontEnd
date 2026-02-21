@@ -350,7 +350,7 @@ const TopBar = () => {
             {navLinks}
           </nav>
           <div className="mt-auto p-4 border-t text-center text-red-600 font-bold">
-          📧 info@britbooks.co.uk
+          📧 customercare@britbooks.co.uk  
           </div>
         </div>
       </div>
@@ -416,7 +416,7 @@ const TopBar = () => {
             )}
           </div>
           <div className="hidden sm:block text-blue-600 font-bold text-lg mt-2 sm:mt-0 flex items-center gap-2">
-  📧 info@britbooks.co.uk
+  📧 customercare@britbooks.co.uk  
 </div>
         </div>
       </div>
