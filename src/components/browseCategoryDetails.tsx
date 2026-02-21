@@ -664,10 +664,10 @@ const BrowseCategoryDetail = () => {
         <BookShelf
   title="You may also like"
   fetchParams={{
-    filters: { category: book.category },
+    category: book.category,
     sort: "rating",
     order: "desc",
-    limit: 10,
+    limit: 100,
   }}
   currentBookId={id!}
 />
@@ -675,15 +675,11 @@ const BrowseCategoryDetail = () => {
 <BookShelf
   title="Related Products"
   fetchParams={{
-    filters: {
-      category: book.category,
-      listedAt: {                   // or createdAt / releaseDate — check your API field name
-        $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()  // last ~60 days
-      }
-    },
-    sort: "listedAt",               // or createdAt
+    category: book.category || "General", // Moved to top-level per your fetchBooks logic
+    sort: "listedAt",
     order: "desc",
-    limit: 10,
+    limit: 100,
+    filters: {} // Keep filters empty unless you're adding specific sub-filters like price
   }}
   currentBookId={id!}
 />
