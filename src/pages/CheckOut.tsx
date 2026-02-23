@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Check,
   X,
@@ -9,9 +9,7 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
-  ShoppingCart,
 } from "lucide-react";
-import { MD5 } from "crypto-js";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { useCart } from "../context/cartContext";
@@ -22,43 +20,17 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Addresses } from "./Addresses";
 import toast, { Toaster } from "react-hot-toast";
-import { Book, fetchBooks } from "../data/books";
-import ReactDOM from "react-dom";
+import { fetchBooks } from "../data/books";
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 const API_BASE_URL = "https://britbooks-api-production.up.railway.app/api";
 
-// --- Helper Function for Placeholder Images ---
-const generatePlaceholderImage = (book: { title: string; isbn: string; genre: string }): string => {
-  const input = book.isbn || book.title;
-  const hash = MD5(input).toString().slice(0, 8);
-  const genreColors: Record<string, string> = {
-    Mindfulness: "zen",
-    Technology: "tech",
-    Psychology: "psych",
-    "Self-Help": "selfhelp",
-    Mystery: "mystery",
-    "Contemporary Fiction": "fiction",
-    Drama: "drama",
-    Biography: "bio",
-    Leadership: "lead",
-    "Asian Literature": "asianlit",
-    Entrepreneurship: "entrepreneur",
-    Poetry: "poetry",
-    Humor: "humor",
-    History: "history",
-    Cookbooks: "cook",
-    Art: "art",
-    Comics: "comics",
-    default: "default",
-  };
-  const genreKey = genreColors[book.genre] || genreColors.default;
-  return `https://picsum.photos/seed/${hash}-${genreKey}/300/450`;
-};
+// ──────────────────────────────────────────────
+// Reusable small components
+// ──────────────────────────────────────────────
 
-// --- SVG Star Icon ---
-const StarIcon = ({ filled, rating }: { filled: boolean; rating: number }) => (
+const StarIcon = ({ filled }: { filled: boolean }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="16"
@@ -75,25 +47,22 @@ const StarIcon = ({ filled, rating }: { filled: boolean; rating: number }) => (
   </svg>
 );
 
-// --- Book Card Component ---
-const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: Book & { price: string }) => {
+const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, category, genre }: any) => {
   const { addToCart } = useCart();
-  const [imageError, setImageError] = useState(false);
-  const numericPrice = typeof price === "string" ? parseFloat(price.replace("£", "")) : price;
+  const [imgError, setImgError] = useState(false);
 
-  const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
-  const displayImage = imageError
-    ? fallbackImage
-    : imageUrl || generatePlaceholderImage({ title, isbn, genre });
+  const numericPrice = Number(String(price).replace("£", "")) || 0;
+  const src = imgError ? "https://placehold.co/300x450?text=Book+Cover" : imageUrl;
 
   const handleAddToCart = () => {
     addToCart({
       id,
-      imageUrl: displayImage,
+      img: imageUrl,               // ← match cart context field name
       title,
       author,
       price: `£${numericPrice.toFixed(2)}`,
       quantity: 1,
+      genre: category || genre || "default",
     });
     toast.success(`${title} added to your basket!`);
   };
@@ -103,16 +72,16 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
       <div className="relative">
         <Link to={`/browse/${id}`}>
           <img
-            src={displayImage}
+            src={src}
             alt={title}
             className="w-full h-48 object-cover mb-2 rounded-md transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImageError(true)}
+            onError={() => setImgError(true)}
             loading="lazy"
           />
         </Link>
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
           <Link to={`/browse/${id}`}>
-            <button className="bg-white text-gray-900 px-2 sm:px-4 py-1 sm:py-2 rounded-md text-xs sm:text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-300 hover:bg-gray-200">
+            <button className="bg-white text-gray-900 px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all hover:bg-gray-200">
               QUICK VIEW
             </button>
           </Link>
@@ -121,9 +90,9 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
       <div className="p-2 flex flex-col items-start">
         <h3 className="font-semibold text-sm truncate mt-1">{title}</h3>
         <p className="text-gray-500 text-xs mb-1">{author}</p>
-        <div className="flex items-center text-gray-300 mb-1">
+        <div className="flex items-center mb-1">
           {[...Array(5)].map((_, i) => (
-            <StarIcon key={i} filled={i < Math.round(rating || 0)} rating={rating || 0} />
+            <StarIcon key={i} filled={i < Math.round(rating || 0)} />
           ))}
         </div>
         <p className="text-lg font-bold text-gray-900">£{numericPrice.toFixed(2)}</p>
@@ -138,13 +107,8 @@ const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, genre }: B
   );
 };
 
-// --- BookShelf Component ---
-const BookShelf = ({ title, fetchParams, currentBookId }: {
-  title: string;
-  fetchParams: Record<string, any>;
-  currentBookId?: string;           // make optional
-}) => {
-  const [books, setBooks] = useState<Book[]>([]);
+const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetchParams: any; currentBookId?: string }) => {
+  const [books, setBooks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -158,18 +122,16 @@ const BookShelf = ({ title, fetchParams, currentBookId }: {
       try {
         const response = await fetchBooks({
           page: 1,
-          limit: 12,                    // ← pick a reasonable number
+          limit: 12,
           ...fetchParams,
         });
 
-        let fetchedBooks = response.listings || [];
+        let fetchedBooks = response?.listings || [];
 
-        // Filter out current book(s) if we have ID(s)
         if (currentBookId) {
-          fetchedBooks = fetchedBooks.filter(b => b.id !== currentBookId);
+          fetchedBooks = fetchedBooks.filter((b: any) => b.id !== currentBookId);
         }
 
-        // Optional: take more than visible → allows better pagination feel
         setBooks(fetchedBooks);
       } catch (err) {
         console.error(err);
@@ -182,22 +144,12 @@ const BookShelf = ({ title, fetchParams, currentBookId }: {
     fetchShelfBooks();
   }, [fetchParams, currentBookId, title]);
 
-  // … rest remains similar, but consider:
-  // - showing skeleton loaders instead of just text
-  // - increasing booksPerPage to 6–8 on larger screens
-  // - optional "See more" link at the end instead of internal pagination
-
   const totalPages = Math.min(Math.ceil(books.length / booksPerPage), maxPages);
   const startIndex = (currentPage - 1) * booksPerPage;
   const paginatedBooks = books.slice(startIndex, startIndex + booksPerPage);
 
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-  };
+  const handlePreviousPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
+  const handleNextPage = () => setCurrentPage((prev) => Math.min(totalPages, prev + 1));
 
   if (isLoading) {
     return (
@@ -246,7 +198,7 @@ const BookShelf = ({ title, fetchParams, currentBookId }: {
           <BookCard
             key={book.id}
             {...book}
-            price={`£${book.price.toFixed(2)}`}
+            price={`£${Number(book.price).toFixed(2)}`}
           />
         ))}
       </div>
@@ -257,7 +209,6 @@ const BookShelf = ({ title, fetchParams, currentBookId }: {
   );
 };
 
-// --- Checkout Stepper Component ---
 const CheckoutStepper = ({ currentStep }: { currentStep: number }) => {
   const steps = ["Shopping Cart", "Checkout", "Order Complete"];
   return (
@@ -293,36 +244,28 @@ const CheckoutStepper = ({ currentStep }: { currentStep: number }) => {
   );
 };
 
-// --- Shopping Cart View Component ---
 const ShoppingCartView = ({
   cartItems,
   updateQuantity,
   removeFromCart,
   clearCart,
   goToNextStep,
-}: {
-  cartItems: any[];
-  updateQuantity: (id: string, quantity: number) => void;
-  removeFromCart: (id: string) => void;
-  clearCart: () => void;
-  goToNextStep: () => void;
-}) => {
-  const subtotal = cartItems.reduce((sum, item) => sum + parseFloat(item.price.replace("£", "")) * item.quantity, 0);
+}: any) => {
+  const subtotal = cartItems.reduce((sum: number, item: any) => sum + Number(item.price.replace("£", "")) * item.quantity, 0);
   const shipping = 5.0;
   const total = subtotal + shipping;
 
-  // Move image error state OUTSIDE the map
-  const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const handleImageError = (id: string) => {
-    setImageErrors(prev => ({ ...prev, [id]: true }));
+    setImageErrors((prev) => ({ ...prev, [id]: true }));
   };
 
   const getDisplayImage = (item: any) => {
     if (imageErrors[item.id]) {
       return "https://placehold.co/300x450?text=Book+Cover";
     }
-    return item.imageUrl || generatePlaceholderImage({ title: item.title, isbn: item.isbn || "", genre: item.genre || "default" });
+    return item.img; // ← FIXED: use img, not imageUrl
   };
 
   return (
@@ -352,7 +295,7 @@ const ShoppingCartView = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {cartItems.map((item) => (
+                    {cartItems.map((item: any) => (
                       <tr key={item.id} className="border-b hover:bg-gray-50 transition">
                         <td className="p-4">
                           <div className="flex items-center gap-4">
@@ -360,7 +303,10 @@ const ShoppingCartView = ({
                               src={getDisplayImage(item)}
                               alt={item.title}
                               className="w-20 h-28 object-cover rounded shadow-sm"
-                              onError={() => handleImageError(item.id)}
+                              onError={(e) => {
+                                e.currentTarget.src = "https://placehold.co/300x450?text=Book+Cover";
+                                e.currentTarget.onerror = null;
+                              }}
                               loading="lazy"
                             />
                             <div>
@@ -389,7 +335,7 @@ const ShoppingCartView = ({
                           </div>
                         </td>
                         <td className="p-4 font-bold">
-                          £{(parseFloat(item.price.replace("£", "")) * item.quantity).toFixed(2)}
+                          £{(Number(item.price.replace("£", "")) * item.quantity).toFixed(2)}
                         </td>
                         <td className="p-4 text-center">
                           <button
@@ -424,7 +370,6 @@ const ShoppingCartView = ({
           )}
         </div>
 
-        {/* Order Summary */}
         <div className="lg:col-span-1">
           <div className="bg-white p-6 rounded-lg shadow-md border sticky top-24">
             <h3 className="text-xl font-bold mb-5">Order Summary</h3>
@@ -455,17 +400,16 @@ const ShoppingCartView = ({
         </div>
       </div>
 
-      {/* Recommendations */}
       {cartItems.length > 0 && (
         <div className="mt-16">
           <BookShelf
             title="You may also like"
             fetchParams={{
-              filters: { genre: cartItems[0].genre || "Fiction" },
+              filters: { genre: cartItems[0]?.genre || "Fiction" },
               sort: "rating",
               order: "desc",
             }}
-            currentBookId={cartItems[0].id}
+            currentBookId={cartItems[0]?.id}
           />
         </div>
       )}
@@ -473,7 +417,6 @@ const ShoppingCartView = ({
   );
 };
 
-// --- Payment Form Component ---
 const PaymentForm = ({
   goToNextStep,
   setPaymentData,
@@ -489,7 +432,7 @@ const PaymentForm = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [useSavedAddress, setUseSavedAddress] = useState(true);
-  const [addresses, setAddresses] = useState([]);
+  const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
@@ -500,7 +443,7 @@ const PaymentForm = ({
     country: "GB",
   });
 
-  const userId = auth.token ? jwtDecode<{ userId: string }>(auth.token).userId : null;
+  const userId = auth.token ? jwtDecode<{ userId: string }>(auth.token)?.userId : null;
 
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -514,7 +457,7 @@ const PaymentForm = ({
           headers: { Authorization: `Bearer ${auth.token}` },
         });
         setAddresses(response.data.addresses || []);
-        const defaultAddress = response.data.addresses.find((addr) => addr.isDefault);
+        const defaultAddress = response.data.addresses.find((addr: any) => addr.isDefault);
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress._id);
           setShippingAddress({
@@ -545,7 +488,7 @@ const PaymentForm = ({
     }
   }, [auth.token, userId, navigate, logout, useSavedAddress]);
 
-  const handleSelectAddress = (address) => {
+  const handleSelectAddress = (address: any) => {
     setSelectedAddressId(address._id);
     setShippingAddress({
       name: address.fullName,
@@ -566,7 +509,7 @@ const PaymentForm = ({
 
     try {
       const cardElement = elements.getElement(CardElement);
-      const { token, error: stripeError } = await stripe.createToken(cardElement);
+      const { token, error: stripeError } = await stripe.createToken(cardElement!);
 
       if (stripeError) {
         setError(stripeError.message);
@@ -612,6 +555,7 @@ const PaymentForm = ({
             </button>
           </div>
         </div>
+
         {activeTab === "credit-card" && (
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div>
@@ -625,6 +569,7 @@ const PaymentForm = ({
                 />
                 <span className="ml-2 text-sm sm:text-base text-gray-600">Use saved address</span>
               </div>
+
               {useSavedAddress ? (
                 <Addresses
                   addresses={addresses}
@@ -688,6 +633,7 @@ const PaymentForm = ({
                 </div>
               )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700">Card Details</label>
               <CardElement
@@ -704,10 +650,13 @@ const PaymentForm = ({
                 }}
               />
             </div>
+
             {error && <div className="text-red-500 text-sm">{error}</div>}
+
             <div className="flex items-center text-xs sm:text-sm text-gray-500">
               <Lock className="mr-2 w-4 h-4" /> Secure Payment
             </div>
+
             <button
               type="submit"
               className="w-full mt-4 sm:mt-6 bg-red-600 text-white py-2 sm:py-3 rounded-md font-semibold text-sm sm:text-base hover:bg-red-700 transition-colors"
@@ -717,6 +666,7 @@ const PaymentForm = ({
             </button>
           </form>
         )}
+
         {activeTab === "paypal" && (
           <div className="text-center py-6 sm:py-8">
             <p className="mb-4 text-sm sm:text-base text-gray-700">You will be redirected to PayPal to complete your payment.</p>
@@ -730,44 +680,35 @@ const PaymentForm = ({
   );
 };
 
-// --- Review Order Component ---
 const ReviewOrder = ({
   cartItems,
   goToPreviousStep,
   paymentData,
   setPaymentData,
-  setOrderId,
-  setReceiptUrl,
   setSuccessData,
-}: {
-  cartItems: any[];
-  goToPreviousStep: () => void;
-  paymentData: any;
-  setPaymentData: (data: any) => void;
-  setOrderId: (id: string | null) => void;
-  setReceiptUrl: (url: string | null) => void;
-}) => {
+}: any) => {
   const navigate = useNavigate();
   const { auth, logout } = useAuth();
   const { clearCart } = useCart();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  const subtotal = cartItems.reduce((sum, item) => sum + parseFloat(item.price.replace("£", "")) * item.quantity, 0);
+  const subtotal = cartItems.reduce((sum: number, item: any) => sum + Number(item.price.replace("£", "")) * item.quantity, 0);
   const shipping = 5.0;
   const total = subtotal + shipping;
 
-  if (!paymentData || !paymentData.shippingAddress) {
-    return (
-      <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-600">Loading payment details...</p>
-        <button onClick={goToPreviousStep} className="mt-4 text-red-600 hover:underline">
-          Go Back
-        </button>
-      </div>
-    );
-  }
+  const handleImageError = (id: string) => {
+    setImageErrors((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const getDisplayImage = (item: any) => {
+    if (imageErrors[item.id]) {
+      return "https://placehold.co/300x450?text=Book+Cover";
+    }
+    return item.img; // ← FIXED: use img, not imageUrl
+  };
 
   const handlePlaceOrder = async () => {
     if (!auth.token) {
@@ -775,22 +716,22 @@ const ReviewOrder = ({
       navigate("/login", { state: { from: "/checkout" } });
       return;
     }
-
+  
     if (loading) return;
-
+  
     setLoading(true);
     setError(null);
-
+  
     try {
       const decoded = jwtDecode<{ userId: string }>(auth.token);
       const userId = decoded.userId;
       const newOrderId = `ORDER_${Date.now()}`;
-      const items = cartItems.map((item) => ({
+      const items = cartItems.map((item: any) => ({
         title: item.title,
         quantity: item.quantity,
         price: parseFloat(item.price.replace("£", "")),
       }));
-
+  
       const response = await axios.post(
         `${API_BASE_URL}/payments/create-payment`,
         {
@@ -809,27 +750,36 @@ const ReviewOrder = ({
           headers: { Authorization: `Bearer ${auth.token}` },
         }
       );
-
-      const { clientSecret, reference, status, requiresAction, receiptUrl: receipt } = response.data;
-
+  
+      const { success, type, message, items: errorItems, clientSecret, reference, status, requiresAction, receiptUrl } = response.data;
+  
+      if (type === "stock_error") {
+        // Display unavailable items
+        const itemList = errorItems.map((i: any) => `${i.title} (Available: ${i.available})`).join(", ");
+        setError(`Some items are unavailable: ${itemList}`);
+        setLoading(false);
+        return;
+      }
+  
+      // Handle Stripe or successful payment as before
       if (requiresAction) {
         const stripe = await stripePromise;
         const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret);
-
+  
         if (confirmError) {
           setError(confirmError.message || "Payment failed.");
           setLoading(false);
           return;
         }
-
+  
         if (paymentIntent.status === "succeeded") {
-          await finalizeOrder(paymentIntent.id, receipt);
+          await finalizeOrder(paymentIntent.id, receiptUrl);
         } else {
           setError("Payment is processing. Check email for status.");
           setLoading(false);
         }
       } else if (status === "succeeded") {
-        await finalizeOrder(reference, receipt);
+        await finalizeOrder(reference, receiptUrl);
       } else {
         setError("Payment is processing. Check email for status.");
         setLoading(false);
@@ -839,12 +789,17 @@ const ReviewOrder = ({
       if (err.response?.status === 401) {
         logout();
         navigate("/login");
+      } else if (err.response?.data?.type === "stock_error") {
+        const errorItems = err.response.data.items || [];
+        const itemList = errorItems.map((i: any) => `${i.title} (Available: ${i.available})`).join(", ");
+        setError(`Some items are unavailable: ${itemList}`);
       } else {
         setError(err.response?.data?.message || "Payment failed. Please try again.");
       }
       setLoading(false);
     }
   };
+  
 
   const finalizeOrder = async (reference: string, receipt: string | null) => {
     try {
@@ -853,10 +808,10 @@ const ReviewOrder = ({
         { reference, receiptUrl: receipt || null },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
-  
+
       if (successResponse.data.success) {
-        const { orderId, total, receiptUrl } = successResponse.data; // FROM API
-  
+        const { orderId, total, receiptUrl } = successResponse.data;
+
         clearCart();
         setPaymentData(null);
         setSuccessData({
@@ -864,8 +819,7 @@ const ReviewOrder = ({
           total: total || subtotal + 5,
           receiptUrl: receiptUrl || null,
         });
-  
-        // Auto redirect
+
         setTimeout(() => {
           navigate("/orders", {
             state: { orderId: orderId || reference, receiptUrl: receiptUrl || null }
@@ -881,6 +835,17 @@ const ReviewOrder = ({
       setLoading(false);
     }
   };
+
+  if (!paymentData || !paymentData.shippingAddress) {
+    return (
+      <div className="max-w-3xl mx-auto text-center py-12">
+        <p className="text-gray-600">Loading payment details...</p>
+        <button onClick={goToPreviousStep} className="mt-4 text-red-600 hover:underline">
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto animate-on-scroll">
@@ -903,47 +868,40 @@ const ReviewOrder = ({
             </button>
           </div>
           <div>
-  <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-4">Payment Method</h3>
-  <p className="text-gray-600 text-sm sm:text-base">
-    Card ending in {paymentData?.card?.last4}
-  </p>
-
-  <button
-    onClick={goToPreviousStep}
-    className="text-red-600 text-xs sm:text-sm mt-2 hover:underline"
-  >
-    Change
-  </button>
-</div>
-
+            <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-4">Payment Method</h3>
+            <p className="text-gray-600 text-sm sm:text-base">
+              Card ending in {paymentData?.card?.last4 || "••••"}
+            </p>
+            <button
+              onClick={goToPreviousStep}
+              className="text-red-600 text-xs sm:text-sm mt-2 hover:underline"
+            >
+              Change
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 sm:mt-8 border-t border-gray-200 pt-4 sm:pt-6">
           <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-4">Items in Order</h3>
           <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
-            {cartItems.map((item) => {
-              const [imageError, setImageError] = useState(false);
-              const fallbackImage = "https://placehold.co/300x450?text=Book+Cover";
-              const displayImage = imageError
-                ? fallbackImage
-                : item.imageUrl || generatePlaceholderImage({ title: item.title, isbn: item.isbn || "", genre: item.genre || "default" });
-
-              return (
-                <div key={item.id} className="flex items-center justify-between py-2 text-sm sm:text-base text-gray-700">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <img
-                      src={displayImage}
-                      alt={item.title}
-                      className="w-10 h-10 object-cover rounded"
-                      onError={() => setImageError(true)}
-                      loading="lazy"
-                    />
-                    <p>{item.title} (x{item.quantity})</p>
-                  </div>
-                  <p>£{(parseFloat(item.price.replace("£", "")) * item.quantity).toFixed(2)}</p>
+            {cartItems.map((item: any) => (
+              <div key={item.id} className="flex items-center justify-between py-2 text-sm sm:text-base text-gray-700">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <img
+                    src={getDisplayImage(item)}
+                    alt={item.title}
+                    className="w-10 h-10 object-cover rounded"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://placehold.co/300x450?text=Book+Cover";
+                      e.currentTarget.onerror = null;
+                    }}
+                    loading="lazy"
+                  />
+                  <p>{item.title} (x{item.quantity})</p>
                 </div>
-              );
-            })}
+                <p>£{(Number(item.price.replace("£", "")) * item.quantity).toFixed(2)}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -976,7 +934,6 @@ const ReviewOrder = ({
   );
 };
 
-// --- Main Checkout Flow Component ---
 const CheckoutFlow = () => {
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const [step, setStep] = useState(1);
@@ -990,13 +947,9 @@ const CheckoutFlow = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
 
-  // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -1012,8 +965,6 @@ const CheckoutFlow = () => {
       },
       { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
-
-  
 
     const elements = document.querySelectorAll(".animate-on-scroll");
     elements.forEach((el) => observer.observe(el));
@@ -1045,6 +996,7 @@ const CheckoutFlow = () => {
       <main className="flex-1 p-4 sm:p-8 pb-16 lg:pb-8">
         <div className="max-w-7xl mx-auto">
           <CheckoutStepper currentStep={step} />
+
           {step === 1 && (
             <ShoppingCartView
               cartItems={cartItems}
@@ -1054,51 +1006,53 @@ const CheckoutFlow = () => {
               goToNextStep={() => setStep(2)}
             />
           )}
+
           {step === 2 && (
             <Elements stripe={stripePromise}>
               <PaymentForm goToNextStep={() => setStep(3)} setPaymentData={setPaymentData} />
             </Elements>
           )}
-   {step === 3 && paymentData ? (
-  <ReviewOrder
-    cartItems={cartItems}
-    goToPreviousStep={() => setStep(2)}
-    paymentData={paymentData}
-    setPaymentData={setPaymentData}
-    setSuccessData={setSuccessData}
-  />
-) : step === 3 && successData ? (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 text-center animate-fade-in">
-      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-        <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Successful!</h2>
-      <p className="text-gray-600 mb-4">Thank you for your order.</p>
-      <div className="bg-gray-50 rounded-md p-4 mb-6 text-left">
-        <p className="text-sm text-gray-600">
-          <span className="font-semibold">Order ID:</span> {successData.orderId}
-        </p>
-        <p className="text-sm text-gray-600">
-          <span className="font-semibold">Total Paid:</span> £{successData.total.toFixed(2)}
-        </p>
-      </div>
-      <button
-        onClick={() => navigate("/orders", { state: successData })}
-        className="w-full bg-red-600 text-white py-2 rounded-md font-semibold hover:bg-red-700"
-      >
-        VIEW ORDER
-      </button>
-      <p className="text-xs text-gray-500 mt-3">Redirecting in 5 seconds...</p>
-    </div>
-  </div>
-) : step === 3 ? (
-  <div className="text-center py-12">
-    <p className="text-gray-600">Processing your order...</p>
-  </div>
-) : null}
+
+          {step === 3 && paymentData ? (
+            <ReviewOrder
+              cartItems={cartItems}
+              goToPreviousStep={() => setStep(2)}
+              paymentData={paymentData}
+              setPaymentData={setPaymentData}
+              setSuccessData={setSuccessData}
+            />
+          ) : step === 3 && successData ? (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 text-center animate-fade-in">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Successful!</h2>
+                <p className="text-gray-600 mb-4">Thank you for your order.</p>
+                <div className="bg-gray-50 rounded-md p-4 mb-6 text-left">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Order ID:</span> {successData.orderId}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Total Paid:</span> £{successData.total.toFixed(2)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/orders", { state: successData })}
+                  className="w-full bg-red-600 text-white py-2 rounded-md font-semibold hover:bg-red-700"
+                >
+                  VIEW ORDER
+                </button>
+                <p className="text-xs text-gray-500 mt-3">Redirecting in 5 seconds...</p>
+              </div>
+            </div>
+          ) : step === 3 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Processing your order...</p>
+            </div>
+          ) : null}
         </div>
       </main>
 
