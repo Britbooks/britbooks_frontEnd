@@ -26,7 +26,8 @@ import AddressesPage from './pages/Addresses';
 import AccountSettingsPage from './pages/Account';
 import PopularBooksPage from './pages/PopularBooks';
 import ClearancePage from './pages/ClearancePage';
-import ReturnPolicyPage from './pages/PrivacyPolicy';
+import ReturnPolicyPage from './pages/returnPolicy';
+import PrivacyPolicyPage from './pages/privacyPolicy';
 
 import { AuthProvider } from './context/authContext'; 
 import { CartProvider } from './context/cartContext';
@@ -76,6 +77,8 @@ const App: React.FC = () => {
           <Route path="/popular-books" element={<PopularBooksPage />} />
           <Route path="/clearance" element={<ClearancePage />} />
           <Route path="/return-policy" element={<ReturnPolicyPage />} />
+          <Route path="/privacy-policy"element={<PrivacyPolicyPage/>} />
+
           <Route path="*" element={<div>Page not found</div>} />
         </Routes>
       </CartProvider>
