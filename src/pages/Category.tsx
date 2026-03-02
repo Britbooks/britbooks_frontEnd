@@ -17,6 +17,7 @@ import TopBar from "../components/Topbar";
 
 import { fetchBooks, fetchCategories, Book, CategoryNode } from "../data/books";
 import { useCart } from "../context/cartContext";
+import BookCard from "../components/BookCard";
 
 // ── UTILITIES ────────────────────────────────────────────────────────────
 
@@ -75,45 +76,45 @@ const StarRating = ({ rating }: { rating: number }) => (
   </div>
 );
 
-const BookCard = ({ id, img, title, author, price, rating, condition }: any) => {
-  const { addToCart } = useCart();
+// const BookCard = ({ id, img, title, author, price, rating, condition }: any) => {
+//   const { addToCart } = useCart();
 
-  const handleAddToBasket = (e: React.MouseEvent) => {
-    e.preventDefault();
-    addToCart({ id, img, title, author, price, quantity: 1 });
-    toast.success(`Added ${title} to basket`, {
-      style: { borderRadius: "15px", fontWeight: "bold" },
-    });
-  };
+//   const handleAddToBasket = (e: React.MouseEvent) => {
+//     e.preventDefault();
+//     addToCart({ id, img, title, author, price, quantity: 1 });
+//     toast.success(`Added ${title} to basket`, {
+//       style: { borderRadius: "15px", fontWeight: "bold" },
+//     });
+//   };
 
-  return (
-    <div className="group bg-white rounded-2xl border border-gray-100 hover:border-blue-500/20 hover:shadow-lg transition-all p-3 flex flex-col">
-      <Link to={`/browse/${id}`} className="relative aspect-[3/4] overflow-hidden rounded-xl mb-3 bg-gray-50">
-        <img
-          src={img}
-          alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        {/* Condition badge removed */}
-      </Link>
-      <div className="flex-grow">
-        <h3 className="font-black text-[13px] text-gray-900 line-clamp-2 mb-1">{title}</h3>
-        <p className="text-gray-500 text-[11px] mb-2 font-medium">{author}</p>
-        <StarRating rating={rating} />
-      </div>
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-        <span className="text-blue-600 font-black text-base">{price}</span>
-        <button
-          onClick={handleAddToBasket}
-          className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm font-medium"
-        >
-          <ShoppingBag size={14} />
-          Basket
-        </button>
-      </div>
-    </div>
-  );
-};
+//   return (
+//     <div className="group bg-white rounded-2xl border border-gray-100 hover:border-blue-500/20 hover:shadow-lg transition-all p-3 flex flex-col">
+//       <Link to={`/browse/${id}`} className="relative aspect-[3/4] overflow-hidden rounded-xl mb-3 bg-gray-50">
+//         <img
+//           src={img}
+//           alt={title}
+//           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+//         />
+//         {/* Condition badge removed */}
+//       </Link>
+//       <div className="flex-grow">
+//         <h3 className="font-black text-[13px] text-gray-900 line-clamp-2 mb-1">{title}</h3>
+//         <p className="text-gray-500 text-[11px] mb-2 font-medium">{author}</p>
+//         <StarRating rating={rating} />
+//       </div>
+//       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+//         <span className="text-blue-600 font-black text-base">{price}</span>
+//         <button
+//           onClick={handleAddToBasket}
+//           className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm font-medium"
+//         >
+//           <ShoppingBag size={14} />
+//           Basket
+//         </button>
+//       </div>
+//     </div>
+//   );
+// };
 // ── MAIN PAGE ────────────────────────────────────────────────────────────
 
 export default function BrowsePage() {
