@@ -27,7 +27,7 @@ import AccountSettingsPage from './pages/Account';
 import PopularBooksPage from './pages/PopularBooks';
 import ClearancePage from './pages/ClearancePage';
 import ReturnPolicyPage from './pages/returnPolicy';
-import PrivacyPolicyPage from './pages/privacyPolicy';
+import PrivacyPolicyPage from './pages/PrivacyPolicy';
 
 import { AuthProvider } from './context/authContext'; 
 import { CartProvider } from './context/cartContext';
