@@ -20,6 +20,8 @@ import toast, { Toaster } from "react-hot-toast";
 import { useCart } from "../context/cartContext";
 import { Book, fetchBooks } from "../data/books";
 import { generatePlaceholderImage } from "../data/books";
+import { useRecentlyViewed } from "../context/viewManager";
+
 
 // --- Star Rating Component ---
 const StarRating = ({ rating = 0 }: { rating: number }) => {
@@ -326,6 +328,8 @@ const BrowseCategoryDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "info" | "reviews">("details");
+  const { addToRecentlyViewed } = useRecentlyViewed();
+
  
 
 
@@ -389,6 +393,20 @@ const BrowseCategoryDetail = () => {
 
     findBookById();
   }, [id]);
+
+
+  useEffect(() => {
+    if (book) {
+      addToRecentlyViewed({
+        id: book.id,
+        img: book.imageUrl || generatePlaceholderImage(book),
+        title: book.title,
+        author: book.author,
+        price: `£${book.price.toFixed(2)}`,
+      });
+    }
+  }, [book]);
+  
 
   const handleAddToCart = () => {
     if (book) {
