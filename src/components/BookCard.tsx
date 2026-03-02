@@ -2,8 +2,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Star } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import { useCart } from "../context/cartContext";
+import { useWishlist } from "../context/wishlistContext";
 
 interface BookCardProps {
   id: string;
@@ -13,16 +14,49 @@ interface BookCardProps {
   price: string;
 }
 
-const BookCard: React.FC<BookCardProps> = ({ id, img, title, author, price }) => {
+const BookCard: React.FC<BookCardProps> = ({
+  id,
+  img,
+  title,
+  author,
+  price,
+}) => {
   const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
+  const inWishlist = isInWishlist(id);
 
   const handleAddToCart = () => {
     addToCart({ id, img, title, author, price, quantity: 1 });
     toast.success(`${title} added to your basket!`);
   };
 
+  const handleWishlistToggle = () => {
+    if (inWishlist) {
+      removeFromWishlist(id);
+    } else {
+      addToWishlist({ id, img, title, author, price });
+    }
+  };
+
   return (
     <div className="relative group flex-shrink-0 w-full max-w-[180px] text-center border border-gray-200 rounded-lg p-3 transition-shadow hover:shadow-lg">
+      
+      {/* ❤️ Wishlist Button */}
+      <button
+        onClick={handleWishlistToggle}
+        className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md z-10 hover:scale-110 transition-transform"
+      >
+        <Heart
+          size={16}
+          className={
+            inWishlist
+              ? "text-red-500 fill-red-500"
+              : "text-gray-400"
+          }
+        />
+      </button>
+
       <div className="relative">
         <img
           src={img}
@@ -35,6 +69,7 @@ const BookCard: React.FC<BookCardProps> = ({ id, img, title, author, price }) =>
             target.src = `https://picsum.photos/seed/fallback-${id}/300/450`;
           }}
         />
+
         <div className="absolute inset-x-0 top-0 h-60 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-100 flex items-center justify-center">
           <Link to={`/browse/${id}`}>
             <button className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-100">
