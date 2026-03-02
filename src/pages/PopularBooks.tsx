@@ -1,30 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { 
   Star, ChevronLeft, ChevronRight, Search, 
-  Book as BookIcon, Info, TrendingUp, ShoppingBag, Eye, Zap
+  Book as BookIcon, TrendingUp, Zap, Heart, Eye
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { fetchBooks, fetchCategories } from "../data/books";
-import { useCart } from "../context/cartContext";
 import BookCard from "../components/BookCard";
 
 // --- Sub-components ---
-
-const StarRating = ({ rating }: { rating: number }) => (
-  <div className="flex items-center gap-0.5">
-    {[...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        size={12}
-        className={i < Math.round(rating) ? "text-amber-400" : "text-slate-200"}
-        fill={i < Math.round(rating) ? "currentColor" : "none"}
-      />
-    ))}
-  </div>
-);
 
 const BookCardSkeleton = () => (
   <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-4 animate-pulse">
@@ -33,107 +19,6 @@ const BookCardSkeleton = () => (
     <div className="h-3 bg-slate-100 w-1/2 rounded" />
   </div>
 );
-
-// const BookCard: React.FC<{ book: any; rank: number }> = React.memo(({ book, rank }) => {
-//   const { addToCart } = useCart();
-  
-//   // Dynamic Rank Styling
-//   const getRankStyles = (r: number) => {
-//     if (r === 1) return "bg-gradient-to-r from-amber-400 to-yellow-600 text-white shadow-lg shadow-amber-200";
-//     if (r === 2) return "bg-gradient-to-r from-slate-300 to-slate-500 text-white shadow-lg shadow-slate-200";
-//     if (r === 3) return "bg-gradient-to-r from-orange-400 to-orange-700 text-white shadow-lg shadow-orange-200";
-//     if (r <= 10) return "bg-amber-100 text-amber-900 border border-amber-200";
-//     return "bg-slate-900 text-white";
-//   };
-
-//   const handleAddToCart = () => {
-//     addToCart({
-//       id: book.id,
-//       img: book.imageUrl || "https://via.placeholder.com/150",
-//       title: book.title,
-//       author: book.author,
-//       price: `£${book.price.toFixed(2)}`,
-//       quantity: 1,
-//     });
-//     toast.success(`${book.title} in basket!`, {
-//       style: { borderRadius: '12px', background: '#1e293b', color: '#fff' }
-//     });
-//   };
-
-//   const showPopularityReason = () => {
-//     toast((t) => (
-//       <div className="bg-white p-4 rounded-xl max-w-sm">
-//         <div className="flex items-center gap-2 mb-2">
-//           <TrendingUp size={18} className="text-indigo-600" />
-//           <h4 className="font-bold text-slate-900">Why Rank #{rank}?</h4>
-//         </div>
-//         <p className="text-sm text-slate-600 leading-relaxed">
-//           {book.popularityReason || "This title is currently gaining massive traction across major reading communities."}
-//         </p>
-//         <button 
-//           onClick={() => toast.dismiss(t.id)}
-//           className="mt-4 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-colors"
-//         >
-//           Got it
-//         </button>
-//       </div>
-//     ), { duration: 5000 });
-//   };
-
-//   return (
-//     <div className={`group relative bg-white rounded-2xl border transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-2 flex flex-col h-full ${
-//       rank <= 10 ? "border-amber-200" : "border-slate-100"
-//     }`}>
-//       <div className="relative aspect-[3/4] m-3 overflow-hidden rounded-xl bg-slate-50">
-//         <Link to={`/browse/${book.id}`}>
-//           <img
-//             src={book.imageUrl || "https://via.placeholder.com/150"}
-//             alt={book.title}
-//             loading="lazy"
-//             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-//           />
-//         </Link>
-//         <div className={`absolute top-0 left-0 px-3 py-1.5 text-xs font-black rounded-br-xl z-10 ${getRankStyles(rank)}`}>
-//           #{rank}
-//         </div>
-//         <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 px-4 z-20">
-//           <Link to={`/browse/${book.id}`} className="w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-//             <button className="w-full bg-white text-slate-900 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl">
-//               <Eye size={14} /> Quick View
-//             </button>
-//           </Link>
-//           <button 
-//             onClick={handleAddToCart}
-//             disabled={book.stock === 0}
-//             className="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75 disabled:bg-slate-500 shadow-xl"
-//           >
-//             <ShoppingBag size={14} /> {book.stock === 0 ? "Out of Stock" : "Add to Bag"}
-//           </button>
-//         </div>
-//       </div>
-
-//       <div className="px-4 pb-4 flex flex-col flex-grow">
-//         <h4 className="font-bold text-sm text-slate-800 line-clamp-2 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">
-//           {book.title}
-//         </h4>
-//         <p className="text-[11px] text-slate-400 font-medium mb-3">{book.author}</p>
-        
-//         <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
-//           <div className="flex flex-col">
-//             <span className="text-sm font-black text-slate-900">£{book.price.toFixed(2)}</span>
-//             <StarRating rating={book.rating || 0} />
-//           </div>
-//           <button 
-//             onClick={showPopularityReason}
-//             className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-//           >
-//             <Info size={16} />
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// });
 
 // --- Main Page Component ---
 
@@ -147,21 +32,19 @@ const PopularBooksPage: React.FC = () => {
   const [totalBooks, setTotalBooks] = useState(0);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true); 
+  
+  // Trending Rotation State
+  const [trendingIndex, setTrendingIndex] = useState(0);
 
-  const BOOKS_PER_PAGE = 30; // Adjusted for better performance
+  const BOOKS_PER_PAGE = 30;
 
-  // Debounce Logic
+  // 1. Debounce Logic for Search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Set Document Title
-  useEffect(() => {
-    document.title = "Popular Books | BritBooks Pulse";
-  }, []);
-
-  // Fetch Categories
+  // 2. Fetch Categories on Mount
   useEffect(() => {
     const fetchCategoryData = async () => {
       try {
@@ -170,9 +53,10 @@ const PopularBooksPage: React.FC = () => {
       } catch (err) { console.error("Category fetch error:", err); }
     };
     fetchCategoryData();
+    document.title = "Popular Books | Pulse";
   }, []);
 
-  // Main Data Fetch
+  // 3. Main Data Fetch
   useEffect(() => {
     const fetchPopularBooks = async () => {
       setIsLoading(true);
@@ -183,7 +67,7 @@ const PopularBooksPage: React.FC = () => {
           category: selectedCategory,
           search: debouncedSearch,
           sort: sortBy.includes("price") ? "price" : sortBy,
-          order: sortBy === "priceHighLow" ? "desc" : sortBy === "title" ? "asc" : "desc"
+          order: sortBy === "priceHighLow" ? "desc" : "asc"
         };
   
         const result = await fetchBooks(reqBody);
@@ -198,106 +82,150 @@ const PopularBooksPage: React.FC = () => {
     fetchPopularBooks();
   }, [currentPage, selectedCategory, debouncedSearch, sortBy]);
 
+  // 4. Trending Rotation Logic (Every 5 Seconds)
+  useEffect(() => {
+    if (books.length > 0) {
+      const interval = setInterval(() => {
+        setTrendingIndex((prev) => (prev + 1) % Math.min(books.length, 10));
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [books]);
+
+  // 5. Derived State
   const totalPages = useMemo(() => Math.ceil(totalBooks / BOOKS_PER_PAGE), [totalBooks]);
+  const trendingBook = books[trendingIndex] || null;
 
   const handlePageChange = (page: number) => {
     if (page > 0 && page <= totalPages) {
       setCurrentPage(page);
-      window.scrollTo({ top: 400, behavior: "smooth" });
+      window.scrollTo({ top: 300, behavior: "smooth" });
     }
   };
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="bg-[#F8FAFC] min-h-screen flex flex-col font-sans selection:bg-indigo-100">
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
+        @keyframes progress-bar {
+          from { width: 0%; }
+          to { width: 100%; }
         }
-        .animate-float-3d { animation: float 7s ease-in-out infinite; }
+        .animate-progress { animation: progress-bar 5s linear forwards; }
       `}</style>
       
       <Toaster position="bottom-right" />
       <TopBar />
 
-      {/* Breadcrumb Section */}
+      {/* Breadcrumbs */}
       <div className="bg-white border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <nav className="flex items-center justify-end text-[11px] font-black uppercase tracking-widest">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <nav className="flex items-center justify-end text-[10px] font-black uppercase tracking-widest">
             <ol className="flex items-center gap-2">
               <li><Link to="/" className="text-slate-400 hover:text-indigo-600">HOME</Link></li>
               <li className="text-slate-300">/</li>
-              <li className="text-slate-900 border-b-2 border-indigo-500">POPULAR BOOKS</li>
+              <li className="text-slate-900 border-b-2 border-indigo-500">POPULAR</li>
             </ol>
           </nav>
         </div>
       </div>
 
-      {/* Modern 3D Hero Section */}
-      <div className="relative overflow-hidden bg-slate-950 pt-32 pb-24 px-6">
-        <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none bg-[radial-gradient(circle_at_50%_-20%,#4f46e5,transparent)]" />
-        
-        <div className="max-w-7xl mx-auto relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-          <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black tracking-widest uppercase mb-6">
-              <TrendingUp size={12} /> Live Rankings
-            </div>
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 leading-[1.1]">
-              The Pulse of <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 italic">Literature.</span>
-            </h1>
-            <p className="text-slate-400 max-w-xl mx-auto lg:mx-0 text-lg leading-relaxed">
-              Explore the most discussed, highly rated, and trending titles in the community.
-            </p>
-          </div>
+      {/* --- INTERACTIVE PROMO BANNER --- */}
+      <div className="relative max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-10 mb-6">
+        <div className="relative overflow-hidden bg-slate-950 rounded-[2rem] border border-white/10 shadow-2xl">
+          {/* Animated Glows */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/20 blur-[100px] -mr-40 -mt-40" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-600/10 blur-[100px] -ml-40 -mb-40" />
 
-          <div className="relative hidden lg:block animate-float-3d">
-            <div className="relative z-10 w-full aspect-square bg-gradient-to-br from-indigo-500/10 to-transparent rounded-3xl border border-white/5 backdrop-blur-3xl overflow-hidden shadow-2xl flex items-center justify-center">
-               <BookIcon size={120} className="absolute text-indigo-500/20" />
-            </div>
-            <div className="absolute -bottom-6 -left-6 bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center text-green-400"><Zap size={16}/></div>
-                <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Trending Now</p>
-                  <p className="text-sm text-white font-black">Community Choice</p>
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between px-10 py-10 gap-8">
+            
+            {/* Left: Live Status */}
+            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left flex-1">
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                  <Zap size={30} className="text-white animate-pulse" fill="currentColor" />
+                </div>
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-slate-950"></span>
+                </span>
+              </div>
+
+              <div className="overflow-hidden">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-[10px] font-black tracking-widest uppercase mb-3">
+                  <TrendingUp size={12} /> Trending: {selectedCategory || "All Stories"}
+                </div>
+                
+                <div key={trendingBook?.id || 'loading'} className="transition-all duration-700 animate-in fade-in slide-in-from-bottom-3">
+                  <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight line-clamp-1">
+                    {trendingBook ? trendingBook.title : "Calculating Trends..."}
+                  </h2>
+                  <p className="text-slate-400 text-sm font-medium mt-1">
+                    {trendingBook 
+                      ? <span>By <span className="text-indigo-400">{trendingBook.author}</span> — Trending 15% higher this hour.</span>
+                      : "Aggregating community data for your selection."
+                    }
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Right: Book Preview & Action */}
+            <div className="flex items-center gap-8">
+              {trendingBook && (
+                <div className="hidden xl:block w-16 h-24 rounded-xl overflow-hidden shadow-2xl border border-white/10 rotate-3 transition-transform hover:rotate-0">
+                  <img src={trendingBook.imageUrl} alt="cover" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="flex flex-col items-center lg:items-end gap-3">
+                <button className="px-10 py-4 bg-white text-slate-950 font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:bg-indigo-500 hover:text-white transition-all shadow-xl active:scale-95">
+                  View Detail
+                </button>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                  Next update in <span className="text-indigo-400">5s</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Timer Progress Bar */}
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
+            <div 
+              key={trendingIndex} 
+              className="h-full bg-indigo-500 animate-progress"
+            />
           </div>
         </div>
       </div>
 
+      {/* --- STICKY FILTER BAR --- */}
       <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-8 pb-20">
-        
-        {/* Sticky Filter Bar */}
-        <div className="sticky top-20 z-40 -mt-10 mb-12">
-          <div className="bg-white/80 backdrop-blur-2xl border border-white/40 shadow-xl rounded-2xl p-4 flex flex-col lg:flex-row items-center gap-4">
+        <div className=" top-4 z-50 mb-12">
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-col lg:flex-row items-center gap-4">
             <div className="relative w-full lg:w-96">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search trending titles..."
+                placeholder="Search the pulse..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-indigo-500/20"
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full bg-slate-100 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full lg:flex-1">
               <button 
-                onClick={() => { setSelectedCategory(null); setCurrentPage(1); }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${!selectedCategory ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                onClick={() => setSelectedCategory(null)}
+                className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${!selectedCategory ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
               >
-                All Genres
+                All
               </button>
               {categories.map(c => (
                 <button 
                   key={c.id} 
-                  onClick={() => { setSelectedCategory(c.name); setCurrentPage(1); }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${selectedCategory === c.name ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                  onClick={() => setSelectedCategory(c.name)}
+                  className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === c.name ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                 >
                   {c.name}
                 </button>
@@ -307,71 +235,68 @@ const PopularBooksPage: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-              className="bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 w-full lg:w-auto cursor-pointer focus:ring-2 focus:ring-indigo-500/20"
+              className="bg-slate-100 border-none rounded-xl py-3 px-4 text-xs font-black uppercase text-slate-700 w-full lg:w-auto cursor-pointer"
             >
               <option value="rating">Top Rated</option>
-              <option value="title">Alphabetical</option>
-              <option value="priceLowHigh">Price: Low to High</option>
-              <option value="priceHighLow">Price: High to Low</option>
+              <option value="priceLowHigh">Price: Low</option>
+              <option value="priceHighLow">Price: High</option>
             </select>
           </div>
         </div>
 
-        {/* Book Grid */}
+        {/* --- BOOK GRID --- */}
         {books.length === 0 && !isLoading ? (
-          <div className="py-20 text-center">
-            <BookIcon size={48} className="mx-auto text-slate-200 mb-4" />
-            <h3 className="text-slate-900 font-bold">No titles found</h3>
-            <p className="text-slate-500 text-sm">Try adjusting your search or filters.</p>
+          <div className="py-32 text-center bg-white rounded-3xl border border-slate-100 shadow-inner">
+            <BookIcon size={64} className="mx-auto text-slate-200 mb-6" />
+            <h3 className="text-xl font-black text-slate-900">No Titles Found</h3>
+            <p className="text-slate-500 mt-2">Try adjusting your filters or category selection.</p>
           </div>
         ) : (
           <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {isLoading ? (
               [...Array(14)].map((_, i) => <BookCardSkeleton key={i} />)
             ) : (
-              books.map((book, index) => (
+              books.map((book) => (
                 <BookCard
-                key={book._id || book.id}
-                id={book._id || book.id}
-                img={book.imageUrl}  
-                title={book.title}
-                author={book.author}
-                price={
-                  typeof book.price === "number"
-                    ? `£${book.price}`
-                    : book.price
-                }
-              />
+                  key={book._id || book.id}
+                  id={book._id || book.id}
+                  img={book.imageUrl}  
+                  title={book.title}
+                  author={book.author}
+                  price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+                />
               ))
             )}
           </div>
         )}
 
-        {/* Pagination */}
+        {/* --- PAGINATION --- */}
         {!isLoading && totalPages > 1 && (
-          <div className="mt-20 flex flex-col items-center gap-4">
-            <div className="flex items-center gap-3">
+          <div className="mt-24 flex flex-col items-center gap-6">
+            <div className="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-2xl shadow-sm">
               <button
                 disabled={currentPage === 1}
                 onClick={() => handlePageChange(currentPage - 1)}
-                className="p-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-30 transition-colors"
+                className="p-3 rounded-xl hover:bg-slate-50 disabled:opacity-20 transition-all"
               >
                 <ChevronLeft size={20} />
               </button>
-              <div className="flex items-center px-6 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm shadow-sm">
-                <span className="text-indigo-600">{currentPage}</span>
-                <span className="mx-2 text-slate-300">/</span>
-                <span className="text-slate-500">{totalPages}</span>
+              
+              <div className="px-6 py-2 text-sm font-black tracking-widest text-slate-900 border-x border-slate-100">
+                {currentPage} <span className="text-slate-300 mx-1">/</span> {totalPages}
               </div>
+
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => handlePageChange(currentPage + 1)}
-                className="p-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-30 transition-colors"
+                className="p-3 rounded-xl hover:bg-slate-50 disabled:opacity-20 transition-all"
               >
                 <ChevronRight size={20} />
               </button>
             </div>
-            <p className="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase">Showing {totalBooks} items</p>
+            <p className="text-[10px] font-black text-slate-400 tracking-[0.4em] uppercase">
+              {totalBooks} total results found
+            </p>
           </div>
         )}
       </main>
