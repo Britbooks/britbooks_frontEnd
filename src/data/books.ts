@@ -65,9 +65,6 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
     order: reqBody.order ?? "desc",
   };
 
-  // Remove special overrides; let backend handle shelves internally
-  // Shelf should not nullify category/subcategory unless backend requires it
-
   const cacheKey = fastCacheKey(effectiveBody);
   const cached = booksCache.get(cacheKey);
 
@@ -92,11 +89,9 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
 
       let cleanedTitle = originalTitle;
       const skuMatch = originalTitle.match(/\((\d+)\)$/);
-      if (skuMatch) {
-        cleanedTitle = originalTitle.replace(/\s*\(\d+\)$/, '').trim();
-      }
+      if (skuMatch) cleanedTitle = originalTitle.replace(/\s*\(\d+\)$/, '').trim();
 
-      return {
+      const baseListing: any = {
         id: String(raw._id),
         title: cleanedTitle || "Untitled",
         author: raw.author?.trim() || "Unknown Author",
@@ -116,16 +111,31 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
         updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null,
         isbn: raw.isbn ?? "",
       };
+
+      // Add these for bestSellers only
+      if (effectiveBody.shelf === "bestSellers") {
+        baseListing.totalSold = Number(raw.totalSold ?? 0);
+        baseListing.revenue = Number(raw.revenue ?? 0);
+      }
+
+      return baseListing;
     });
+
+    // Fix meta.count for bestSellers
+    const metaCount =
+    response.data.meta?.count ?? listings.length;
+
+    const totalCount = response.data.meta?.count ?? listings.length;
 
     const result = {
       success: true,
       listings,
-      meta: response.data.meta ?? {
-        count: listings.length,
+      meta: {
+        ...response.data.meta,
+        count: totalCount,
         page: effectiveBody.page,
         limit: effectiveBody.limit,
-        pages: Math.ceil(listings.length / effectiveBody.limit) || 1,
+        pages: Math.ceil(totalCount / effectiveBody.limit) || 1,
       },
       shelves: SHELVES,
     };
@@ -140,6 +150,7 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
     throw err;
   }
 };
+
 
 
 
