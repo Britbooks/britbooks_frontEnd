@@ -21,6 +21,7 @@ import { useCart } from "../context/cartContext";
 import { Book, fetchBooks } from "../data/books";
 import { generatePlaceholderImage } from "../data/books";
 import { useRecentlyViewed } from "../context/viewManager";
+import BookCard from "./BookCard";
 
 
 // --- Star Rating Component ---
@@ -55,154 +56,7 @@ interface BookCardProps {
   book: Book;
 }
 
-const BookCard: React.FC<BookCardProps> = React.memo(({ book }) => {
-  const { addToCart } = useCart();
 
-  const {
-    id,
-    title = "Untitled Book",
-    author = "Unknown Author",
-    price = 0,
-    imageUrl,
-    category,
-    stock = 0,
-    rating = 0,
-  } = book;
-
-  const isOutOfStock = stock <= 0;
-  const displayPrice = `£${price.toFixed(2)}`;
-  const placeholderImage = "https://via.placeholder.com/300x450?text=Book+Cover";
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    addToCart({
-      id,
-      img: imageUrl || placeholderImage,
-      title,
-      author,
-      price: displayPrice,
-      quantity: 1,
-    });
-
-    toast.success("Added to basket!", {
-      style: {
-        borderRadius: "12px",
-        background: "#333",
-        color: "#fff",
-      },
-    });
-  };
-
-  const displayCategory =
-    !category || category === "Uncategorized" ? "General" : category;
-
-  return (
-    <div
-      className={`
-        group relative bg-white rounded-xl border border-slate-200 
-        overflow-hidden transition-all duration-300 
-        hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1
-        flex flex-col h-full
-        ${isOutOfStock ? "opacity-75" : ""}
-      `}
-    >
-      <div className="relative aspect-[3/4] bg-slate-50 overflow-hidden">
-        <Link to={`/browse/${id}`} className="block h-full">
-          <img
-            src={imageUrl || placeholderImage}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            loading="lazy"
-            onError={(e) => { e.currentTarget.src = placeholderImage; }}
-          />
-        </Link>
-
-        {isOutOfStock && (
-          <div className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-            SOLD OUT
-          </div>
-        )}
-
-        <div
-          className={`
-            absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent 
-            opacity-0 group-hover:opacity-100 transition-opacity duration-300
-            flex flex-col justify-end p-4 gap-2
-          `}
-        >
-          <Link
-            to={`/browse/${id}`}
-            className="w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75"
-          >
-            <button
-              className="
-                w-full bg-white/95 backdrop-blur-sm text-slate-900 
-                py-2.5 rounded-lg text-sm font-semibold 
-                flex items-center justify-center gap-2 shadow-md
-                hover:bg-white transition-colors
-              "
-            >
-              <Eye size={16} />
-              View Details
-            </button>
-          </Link>
-
-          <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            className={`
-              w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2
-              transition-all duration-300 shadow-md
-              ${isOutOfStock
-                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700 text-white"}
-              translate-y-4 group-hover:translate-y-0 delay-100
-            `}
-          >
-            <ShoppingBag size={16} />
-            {isOutOfStock ? "Out of Stock" : "Add to Basket"}
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4 flex flex-col flex-grow">
-        <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1.5">
-          {displayCategory}
-        </div>
-
-        <Link
-          to={`/browse/${id}`}
-          className="font-semibold text-base text-slate-800 line-clamp-2 mb-1 hover:text-indigo-700 transition-colors"
-        >
-          {title}
-        </Link>
-
-        <p className="text-sm text-slate-500 mb-3 line-clamp-1">{author}</p>
-
-        <div className="mt-auto flex items-center justify-between">
-          <span className="text-lg font-bold text-slate-900">
-            {displayPrice}
-          </span>
-          <div className="flex items-center gap-1">
-            <StarRating rating={rating} />
-            <span className="text-xs text-slate-400 ml-1">
-              {rating > 0 ? rating.toFixed(1) : ""}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <button
-        className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm opacity-70 hover:opacity-100 transition-opacity z-10"
-        aria-label="Add to wishlist"
-      >
-        <Heart size={18} className="text-slate-600 hover:text-red-500" />
-      </button>
-    </div>
-  );
-});
 
 // --- BookShelf Component ---
 const BookShelf = ({
@@ -303,10 +157,17 @@ const BookShelf = ({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-        {paginatedBooks.map((book) => (
-          <BookCard key={book.id} book={book} />
-        ))}
-      </div>
+  {paginatedBooks.map((book) => (
+    <BookCard
+      key={book.id}
+      id={book.id}
+      img={book.imageUrl}
+      title={book.title}
+      author={book.author}
+      price={`£${book.price}`}
+    />
+  ))}
+</div>
 
       {paginatedBooks.length === 0 && (
         <p className="text-center text-gray-500 py-4">
