@@ -5,6 +5,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import Footer from '../components/footer';
 import TopBar from '../components/Topbar';
 import { fetchBooks, fetchCategories, Book } from '../data/books';
+import { useRecentlyViewed } from '../context/viewManager';
+
+
 import { useCart } from '../context/cartContext';
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
@@ -17,6 +20,12 @@ interface BookCardProps {
   title: string;
   author: string;
   price: string;
+}
+
+
+interface BookShelfProps {
+  title: string;
+  fetchParams?: any;
 }
 
 // Convert API books to homepage format
@@ -156,111 +165,58 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
   const [totalBooks, setTotalBooks] = useState(0);
 
   const itemsPerPage = 5;
-  const initialLimit = 100;
-
   const pageCache = useRef<Map<number, BookCardProps[]>>(new Map());
 
-  const loadPage = useCallback(async (pageNum: number, append = false) => {
-    if (pageCache.current.has(pageNum)) {
-      const cached = pageCache.current.get(pageNum)!;
-      setBooks(prev => append ? [...prev, ...cached] : cached);
-      setCurrentPage(pageNum);
-      return;
-    }
-
-    if (pageNum === 1) setIsLoading(true);
-    else setIsLoadingMore(true);
-
-    try {
-      const { listings: fetchedBooks, meta } = await fetchBooks({
-        page: pageNum,
-        limit: itemsPerPage,
-        ...fetchParams,
-      });
-
-      const formatted = formatBooksForHomepage(fetchedBooks || []);
-
-      pageCache.current.set(pageNum, formatted);
-
-      if (append) {
-        setBooks(prev => [...prev, ...formatted]);
-      } else {
-        setBooks(formatted);
+  const loadPage = useCallback(
+    async (pageNum: number) => {
+      if (pageCache.current.has(pageNum)) {
+        setBooks(pageCache.current.get(pageNum)!);
+        setCurrentPage(pageNum);
+        return;
       }
 
-      setTotalBooks(meta?.count || 0);
-      setCurrentPage(pageNum);
-    } catch (err) {
-      setError(`Failed to load ${title.toLowerCase()}.`);
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, [fetchParams, title]);
+      if (pageNum === 1) setIsLoading(true);
+      else setIsLoadingMore(true);
 
-  useEffect(() => {
-    const fetchInitial = async () => {
-      setIsLoading(true);
-      setError(null);
       try {
         const { listings: fetchedBooks, meta } = await fetchBooks({
-          page: 1,
-          limit: initialLimit,
+          page: pageNum,
+          limit: itemsPerPage,
           ...fetchParams,
         });
 
         const formatted = formatBooksForHomepage(fetchedBooks || []);
-        setBooks(formatted);
-        setTotalBooks(meta?.count || formatted.length);
 
-        for (let p = 1; p <= Math.ceil(formatted.length / itemsPerPage); p++) {
-          const slice = formatted.slice((p - 1) * itemsPerPage, p * itemsPerPage);
-          pageCache.current.set(p, slice);
-        }
+        pageCache.current.set(pageNum, formatted);
+
+        setBooks(formatted); // Always replace (server pagination)
+        setTotalBooks(meta?.count || 0);
+        setCurrentPage(pageNum);
+        setError(null);
       } catch (err) {
-        setError(`Failed to load ${title.toLowerCase()}.`);
         console.error(err);
+        setError(`Failed to load ${title.toLowerCase()}.`);
       } finally {
         setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    };
-
-    fetchInitial();
-  }, [fetchParams]);
+    },
+    [fetchParams, title]
+  );
 
   useEffect(() => {
-    if (currentPage < Math.ceil(books.length / itemsPerPage)) return;
+    pageCache.current.clear();
+    loadPage(1);
+  }, [fetchParams, loadPage]);
 
-    const nextPage = currentPage + 1;
-    if (!pageCache.current.has(nextPage)) {
-      fetchBooks({
-        page: nextPage,
-        limit: itemsPerPage,
-        ...fetchParams,
-      }).then(res => {
-        const formatted = formatBooksForHomepage(res.listings || []);
-        pageCache.current.set(nextPage, formatted);
-      }).catch(() => {});
-    }
-  }, [currentPage, books.length, fetchParams]);
-
-  const totalPages = Math.max(
-    Math.ceil(books.length / itemsPerPage),
-    Math.ceil(totalBooks / itemsPerPage)
-  );
-
-  const paginatedBooks = books.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(totalBooks / itemsPerPage) || 1;
 
   if (isLoading) {
     return (
       <section className="py-8 animate-on-scroll">
         <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-          {[...Array(20)].map((_, i) => (
+          {[...Array(5)].map((_, i) => (
             <div
               key={i}
               className="bg-gray-200 border-2 border-dashed rounded-xl w-full aspect-[3/4] animate-pulse"
@@ -287,11 +243,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 
         <div className="flex items-center gap-4">
           <button
-            onClick={() => {
-              const prev = Math.max(1, currentPage - 1);
-              setCurrentPage(prev);
-              if (!pageCache.current.has(prev)) loadPage(prev);
-            }}
+            onClick={() => currentPage > 1 && loadPage(currentPage - 1)}
             disabled={currentPage === 1}
             className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
           >
@@ -299,16 +251,14 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
           </button>
 
           <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
-            Page {currentPage} of {totalPages > 0 ? totalPages : 1}
+            Page {currentPage} of {totalPages}
             {totalBooks > 0 && ` • ${totalBooks.toLocaleString()} books`}
           </span>
 
           <button
-            onClick={() => {
-              const next = currentPage + 1;
-              setCurrentPage(next);
-              loadPage(next, true);
-            }}
+            onClick={() =>
+              currentPage < totalPages && loadPage(currentPage + 1)
+            }
             disabled={currentPage >= totalPages}
             className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
           >
@@ -318,7 +268,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-        {paginatedBooks.map(book => (
+        {books.map(book => (
           <BookCard key={book.id} {...book} />
         ))}
       </div>
@@ -326,7 +276,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
       {isLoadingMore && (
         <div className="text-center py-10">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent" />
-          <p className="mt-4 text-gray-600">Loading more...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       )}
 
@@ -338,8 +288,64 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 
       {books.length > 0 && (
         <p className="text-center text-sm text-gray-500 mt-8">
-          Showing {paginatedBooks.length} of {books.length}+ books
-          {totalBooks > books.length && ` • ${totalBooks.toLocaleString()} total`}
+          Showing {books.length} of {totalBooks.toLocaleString()} books
+        </p>
+      )}
+    </section>
+  );
+};
+
+
+const RecentlyViewedShelf = () => {
+  const { recentlyViewed } = useRecentlyViewed();
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(recentlyViewed.length / itemsPerPage);
+  const start = (currentPage - 1) * itemsPerPage;
+  const displayedBooks = recentlyViewed.slice(start, start + itemsPerPage);
+
+  if (recentlyViewed.length === 0) return null;
+
+  return (
+    <section className="py-8 animate-on-scroll">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-blue-800">Recently Viewed</h2>
+
+        {totalPages > 1 && (
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+        {displayedBooks.map(book => (
+          <BookCard key={book.id} {...book} />
+        ))}
+      </div>
+
+      {displayedBooks.length === 0 && recentlyViewed.length > 0 && (
+        <p className="text-center text-gray-500 py-12 text-lg">
+          No books to show on this page
         </p>
       )}
     </section>
@@ -364,6 +370,8 @@ const Homepage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hoveredMainCat, setHoveredMainCat] = useState<CategoryNode | null>(null);
+  const { recentlyViewed } = useRecentlyViewed();
+
 
   const BOOKS_PER_PAGE = 24;
   const observer = useRef<IntersectionObserver | null>(null);
@@ -479,77 +487,44 @@ const Homepage = () => {
       setIsLoadingMore(false);
     }
   };
-
   useEffect(() => {
     const loadCategories = async () => {
       setIsLoadingCategories(true);
-    
+  
       try {
-        const realCategoryNames = await fetchCategories();
-    
-        if (realCategoryNames.length === 0) {
-          console.warn("No categories found");
+        const realCategories = await fetchCategories();
+  
+        if (!realCategories.length) {
           setCategories([]);
           return;
         }
-    
-        let totalBooks = 50000;
-        try {
-          const totalRes = await fetchBooks({ page: 1, limit: 1 });
-          totalBooks = totalRes.meta?.count || totalBooks;
-        } catch (err) {
-          console.warn("Failed to fetch total books count", err);
-        }
-    
-        const categoryData = await Promise.all(
-          realCategoryNames.map(async (cat: any) => {
-            try {
-              const { meta } = await fetchBooks({
-                page: 1,
-                limit: 1,
-                category: cat.name,
-              });
-              return {
-                name: cat.name,
-                slug: cat.slug || cat.name
-                  .toLowerCase()
-                  .replace(/\s+/g, '-')
-                  .replace(/[^a-z0-9-]/g, ''),
-                count: meta?.count || 0,
-              };
-            } catch (err) {
-              console.warn(`Failed to count books for category "${cat.name}"`, err);
-              return null;
-            }
-          })
+  
+        const totalBooks = realCategories.reduce(
+          (sum, cat) => sum + (cat.count || 0),
+          0
         );
-    
-        const validCategories = categoryData
-          .filter((c): c is NonNullable<typeof c> => c !== null && c.count > 0)
+  
+        const sorted = realCategories
+          .filter(cat => cat.count > 0)
           .sort((a, b) => b.count - a.count)
           .slice(0, 18);
-    
-        const finalList = [
+  
+        setCategories([
           { name: "All Books", slug: "all", count: totalBooks },
-          ...validCategories,
-        ];
-    
-        setCategories(finalList);
-        console.log("REAL categories loaded:", finalList.map(c => `${c.name} (${c.count})`));
+          ...sorted,
+        ]);
+  
       } catch (err) {
         console.error("Failed to load categories", err);
-        setCategories([
-          { name: "All Books", slug: "all", count: 48500 },
-          { name: "Fiction", slug: "fiction", count: 18200 },
-          { name: "Children's Books", slug: "childrens-books", count: 9800 },
-        ]);
+        setCategories([]);
       } finally {
         setIsLoadingCategories(false);
       }
     };
-
+  
     loadCategories();
-  }, []); // ← This closes the useEffect correctly
+  }, []);
+ // ← This closes the useEffect correctly
 
   // ── Now handleScroll comes AFTER the useEffect ─────────────────────────────
   const handleScroll = (direction: 'left' | 'right') => {
@@ -718,12 +693,7 @@ const Homepage = () => {
       },
     },
   
-    recentlyViewed: {
-      shelf: "recentlyViewed",
-      label: "Recently Viewed",
-      sort: "lastViewedAt",
-      order: "desc",
-    },
+   
   };
   
   return (
@@ -924,7 +894,9 @@ const Homepage = () => {
             <BookShelf title="Best Sellers" fetchParams={shelfFetchParams.bestSellers} />
             <BookShelf title="Children's Books" fetchParams={shelfFetchParams.childrensBooks} />
             <BookShelf title="Clearance Items" fetchParams={shelfFetchParams.clearanceItems} />
-            <BookShelf title="Recently Viewed" fetchParams={shelfFetchParams.recentlyViewed} />
+            <RecentlyViewedShelf />
+
+          
           </div>
 
           {/* Promotional Banners */}
