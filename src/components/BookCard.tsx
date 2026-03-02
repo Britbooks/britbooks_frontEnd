@@ -1,0 +1,68 @@
+// components/BookCard.tsx
+import React from "react";
+import { Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { Star } from "lucide-react";
+import { useCart } from "../context/cartContext";
+
+interface BookCardProps {
+  id: string;
+  img: string;
+  title: string;
+  author: string;
+  price: string;
+}
+
+const BookCard: React.FC<BookCardProps> = ({ id, img, title, author, price }) => {
+  const { addToCart } = useCart();
+
+  const handleAddToCart = () => {
+    addToCart({ id, img, title, author, price, quantity: 1 });
+    toast.success(`${title} added to your basket!`);
+  };
+
+  return (
+    <div className="relative group flex-shrink-0 w-full max-w-[180px] text-center border border-gray-200 rounded-lg p-3 transition-shadow hover:shadow-lg">
+      <div className="relative">
+        <img
+          src={img}
+          alt={title}
+          loading="lazy"
+          className="w-full h-60 object-cover mb-3 rounded"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.onerror = null;
+            target.src = `https://picsum.photos/seed/fallback-${id}/300/450`;
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-60 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-100 flex items-center justify-center">
+          <Link to={`/browse/${id}`}>
+            <button className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-100">
+              QUICK VIEW
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      <h3 className="font-semibold text-sm truncate">{title}</h3>
+      <p className="text-gray-500 text-xs mb-2">{author}</p>
+
+      <div className="flex items-center justify-center text-yellow-400 mb-2">
+        {[...Array(5)].map((_, i) => (
+          <Star key={i} size={16} fill="currentColor" />
+        ))}
+      </div>
+
+      <p className="text-blue-600 font-bold mb-3">{price}</p>
+
+      <button
+        onClick={handleAddToCart}
+        className="bg-red-400 text-white px-4 py-2 rounded-full hover:bg-red-500 text-xs w-full transition-colors"
+      >
+        ADD TO BASKET
+      </button>
+    </div>
+  );
+};
+
+export default BookCard;
