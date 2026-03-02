@@ -64,9 +64,9 @@ const ContactPage = () => {
             <div className="bg-indigo-600 rounded-[2rem] p-8 text-white group">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-8 opacity-70">Direct Contact</h3>
               <div className="space-y-6">
-                <a href="mailto:support@britbooks.co.uk" className="flex items-center gap-4 hover:translate-x-2 transition-transform">
+                <a href="mailto:customercare@britbooks.co.uk" className="flex items-center gap-4 hover:translate-x-2 transition-transform">
                   <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><Mail size={18} /></div>
-                  <span className="font-bold">support@britbooks.co.uk</span>
+                  <span className="font-bold">customercare@britbooks.co.uk</span>
                 </a>
                 <a href="tel:+442012345678" className="flex items-center gap-4 hover:translate-x-2 transition-transform">
                   <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><Phone size={18} /></div>
@@ -142,7 +142,7 @@ const ContactPage = () => {
                 </label>
               </div>
 
-              <button className="bg-slate-900 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-tighter hover:bg-indigo-600 transition-all flex items-center justify-center gap-4 group">
+              <button className="bg-indigo-200 text-black px-10 py-5 rounded-2xl font-black uppercase tracking-tighter hover:bg-indigo-500 transition-all flex items-center justify-center gap-4 group">
                 Send Message
                 <Send size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               </button>
