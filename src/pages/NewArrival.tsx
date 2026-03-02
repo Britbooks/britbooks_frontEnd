@@ -11,6 +11,7 @@ import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { fetchBooks, fetchCategories, Book } from "../data/books";
 import { useCart } from "../context/cartContext";
+import BookCard from "../components/BookCard";
 
 // --- Real-time Pulse Component ---
 const LiveIndicator = () => (
@@ -23,90 +24,7 @@ const LiveIndicator = () => (
   </div>
 );
 
-const BookCard = ({ book, index }: { book: Book; index: number }) => {
-  const { addToCart } = useCart();
-  // Simulate "people viewing" for real-time feel
-  const viewers = useMemo(() => Math.floor(Math.random() * 15) + 2, []);
-  
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    addToCart({
-      id: book.id,
-      img: book.imageUrl || "",
-      title: book.title,
-      author: book.author,
-      price: `£${book.price.toFixed(2)}`,
-      quantity: 1,
-    });
-    toast.success(`${book.title} added to bag!`, {
-      icon: '🔥',
-      style: { background: '#0f172a', color: '#fff', fontSize: '12px', borderRadius: '12px' }
-    });
-  };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      whileHover={{ y: -8 }}
-      className="group relative bg-white rounded-2xl border border-slate-200/50 p-2 transition-all duration-300 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)]"
-    >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-slate-100">
-        <Link to={`/browse/${book.id}`}>
-          <img
-            src={book.imageUrl || "/api/placeholder/300/400"}
-            alt={book.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          />
-        </Link>
-        
-        {/* Floating Real-time Stats */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {book.stock <= 5 && (
-            <div className="bg-orange-500 text-white text-[9px] font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-              <Flame size={10} /> LOW STOCK
-            </div>
-          )}
-          <div className="bg-white/90 backdrop-blur-md text-slate-900 text-[9px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-            <Eye size={10} /> {viewers} watching
-          </div>
-        </div>
-
-        {/* Action Overlay */}
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-           <button 
-             onClick={handleAddToCart}
-             className="p-3 bg-white rounded-full text-indigo-600 hover:scale-110 transition-transform shadow-xl"
-           >
-             <ShoppingBag size={20} />
-           </button>
-        </div>
-      </div>
-
-      <div className="p-3">
-        <div className="flex items-center gap-2 mb-2">
-           <span className="text-[10px] font-bold text-indigo-600 px-2 py-0.5 bg-indigo-50 rounded-md">
-             {book.category || "General"}
-           </span>
-        </div>
-        
-        <h4 className="font-bold text-sm text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-          {book.title}
-        </h4>
-        <p className="text-[11px] text-slate-400 mb-3 italic">{book.author}</p>
-        
-        <div className="flex items-center justify-between border-t border-slate-50 pt-3 mt-1">
-          <p className="text-lg font-black text-slate-900">£{book.price.toFixed(2)}</p>
-          <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2 py-1 rounded-lg">
-             <Star size={12} fill="currentColor" />
-             <span className="text-[11px] font-bold">{book.rating || "4.5"}</span>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 const NewArrivalsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -225,7 +143,7 @@ const NewArrivalsPage: React.FC = () => {
               <button 
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.name)}
-                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.name ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.name ? 'bg-slate-900 text-black' : 'text-slate-500 hover:bg-slate-500'}`}
               >
                 {cat.name}
               </button>
@@ -253,18 +171,32 @@ const NewArrivalsPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          <AnimatePresence mode="popLayout">
-            {isLoading ? (
-              Array(12).fill(0).map((_, i) => (
-                <div key={i} className="h-80 bg-slate-100 animate-pulse rounded-2xl" />
-              ))
-            ) : (
-              books.map((book, idx) => (
-                <BookCard key={book.id} book={book} index={idx} />
-              ))
-            )}
-          </AnimatePresence>
-        </div>
+  <AnimatePresence mode="popLayout">
+    {isLoading ? (
+      Array(12).fill(0).map((_, i) => (
+        <div
+          key={i}
+          className="h-80 bg-slate-100 animate-pulse rounded-2xl"
+        />
+      ))
+    ) : (
+      books.map((book) => (
+        <BookCard
+          key={book._id || book.id}
+          id={book._id || book.id}
+          img={book.imageUrl}  
+          title={book.title}
+          author={book.author}
+          price={
+            typeof book.price === "number"
+              ? `£${book.price}`
+              : book.price
+          }
+        />
+      ))
+    )}
+  </AnimatePresence>
+</div>
 
         {/* Pagination Container */}
         <div className="mt-20 flex flex-col items-center gap-4">
