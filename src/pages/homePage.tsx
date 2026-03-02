@@ -6,6 +6,7 @@ import Footer from '../components/footer';
 import TopBar from '../components/Topbar';
 import { fetchBooks, fetchCategories, Book } from '../data/books';
 import { useRecentlyViewed } from '../context/viewManager';
+import BookCard from "../components/BookCard";
 
 
 import { useCart } from '../context/cartContext';
@@ -51,51 +52,6 @@ const formatBooksForHomepage = (books: Book[]): BookCardProps[] => {
 
 // --- Reusable Components ---
 
-const BookCard = ({ id, img, title, author, price }: BookCardProps) => {
-  const { addToCart } = useCart();
-
-  const handleAddToCart = () => {
-    addToCart({ id, img, title, author, price, quantity: 1 });
-    toast.success(`${title} added to your basket!`);
-  };
-
-  return (
-    <div className="relative group flex-shrink-0 w-full max-w-[180px] text-center border border-gray-200 rounded-lg p-3 transition-shadow hover:shadow-lg">
-      <div className="relative">
-        <img
-          src={img}
-          alt={title}
-          loading="lazy"
-          className="w-full h-60 object-cover mb-3 rounded"
-          onError={(e) => {
-            const target = e.currentTarget;
-            target.onerror = null;
-            target.src = `https://picsum.photos/seed/fallback-${id}/300/450`;
-          }}
-        />
-        <div className="absolute inset-x-0 top-0 h-60 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-100 flex items-center justify-center">
-          <Link to={`/browse/${id}`}>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-100">
-              QUICK VIEW
-            </button>
-          </Link>
-        </div>
-      </div>
-      <h3 className="font-semibold text-sm truncate">{title}</h3>
-      <p className="text-gray-500 text-xs mb-2">{author}</p>
-      <div className="flex items-center justify-center text-yellow-400 mb-2">
-        {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}
-      </div>
-      <p className="text-blue-600 font-bold mb-3">{price}</p>
-      <button
-        onClick={handleAddToCart}
-        className="bg-red-400 text-white px-4 py-2 rounded-full hover:bg-red-500 text-xs w-full transition-colors"
-      >
-        ADD TO BASKET
-      </button>
-    </div>
-  );
-};
 
 const CategoryCard = ({ 
   name, 
@@ -156,7 +112,7 @@ const CategoryCard = ({
   );
 };
 
-const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) => {
+const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   const [books, setBooks] = useState<BookCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -189,7 +145,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 
         pageCache.current.set(pageNum, formatted);
 
-        setBooks(formatted); // Always replace (server pagination)
+        setBooks(formatted);
         setTotalBooks(meta?.count || 0);
         setCurrentPage(pageNum);
         setError(null);
@@ -211,12 +167,19 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
 
   const totalPages = Math.ceil(totalBooks / itemsPerPage) || 1;
 
+  // Fill books array to maintain grid layout
+  const displayedBooks = [...books];
+  while (displayedBooks.length < itemsPerPage) {
+    displayedBooks.push(null as any);
+  }
+
   if (isLoading) {
+    // Initial loading skeleton
     return (
       <section className="py-8 animate-on-scroll">
         <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-          {[...Array(5)].map((_, i) => (
+          {[...Array(itemsPerPage)].map((_, i) => (
             <div
               key={i}
               className="bg-gray-200 border-2 border-dashed rounded-xl w-full aspect-[3/4] animate-pulse"
@@ -256,9 +219,7 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
           </span>
 
           <button
-            onClick={() =>
-              currentPage < totalPages && loadPage(currentPage + 1)
-            }
+            onClick={() => currentPage < totalPages && loadPage(currentPage + 1)}
             disabled={currentPage >= totalPages}
             className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
           >
@@ -267,16 +228,29 @@ const BookShelf = ({ title, fetchParams }: { title: string; fetchParams: any }) 
         </div>
       </div>
 
+      {/* Books Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-        {books.map(book => (
-          <BookCard key={book.id} {...book} />
-        ))}
+        {displayedBooks.map((book, idx) =>
+          book ? (
+            <BookCard key={book.id} {...book} />
+          ) : (
+            <div
+              key={`placeholder-${idx}`}
+              className="bg-gray-100 border border-dashed rounded-xl w-full aspect-[3/4] animate-pulse"
+            />
+          )
+        )}
       </div>
 
+      {/* Pagination skeleton */}
       {isLoadingMore && (
-        <div className="text-center py-10">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent" />
-          <p className="mt-4 text-gray-600">Loading...</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 mt-6">
+          {[...Array(itemsPerPage)].map((_, idx) => (
+            <div
+              key={`skeleton-${idx}`}
+              className="w-full aspect-[3/4] bg-gray-200 rounded-xl animate-pulse"
+            />
+          ))}
         </div>
       )}
 
