@@ -1,14 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TopBar from '../components/Topbar';
-import Footer from '../components/footer';
-import { useAuth } from '../context/authContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Plus, 
+  MapPin, 
+  Pencil, 
+  Trash2, 
+  X, 
+  CheckCircle2, 
+  Phone, 
+  User, 
+  Home,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 import axios, { AxiosError } from 'axios';
-import { TrashIcon, XIcon } from '../components/icons';
+import { useAuth } from '../context/authContext';
+import TopBar from '../components/Topbar';
+import Footer from '../components/footer';
 
-// --- Address Form Modal Component ---
-const AddressFormModal = ({ isOpen, onClose, onSubmit, initialData = {} }) => {
+// --- Interfaces ---
+interface Address {
+  _id: string;
+  fullName: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state?: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+interface AddressFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: any) => Promise<void>;
+  initialData?: Partial<Address>;
+}
+
+interface AddressesProps {
+  addresses: Address[];
+  setAddresses: React.Dispatch<React.SetStateAction<Address[]>>;
+  authToken: string | null;
+  userId: string | null;
+  navigate: ReturnType<typeof useNavigate>;
+  onSelectAddress?: (address: Address) => void;
+  selectedAddressId?: string | null;
+}
+
+// --- Component 1: Address Form Modal ---
+const AddressFormModal: React.FC<AddressFormModalProps> = ({ isOpen, onClose, onSubmit, initialData = {} }) => {
   const [formData, setFormData] = useState({
     fullName: initialData.fullName || "",
     phoneNumber: initialData.phoneNumber || "",
@@ -20,34 +64,46 @@ const AddressFormModal = ({ isOpen, onClose, onSubmit, initialData = {} }) => {
     country: initialData.country || "GB",
     isDefault: initialData.isDefault || false,
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        fullName: initialData.fullName || "",
+        phoneNumber: initialData.phoneNumber || "",
+        addressLine1: initialData.addressLine1 || "",
+        addressLine2: initialData.addressLine2 || "",
+        city: initialData.city || "",
+        state: initialData.state || "",
+        postalCode: initialData.postalCode || "",
+        country: initialData.country || "GB",
+        isDefault: initialData.isDefault || false,
+      });
+      setErrors({});
+    }
+  }, [isOpen, initialData]);
 
   const validateForm = () => {
     const newErrors: any = {};
     if (!formData.fullName.trim()) newErrors.fullName = "Full Name is required";
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = "Phone Number is required";
-    else if (!/^\+?\d{10,15}$/.test(formData.phoneNumber.replace(/\s/g, "")))
-      newErrors.phoneNumber = "Invalid phone number";
-    if (!formData.addressLine1.trim()) newErrors.addressLine1 = "Address Line 1 is required";
+    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = "Phone is required";
+    if (!formData.addressLine1.trim()) newErrors.addressLine1 = "Address is required";
     if (!formData.city.trim()) newErrors.city = "City is required";
-    if (!formData.postalCode.trim()) newErrors.postalCode = "Postal Code is required";
-    else if (!/^[A-Z0-9\s]{5,10}$/i.test(formData.postalCode.replace(/\s/g, "")))
-      newErrors.postalCode = "Invalid postal code";
-    if (!formData.country.trim()) newErrors.country = "Country is required";
+    if (!formData.postalCode.trim()) newErrors.postalCode = "Postcode is required";
     return newErrors;
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setErrors((prev: any) => ({ ...prev, [name]: "" }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
@@ -67,191 +123,77 @@ const AddressFormModal = ({ isOpen, onClose, onSubmit, initialData = {} }) => {
   };
 
   return (
-    <div
-      className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center transition-opacity duration-300 ${
-        isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-      }`}
-    >
-      {/* Modal container */}
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-lg lg:max-w-2xl m-4 sm:m-6 flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center shrink-0">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800">
-            {initialData._id ? "Edit Address" : "Add New Address"}
-          </h2>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
-            className="text-gray-600 hover:text-gray-800"
-            aria-label="Close modal"
+            className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+          />
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
           >
-            <XIcon className="w-5 h-5" />
-          </button>
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-red-600" />
+                {initialData._id ? "Edit Address" : "New Shipping Address"}
+              </h2>
+              <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+              {errors.form && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" /> {errors.form}</div>}
+              
+              <div className="space-y-4">
+                <div className="relative">
+                  <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                  <input name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Full Name" className={`w-full pl-10 p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all ${errors.fullName ? 'border-red-500' : 'border-gray-200'}`} />
+                </div>
+                
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                  <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="Phone Number" className={`w-full pl-10 p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all ${errors.phoneNumber ? 'border-red-500' : 'border-gray-200'}`} />
+                </div>
+
+                <div className="relative">
+                  <Home className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                  <input name="addressLine1" value={formData.addressLine1} onChange={handleChange} placeholder="Street Address" className={`w-full pl-10 p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all ${errors.addressLine1 ? 'border-red-500' : 'border-gray-200'}`} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <input name="city" value={formData.city} onChange={handleChange} placeholder="City" className="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" />
+                  <input name="postalCode" value={formData.postalCode} onChange={handleChange} placeholder="Postcode" className="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" />
+                </div>
+
+                <div className="flex items-center gap-2 p-2">
+                  <input type="checkbox" name="isDefault" id="isDefault" checked={formData.isDefault} onChange={handleChange} className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500 cursor-pointer" />
+                  <label htmlFor="isDefault" className="text-sm text-gray-600 font-medium cursor-pointer">Set as default address</label>
+                </div>
+              </div>
+            </form>
+
+            <div className="p-6 border-t bg-gray-50/50 flex justify-end gap-3">
+              <button type="button" onClick={onClose} className="px-6 py-2.5 font-medium text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
+              <button type="submit" onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition-all flex items-center gap-2 disabled:opacity-70">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Address"}
+              </button>
+            </div>
+          </motion.div>
         </div>
-  
-        {/* Scrollable Body */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1"
-        >
-          {errors.form && (
-            <div className="text-red-500 text-sm mb-4">{errors.form}</div>
-          )}
-  
-          <input
-            type="text"
-            name="fullName"
-            value={formData.fullName}
-            onChange={handleChange}
-            placeholder="Full Name"
-            className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
-              errors.fullName ? "border-red-500" : "border-gray-300"
-            }`}
-            required
-          />
-  
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            placeholder="Phone Number"
-            className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
-              errors.phoneNumber ? "border-red-500" : "border-gray-300"
-            }`}
-            required
-          />
-  
-          <input
-            type="text"
-            name="addressLine1"
-            value={formData.addressLine1}
-            onChange={handleChange}
-            placeholder="Address Line 1"
-            className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
-              errors.addressLine1 ? "border-red-500" : "border-gray-300"
-            }`}
-            required
-          />
-  
-          <input
-            type="text"
-            name="addressLine2"
-            value={formData.addressLine2}
-            onChange={handleChange}
-            placeholder="Address Line 2 (Optional)"
-            className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
-  
-          <input
-            type="text"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            placeholder="City"
-            className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
-              errors.city ? "border-red-500" : "border-gray-300"
-            }`}
-            required
-          />
-  
-          <input
-            type="text"
-            name="state"
-            value={formData.state}
-            onChange={handleChange}
-            placeholder="State (Optional)"
-            className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
-  
-          <input
-            type="text"
-            name="postalCode"
-            value={formData.postalCode}
-            onChange={handleChange}
-            placeholder="Postal Code"
-            className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
-              errors.postalCode ? "border-red-500" : "border-gray-300"
-            }`}
-            required
-          />
-  
-          <input
-            type="text"
-            name="country"
-            value={formData.country}
-            onChange={handleChange}
-            placeholder="Country"
-            className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
-              errors.country ? "border-red-500" : "border-gray-300"
-            }`}
-            required
-          />
-  
-          {/* Default Address Checkbox */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="isDefault"
-              checked={formData.isDefault}
-              onChange={handleChange}
-              className="form-checkbox text-red-600 h-4 w-4"
-              id="isDefault"
-            />
-            <label htmlFor="isDefault" className="ml-2 text-sm text-gray-600">
-              Set as default address
-            </label>
-          </div>
-        </form>
-  
-        {/* Footer */}
-        <div className="p-4 sm:p-6 border-t border-gray-200 flex justify-end space-x-3 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="py-2 px-4 rounded-md text-sm text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="py-2 px-4 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors disabled:bg-red-400"
-            disabled={loading}
-          >
-            {loading ? "Saving..." : "Save Address"}
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
-  
-  
 };
 
-// --- Addresses Component ---
-interface Address {
-  _id: string;
-  fullName: string;
-  phoneNumber: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state?: string;
-  postalCode: string;
-  country: string;
-  isDefault: boolean;
-}
-
-interface AddressesProps {
-  addresses: Address[];
-  setAddresses: React.Dispatch<React.SetStateAction<Address[]>>;
-  authToken: string | null;
-  userId: string | null;
-  navigate: ReturnType<typeof useNavigate>;
-  onSelectAddress?: (address: Address) => void;
-  selectedAddressId?: string | null;
-}
-
+// --- Component 2: Address List Display ---
 const Addresses: React.FC<AddressesProps> = ({ addresses, setAddresses, authToken, userId, navigate, onSelectAddress, selectedAddressId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -261,250 +203,151 @@ const Addresses: React.FC<AddressesProps> = ({ addresses, setAddresses, authToke
 
   const handleAddAddress = async (formData: Address) => {
     try {
-      const newAddress = {
-        ...formData,
-        isDefault: formData.isDefault || addresses.length === 0,
-      };
-      const response = await axios.post(
-        `${API_BASE_URL}/users/${userId}/address`,
-        newAddress,
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
-      const updatedAddresses = newAddress.isDefault
-        ? addresses.map((addr) => ({ ...addr, isDefault: false })).concat({ ...response.data, isDefault: true })
-        : [...addresses, response.data];
-      setAddresses(updatedAddresses);
-      if (onSelectAddress) {
-        onSelectAddress(response.data);
-      }
-      setError(null);
-    } catch (err: AxiosError) {
-      console.error("Add address error:", err);
-      if (err.response?.status === 401) {
-        setError("Session expired. Please log in again.");
-        navigate("/login");
-      } else {
-        setError("Failed to add address. Please try again.");
-      }
+      const newAddress = { ...formData, isDefault: formData.isDefault || addresses.length === 0 };
+      const response = await axios.post(`${API_BASE_URL}/users/${userId}/address`, newAddress, { headers: { Authorization: `Bearer ${authToken}` } });
+      const updated = newAddress.isDefault ? addresses.map(a => ({ ...a, isDefault: false })).concat(response.data) : [...addresses, response.data];
+      setAddresses(updated);
+      if (onSelectAddress) onSelectAddress(response.data);
+    } catch (err) {
+      setError("Failed to add address.");
     }
   };
-
   const handleEditAddress = async (formData: Address) => {
     try {
-      const updatedAddress = { ...formData, _id: editingAddress!._id };
       const response = await axios.put(
         `${API_BASE_URL}/users/${userId}/address/${editingAddress!._id}`,
-        updatedAddress,
+        formData,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
-      const updatedAddresses = addresses.map((addr) =>
-        addr._id === editingAddress!._id
-          ? { ...response.data, isDefault: formData.isDefault }
-          : { ...addr, isDefault: formData.isDefault ? false : addr.isDefault }
-      );
-      setAddresses(updatedAddresses);
-      if (onSelectAddress && updatedAddress._id === selectedAddressId) {
-        onSelectAddress(response.data);
-      }
-      setError(null);
-    } catch (err: AxiosError) {
-      console.error("Edit address error:", err);
-      if (err.response?.status === 401) {
-        setError("Session expired. Please log in again.");
-        navigate("/login");
-      } else {
-        setError("Failed to update address. Please try again.");
-      }
+  
+      // Backend returns full updated addresses array
+      setAddresses(response.data.addresses);
+  
+    } catch (err) {
+      setError("Failed to update address.");
     }
   };
+  
 
   const handleRemoveAddress = async (id: string) => {
     try {
-      await axios.delete(`${API_BASE_URL}/users/${userId}/address/${id}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      const updatedAddresses = addresses.filter((addr) => addr._id !== id);
-      setAddresses(updatedAddresses);
-      if (selectedAddressId === id && onSelectAddress && updatedAddresses.length > 0) {
-        onSelectAddress(updatedAddresses[0]);
-      }
-      setError(null);
-    } catch (err: AxiosError) {
-      console.error("Remove address error:", err);
-      if (err.response?.status === 401) {
-        setError("Session expired. Please log in again.");
-        navigate("/login");
-      } else {
-        setError("Failed to remove address. Please try again.");
-      }
+      const response = await axios.delete(
+        `${API_BASE_URL}/users/${userId}/address/${id}`,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+  
+      // Backend returns updated addresses array
+      setAddresses(response.data.addresses);
+  
+    } catch (err) {
+      setError("Failed to remove address.");
     }
   };
-
-  const openEditModal = (address: Address) => {
-    setEditingAddress(address);
-    setIsModalOpen(true);
-  };
+  
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-800">Select Shipping Address</h2>
+    <div className="max-w-5xl mx-auto px-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Shipping Addresses</h2>
+          <p className="text-gray-500 mt-1">Manage where your books are delivered.</p>
+        </div>
         <button
-          onClick={() => {
-            setEditingAddress(null);
-            setIsModalOpen(true);
-          }}
-          className="bg-red-600 text-white py-2 px-3 sm:px-4 rounded-md text-sm sm:text-base hover:bg-red-700 transition-colors"
+          onClick={() => { setEditingAddress(null); setIsModalOpen(true); }}
+          className="group flex items-center gap-2 bg-gray-900 text-white py-3 px-6 rounded-2xl hover:bg-red-600 transition-all duration-300 shadow-xl"
         >
-          Add New Address
+          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+          <span className="font-bold">Add New Address</span>
         </button>
       </div>
-      {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
-      {addresses.length === 0 ? (
-        <div className="text-center py-8 sm:py-12 animate-on-scroll">
-          <p className="text-base sm:text-lg text-gray-600">No addresses saved.</p>
-          <p className="text-sm sm:text-base text-gray-500 mt-2">Add an address to continue with checkout.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 animate-on-scroll">
+
+      {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-2"><AlertCircle className="w-5 h-5" /> {error}</div>}
+
+      <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <AnimatePresence mode="popLayout">
           {addresses.map((address) => (
-            <div
+            <motion.div
+              layout
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               key={address._id}
-              className={`bg-white p-3 sm:p-4 rounded-lg shadow-sm border-2 transition-all duration-200 ${
-                selectedAddressId === address._id ? "border-red-600" : "border-transparent hover:border-gray-200"
+              onClick={() => onSelectAddress?.(address)}
+              className={`relative p-6 rounded-3xl border-2 cursor-pointer transition-all duration-300 ${
+                selectedAddressId === address._id ? "border-red-600 bg-red-50/40 ring-4 ring-red-50" : "border-white bg-white shadow-sm hover:shadow-md"
               }`}
-              onClick={() => onSelectAddress && onSelectAddress(address)}
             >
-              <div className="flex justify-between items-start">
-                <div className="flex items-start gap-2">
-                  {onSelectAddress && (
-                    <input
-                      type="radio"
-                      checked={selectedAddressId === address._id}
-                      onChange={() => onSelectAddress(address)}
-                      className="form-radio text-red-600 mt-1"
-                    />
-                  )}
-                  <div>
-                    <p className="font-semibold text-base sm:text-lg text-gray-800">{address.fullName}</p>
-                    <p className="text-xs sm:text-sm text-gray-600">
-                      {address.addressLine1}
-                      {address.addressLine2 && `, ${address.addressLine2}`}
-                      <br />
-                      {address.city}, {address.postalCode}
-                      <br />
-                      {address.country}
-                      <br />
-                      {address.phoneNumber}
-                    </p>
-                    {address.isDefault && (
-                      <p className="text-xs sm:text-sm text-red-600 font-semibold mt-2">Default Address</p>
-                    )}
-                  </div>
+              {selectedAddressId === address._id && <div className="absolute top-5 right-5 text-red-600"><CheckCircle2 className="w-6 h-6 fill-red-50" /></div>}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-gray-900 text-lg uppercase tracking-tight">{address.fullName}</p>
+                  {address.isDefault && <span className="bg-red-100 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Default</span>}
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openEditModal(address);
-                    }}
-                    className="text-blue-600 text-xs sm:text-sm hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveAddress(address._id);
-                    }}
-                    className="flex items-center text-xs sm:text-sm text-gray-500 hover:text-red-600"
-                  >
-                    <TrashIcon className="w-4 sm:w-5 h-4 sm:h-5 mr-1" /> Remove
-                  </button>
+                <div className="text-gray-600 text-sm space-y-1">
+                  <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /> {address.addressLine1}</p>
+                  <p className="ml-6">{address.city}, {address.postalCode}</p>
+                  <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> {address.phoneNumber}</p>
+                </div>
+                <div className="pt-4 border-t border-gray-100 flex justify-between">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingAddress(address); setIsModalOpen(true); }} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-3.5 h-3.5" /> EDIT</button>
+                  <button onClick={(e) => { e.stopPropagation(); handleRemoveAddress(address._id); }} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5" /> REMOVE</button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
+        </AnimatePresence>
+      </motion.div>
+
+      {addresses.length === 0 && (
+        <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100">
+          <MapPin className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+          <p className="text-gray-400 font-medium">No addresses found.</p>
         </div>
       )}
-      <AddressFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={editingAddress ? handleEditAddress : handleAddAddress}
-        initialData={editingAddress || {}}
-      />
+
+      <AddressFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={editingAddress ? handleEditAddress : handleAddAddress} initialData={editingAddress || {}} />
     </div>
   );
 };
 
-// --- Main Addresses Page Component ---
+// --- Component 3: Main Page ---
 const AddressesPage = () => {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const API_BASE_URL = "https://britbooks-api-production.up.railway.app/api";
 
-  const userId = auth.token ? jwtDecode<{ userId: string }>(auth.token).userId : null;
+  const userId = auth.token ? (jwtDecode(auth.token) as any).userId : null;
 
   useEffect(() => {
     const fetchAddresses = async () => {
-      if (!auth.token || !userId) {
-        setError("Please log in to view addresses.");
-        navigate("/login");
-        return;
-      }
+      if (!auth.token || !userId) { navigate("/login"); return; }
       try {
-        const response = await axios.get(`${API_BASE_URL}/users/${userId}/address`, {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        });
-        setAddresses(response.data.addresses || []);
-        setError(null);
-      } catch (err: AxiosError) {
-        console.error("Fetch addresses error:", err);
-        if (err.response?.status === 401) {
-          setError("Session expired. Please log in again.");
-          logout();
-          navigate("/login");
-        } else {
-          setError("Failed to load addresses. Please try again.");
-        }
-      }
+        const res = await axios.get(`${API_BASE_URL}/users/${userId}/address`, { headers: { Authorization: `Bearer ${auth.token}` } });
+        setAddresses(res.data.addresses || []);
+      } catch (err) {
+        if ((err as AxiosError).response?.status === 401) { logout(); navigate("/login"); }
+      } finally { setLoading(false); }
     };
     fetchAddresses();
-  }, [auth.token, userId, navigate, logout]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('fade-in-up');
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
-    );
-
-    const elements = document.querySelectorAll('.animate-on-scroll');
-    elements.forEach((el) => observer.observe(el));
-
-    return () => {
-      elements.forEach((el) => observer.unobserve(el));
-    };
-  }, []);
+  }, [auth.token, userId]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans flex-col">
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans">
       <TopBar />
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto pb-16 lg:pb-8">
-        {error && <div className="text-red-500 text-sm mb-4 text-center">{error}</div>}
-        <Addresses addresses={addresses} setAddresses={setAddresses} authToken={auth.token} userId={userId} navigate={navigate} />
+      <main className="flex-1 py-10">
+        {loading ? (
+          <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div>
+        ) : (
+          <Addresses addresses={addresses} setAddresses={setAddresses} authToken={auth.token} userId={userId} navigate={navigate} />
+        )}
       </main>
       <Footer />
     </div>
   );
 };
 
+// --- Exports ---
 export { Addresses, AddressFormModal };
 export default AddressesPage;
