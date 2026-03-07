@@ -78,8 +78,8 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = "https://britbooks-api-production.up.railway.app/api/auth";
-const API_USERS_URL = "https://britbooks-api-production.up.railway.app/api/users";
+const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api/auth";
+const API_USERS_URL = "https://britbooks-api-production-8ebd.up.railway.app/api/users";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [auth, setAuth] = useState<AuthState>({
