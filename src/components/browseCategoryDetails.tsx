@@ -203,7 +203,7 @@ const BrowseCategoryDetail = () => {
       setError(null);
       try {
         const response = await axios.get(
-          `https://britbooks-api-production.up.railway.app/api/market/${id}`
+          `https://britbooks-api-production-8ebd.up.railway.app/api/market/${id}`
         );
 
         if (!response.data.success || !response.data.listing) {
@@ -417,7 +417,7 @@ const BrowseCategoryDetail = () => {
                 {book.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}
               </span>
               <span className="text-gray-500 ml-2">
-                SKU: {book.isbn || `BBW0${book.id}`}
+                ISBN: {book.isbn || `BBW0${book.id}`}
               </span>
             </div>
 
