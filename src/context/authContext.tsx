@@ -4,6 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 
 interface AuthState {
   user: { userId: string; fullName: string; email: string; role: string } | null;
+  userId: string | null;
   token: string | null;
   loading: boolean;
   error: string | null;

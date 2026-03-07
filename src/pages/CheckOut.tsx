@@ -24,7 +24,17 @@ import { fetchBooks } from "../data/books";
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-const API_BASE_URL = "https://britbooks-api-production.up.railway.app/api";
+const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api";
+
+
+interface ShoppingCartViewProps {
+  cartItems: CartItem[];
+  updateQuantity: (id: string, quantity: number) => void;
+  removeFromCart: (id: string) => void;
+  clearCart: () => void;
+  goToNextStep: () => void;
+}
+
 
 // ──────────────────────────────────────────────
 // Reusable small components
@@ -244,40 +254,49 @@ const CheckoutStepper = ({ currentStep }: { currentStep: number }) => {
   );
 };
 
-const ShoppingCartView = ({
+const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
   cartItems,
   updateQuantity,
   removeFromCart,
   clearCart,
   goToNextStep,
-}: any) => {
-  const subtotal = cartItems.reduce((sum: number, item: any) => sum + Number(item.price.replace("£", "")) * item.quantity, 0);
-  const shipping = 5.0;
-  const total = subtotal + shipping;
-
+}) => {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const handleImageError = (id: string) => {
     setImageErrors((prev) => ({ ...prev, [id]: true }));
   };
 
-  const getDisplayImage = (item: any) => {
-    if (imageErrors[item.id]) {
-      return "https://placehold.co/300x450?text=Book+Cover";
-    }
-    return item.img; // ← FIXED: use img, not imageUrl
+  const getDisplayImage = (item: CartItem) => {
+    return imageErrors[item.id]
+      ? "https://placehold.co/300x450?text=Book+Cover"
+      : item.img;
   };
+
+  const subtotal = cartItems.reduce((sum, item) => {
+    const priceNumber = Number(
+      (typeof item.price === "string" ? item.price.replace("£", "") : item.price)
+    );
+    return sum + priceNumber * item.quantity;
+  }, 0);
+  const shipping = cartItems.length > 0 ? 5.0 : 0;
+  const total = subtotal + shipping;
 
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         <div className="lg:col-span-2">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Your Cart</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">
+            Your Cart
+          </h2>
 
           {cartItems.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <p className="text-gray-600 text-lg mb-4">Your cart is empty.</p>
-              <Link to="/category" className="text-red-600 font-semibold hover:underline">
+              <Link
+                to="/category"
+                className="text-red-600 font-semibold hover:underline"
+              >
                 Continue Shopping
               </Link>
             </div>
@@ -287,31 +306,43 @@ const ShoppingCartView = ({
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="text-left p-4 font-semibold text-gray-700">PRODUCT</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">PRICE</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">QUANTITY</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">TOTAL</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">
+                        PRODUCT
+                      </th>
+                      <th className="text-left p-4 font-semibold text-gray-700">
+                        PRICE
+                      </th>
+                      <th className="text-left p-4 font-semibold text-gray-700">
+                        QUANTITY
+                      </th>
+                      <th className="text-left p-4 font-semibold text-gray-700">
+                        TOTAL
+                      </th>
                       <th className="p-4"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {cartItems.map((item: any) => (
-                      <tr key={item.id} className="border-b hover:bg-gray-50 transition">
+                    {cartItems.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="border-b hover:bg-gray-50 transition"
+                      >
                         <td className="p-4">
                           <div className="flex items-center gap-4">
                             <img
                               src={getDisplayImage(item)}
                               alt={item.title}
                               className="w-20 h-28 object-cover rounded shadow-sm"
-                              onError={(e) => {
-                                e.currentTarget.src = "https://placehold.co/300x450?text=Book+Cover";
-                                e.currentTarget.onerror = null;
-                              }}
+                              onError={() => handleImageError(item.id)}
                               loading="lazy"
                             />
                             <div>
-                              <h3 className="font-semibold text-gray-900">{item.title}</h3>
-                              <p className="text-sm text-gray-500">{item.author}</p>
+                              <h3 className="font-semibold text-gray-900">
+                                {item.title}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                {item.author}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -319,15 +350,24 @@ const ShoppingCartView = ({
                         <td className="p-4">
                           <div className="flex items-center border rounded-lg w-fit">
                             <button
-                              onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                              onClick={() =>
+                                updateQuantity(
+                                  item.id,
+                                  Math.max(1, item.quantity - 1)
+                                )
+                              }
                               className="px-3 py-1 hover:bg-gray-100"
                               disabled={item.quantity <= 1}
                             >
                               -
                             </button>
-                            <span className="px-4 py-1 border-x">{item.quantity}</span>
+                            <span className="px-4 py-1 border-x">
+                              {item.quantity}
+                            </span>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() =>
+                                updateQuantity(item.id, item.quantity + 1)
+                              }
                               className="px-3 py-1 hover:bg-gray-100"
                             >
                               +
@@ -335,8 +375,12 @@ const ShoppingCartView = ({
                           </div>
                         </td>
                         <td className="p-4 font-bold">
-                          £{(Number(item.price.replace("£", "")) * item.quantity).toFixed(2)}
-                        </td>
+  £
+  {(
+    (typeof item.price === "string" ? Number(item.price.replace("£", "")) : item.price) *
+    item.quantity
+  ).toFixed(2)}
+</td>
                         <td className="p-4 text-center">
                           <button
                             onClick={() => removeFromCart(item.id)}

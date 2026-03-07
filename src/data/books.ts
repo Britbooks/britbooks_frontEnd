@@ -76,7 +76,7 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
 
   try {
     const response = await axios.post(
-      "https://britbooks-api-production.up.railway.app/api/market/admin/listings",
+      "https://britbooks-api-production-8ebd.up.railway.app/api/market/admin/listings",
       effectiveBody,
       { signal }
     );
@@ -160,7 +160,7 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
 export async function fetchCategories(signal?: AbortSignal) {
   try {
     const response = await axios.get(
-      "https://britbooks-api-production.up.railway.app/api/market/categories",
+      "https://britbooks-api-production-8ebd.up.railway.app/api/market/categories",
       { signal }
     );
 

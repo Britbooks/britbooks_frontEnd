@@ -209,7 +209,7 @@ const TopBar = () => {
       if (searchQuery.trim()) {
         setIsLoading(true);
         setError(null);
-        fetch(`https://britbooks-api-production.up.railway.app/api/market/search?keyword=${encodeURIComponent(searchQuery)}`)
+        fetch(`https://britbooks-api-production-8ebd.up.railway.app/api/market/search?keyword=${encodeURIComponent(searchQuery)}`)
           .then((response) => {
             if (!response.ok) throw new Error('Search request failed');
             return response.json();

@@ -199,7 +199,7 @@ const Addresses: React.FC<AddressesProps> = ({ addresses, setAddresses, authToke
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE_URL = "https://britbooks-api-production.up.railway.app/api";
+  const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api";
 
   const handleAddAddress = async (formData: Address) => {
     try {
@@ -316,7 +316,7 @@ const AddressesPage = () => {
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
-  const API_BASE_URL = "https://britbooks-api-production.up.railway.app/api";
+  const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api";
 
   const userId = auth.token ? (jwtDecode(auth.token) as any).userId : null;
 

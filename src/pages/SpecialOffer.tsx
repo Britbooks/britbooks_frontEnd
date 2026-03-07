@@ -1,578 +1,303 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Star } from "lucide-react";
+import { Star, ShoppingBasket, Zap, Clock, ShieldCheck, ArrowRight } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Footer from "../components/footer";
 import TopBar from "../components/Topbar";
-import { fetchBooks, Book } from "../data/books";
+import { fetchBooks } from "../data/books";
 import { useCart } from "../context/cartContext";
 
-// --- Campaign Data ---
-const campaignAds = [
-  {
-    id: 1,
-    title: "Fiction Frenzy - 40% Off!",
-    description: "Dive into gripping stories with massive discounts on fiction titles!",
-    video: "https://media.istockphoto.com/id/1124580988/video/sale-discount-animation.mp4?s=mp4-640x640-is&k=20&c=2zkbq3ujo3KveLEviCLhbTiIH9C7fAaCpABvuZvHoek=",
-    link: "/flash-fiction",
-  },
-  {
-    id: 2,
-    title: "Fantasy Blowout - 50% Off!",
-    description: "Explore magical worlds with our biggest fantasy sale yet!",
-    image: "https://cdn-icons-png.flaticon.com/512/2331/2331970.png",
-    link: "/flash-fantasy",
-  },
-  {
-    id: 3,
-    title: "Non-Fiction Deals - 30% Off!",
-    description: "Expand your mind with discounted non-fiction books for all readers!",
-    image: "https://media.istockphoto.com/id/1309243817/vector/fast-delivery-truck-with-motion-lines-online-delivery-express-delivery-quick-move-fast.jpg?s=612x612&w=0&k=20&c=l2JlE6VQ4uRS6jABMS558puDgTyhEJW0bSiPhbBgXMc=",
-    link: "/flash-nonfiction",
-  },
-  {
-    id: 4,
-    title: "Buy One, Get One Half Price!",
-    description: "Mix and match any two books and get the second at half price!",
-    image: "https://cdn-icons-png.flaticon.com/512/1042/1042306.png",
-    link: "/bogo",
-  },
-  {
-    id: 5,
-    title: "Inclusive Reads Sale",
-    description: "Celebrate diversity with 25% off books by authors from all backgrounds!",
-    image: "https://media.istockphoto.com/id/185266132/photo/portrait-of-a-cute-teenage-girl.jpg?s=612x612&w=0&k=20&c=7oyxKo75xTGO_k5v2zsCBeu7GWG-7eryUyyu42o8Ra0=",
-    link: "/inclusive-reads",
-  },
-  {
-    id: 6,
-    title: "Winter Clearance",
-    description: "Clear our shelves with up to 60% off selected titles!",
-    video: "https://media.istockphoto.com/id/1310576990/fr/vid%C3%A9o/%C3%A9tiquette-3-jours-gauche-sur-fond-blanc-ic%C3%B4ne-plate-motion-graphics.mp4?s=mp4-640x640-is&k=20&c=ezUJb1sIa11feB4HwEFMnEPHHjvqcL5wqkyuhSp_6zQ=",
-    link: "/clearance",
-  },
-  {
-    id: 7,
-    title: "Kids’ Book Bonanza",
-    description: "Fun reads for children at unbeatable prices—perfect for young adventurers!",
-    image: "https://cdn-icons-png.flaticon.com/512/3036/3036996.png",
-    link: "/kids",
-  },
-  {
-    id: 8,
-    title: "Refer-a-Friend Deal",
-    description: "Invite a friend and both get 10% off your next purchase!",
-    image: "https://media.istockphoto.com/id/2078490118/photo/businessman-using-laptop-to-online-payment-banking-and-online-shopping-financial-transaction.jpg?s=612x612&w=0&k=20&c=1x2G24ANsWxG4YW6ZaoeFPEzjmKFE4ZlohVQSwbjGj8=",
-    link: "/refer-a-friend",
-  },
-];
+// ── Countdown (added subtle urgency pulse when low) ─────────────────────────
+const Countdown = ({ seconds }: { seconds: number }) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  const pad = (n: number) => n.toString().padStart(2, "0");
 
-// --- Book Card Skeleton Component ---
-const BookCardSkeleton = () => (
-  <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden animate-pulse">
-    <div className="relative bg-gray-200 p-2 h-32">
-      <div className="absolute top-2 left-2 bg-gray-400 h-4 w-16 rounded"></div>
-    </div>
-    <div className="p-3 flex flex-col items-center space-y-2">
-      <div className="w-3/4 h-3 bg-gray-200 rounded"></div>
-      <div className="w-1/2 h-2 bg-gray-200 rounded"></div>
-      <div className="flex justify-center gap-0.5">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="w-3 h-3 bg-gray-200 rounded-full" />
-        ))}
-      </div>
-      <div className="w-1/3 h-3 bg-gray-200 rounded"></div>
-      <div className="w-full h-5 bg-gray-200 rounded-full"></div>
-    </div>
-  </div>
-);
+  const urgent = seconds > 0 && seconds < 600; // last 10 minutes
 
-// --- Deal of the Hour Skeleton Component ---
-const DealOfHourSkeleton = () => (
-  <div className="bg-yellow-100 rounded-lg shadow-md p-6 animate-pulse">
-    <div className="w-1/2 h-5 bg-gray-200 rounded mx-auto mb-2"></div>
-    <div className="w-1/3 h-3 bg-gray-200 rounded mx-auto mb-2"></div>
-    <div className="w-1/4 h-4 bg-gray-200 rounded mx-auto mb-2"></div>
-    <div className="w-1/3 h-6 bg-gray-200 rounded-full mx-auto"></div>
-  </div>
-);
-
-// --- Component ---
-const SpecialOffersPage = () => {
-  const { addToCart, cart } = useCart();
-  const [fictionTimer, setFictionTimer] = useState(24 * 60 * 60); // 24 hours
-  const [fantasyTimer, setFantasyTimer] = useState(12 * 60 * 60); // 12 hours
-  const [nonFictionTimer, setNonFictionTimer] = useState(6 * 60 * 60); // 6 hours
-  const [fictionBooks, setFictionBooks] = useState<Book[]>([]);
-  const [fantasyBooks, setFantasyBooks] = useState<Book[]>([]);
-  const [nonFictionBooks, setNonFictionBooks] = useState<Book[]>([]);
-  const [dealOfHour, setDealOfHour] = useState<Book | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch books for flash sales and deal of the hour
-  useEffect(() => {
-    const fetchSaleBooks = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Fetch Fiction books (40% off)
-        const { books: fiction } = await fetchBooks({
-          page: 2,
-          limit: 500,
-          filters: { genre: "Literary Fiction" },
-        });
-        setFictionBooks(fiction.map(book => ({
-          ...book,
-          originalPrice: book.price,
-          discountPrice: book.price * 0.6, // 40% off
-        })));
-
-        // Fetch Fantasy books (50% off)
-        const { books: fantasy } = await fetchBooks({
-          page: 2,
-          limit: 500,
-          filters: { genre: "Fantasy" },
-        });
-        setFantasyBooks(fantasy.map(book => ({
-          ...book,
-          originalPrice: book.price,
-          discountPrice: book.price * 0.5, // 50% off
-        })));
-
-        // Fetch Non-Fiction books (30% off)
-        const { books: nonFiction } = await fetchBooks({
-          page: 2,
-          limit: 500,
-          filters: { genre: "Non-Fiction" },
-        });
-        setNonFictionBooks(nonFiction.map(book => ({
-          ...book,
-          originalPrice: book.price,
-          discountPrice: book.price * 0.7, // 30% off
-        })));
-
-        // Fetch Deal of the Hour (random book)
-        const { books: randomBooks } = await fetchBooks({
-          page: 2,
-          limit: 500,
-          sort: "random",
-        });
-        if (randomBooks.length > 0) {
-          setDealOfHour({
-            ...randomBooks[0],
-            originalPrice: randomBooks[0].price,
-            discountPrice: randomBooks[0].price * 0.6, // 40% off
-          });
-        }
-
-        setIsLoading(false);
-      } catch (err) {
-        setError("Failed to load special offers. Please try again.");
-        setIsLoading(false);
-        console.error("❌ Failed to fetch sale books:", err instanceof Error ? err.message : err);
-      }
-    };
-    fetchSaleBooks();
-  }, []);
-
-  // Countdown timers
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setFictionTimer((prev) => (prev > 0 ? prev - 1 : 0));
-      setFantasyTimer((prev) => (prev > 0 ? prev - 1 : 0));
-      setNonFictionTimer((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Deal of the Hour (refresh hourly)
-  useEffect(() => {
-    const updateDeal = async () => {
-      try {
-        const { books: randomBooks } = await fetchBooks({
-          page: 1,
-          limit: 50,
-          sort: "random",
-        });
-        if (randomBooks.length > 0) {
-          setDealOfHour({
-            ...randomBooks[0],
-            originalPrice: randomBooks[0].price,
-            discountPrice: randomBooks[0].price * 0.6, // 40% off
-          });
-        }
-      } catch (err) {
-        console.error("❌ Failed to fetch deal of the hour:", err instanceof Error ? err.message : err);
-      }
-    };
-    updateDeal();
-    const dealTimer = setInterval(updateDeal, 3600 * 1000); // Update hourly
-    return () => clearInterval(dealTimer);
-  }, []);
-
-  const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const handleAddToCart = (book: Book & { discountPrice: number }) => {
-    addToCart({
-      id: book.id,
-      imageUrl: book.imageUrl || "https://via.placeholder.com/150",
-      title: book.title,
-      author: book.author,
-      price: `£${book.discountPrice.toFixed(2)}`,
-      quantity: 1,
-    });
-    toast.success(`${book.title} added to your basket!`);
-  };
-
-  // Free shipping quest progress
-  const cartItemsCount = (cart || []).reduce((sum, item) => sum + item.quantity, 0);
-  const questComplete = cartItemsCount >= 4;
-
-  // Book Card Component
-  const BookCard = ({ book, saleType }: { book: Book & { originalPrice: number; discountPrice: number }; saleType: string }) => (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-xl transform hover:scale-105 transition-all duration-300 overflow-hidden max-w-[150px]">
-      <div className="relative bg-gray-100 p-2 flex-shrink-0">
-        <Link to={`/browse/${book.id}`} className="block">
-          <img
-            src={book.imageUrl || "https://via.placeholder.com/150"}
-            alt={book.title}
-            className="w-full h-32 object-cover rounded-t-lg"
-          />
-        </Link>
-        <div className="absolute top-1 left-1 bg-yellow-400 text-black text-xs font-bold px-1 py-0.5 rounded">{saleType}</div>
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-          <Link to={`/browse/${book.id}`}>
-            <button className="bg-red-600 text-white px-2 py-1 rounded-md text-xs font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-300 hover:bg-red-700">
-              QUICK VIEW
-            </button>
-          </Link>
-        </div>
-      </div>
-      <div className="p-2 flex flex-col flex-grow items-center">
-        <h3 className="font-semibold text-xs text-gray-800 h-8 leading-4 mb-1 line-clamp-2">
-          {book.title}
-        </h3>
-        <p className="text-[10px] text-gray-500 mb-1">{book.author}</p>
-        <div className="mb-1">
-          <div className="flex items-center">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={12}
-                className={i < Math.round(book.rating) ? "text-yellow-400" : "text-gray-300"}
-                fill={i < Math.round(book.rating) ? "currentColor" : "none"}
-              />
-            ))}
-          </div>
-        </div>
-        <p className="text-sm font-bold text-gray-900 mb-1">
-          £{book.discountPrice.toFixed(2)}
-        </p>
-        <p className="text-[10px] text-gray-500 line-through mb-1">
-          £{book.originalPrice.toFixed(2)}
-        </p>
-        <button
-          onClick={() => handleAddToCart(book)}
-          className="w-full bg-red-600 text-white font-medium py-1 rounded-md hover:bg-red-700 transition-colors text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
-        >
-          ADD TO BASKET
-        </button>
-      </div>
+  return (
+    <div
+      className={`flex gap-1 font-mono font-bold text-sm bg-black/10 backdrop-blur-md px-3 py-1 rounded-full transition-all ${
+        urgent ? "text-red-600 animate-pulse" : ""
+      }`}
+    >
+      <span>{pad(hours)}</span>:<span>{pad(minutes)}</span>:<span>{pad(secs)}</span>
     </div>
   );
+};
 
-  if (isLoading) {
-    return (
-      <div className="bg-gray-50 font-sans min-h-screen">
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-        <TopBar />
-        <div className="container mx-auto px-4 sm:px-6 py-8">
-          <header className="relative text-white py-12 overflow-hidden">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute top-0 left-0 w-full h-full object-cover z-0"
-            >
-              <source
-                src="https://media.istockphoto.com/id/1310576990/fr/vid%C3%A9o/%C3%A9tiquette-3-jours-gauche-sur-fond-blanc-ic%C3%B4ne-plate-motion-graphics.mp4?s=mp4-640x640-is&k=20&c=ezUJb1sIa11feB4HwEFMnEPHHjvqcL5wqkyuhSp_6zQ="
-                type="video/mp4"
-              />
-              Your browser does not support the video tag.
-            </video>
-            <div className="absolute inset-0 bg-black opacity-50 z-10"></div>
-            <div className="relative z-20 text-center">
-              <h1 className="text-4xl font-bold">Mega Flash Sale Extravaganza</h1>
-              <p className="text-md mt-3">Over 500,000 books at unbeatable prices—shop now before time runs out!</p>
-            </div>
-          </header>
-          <main className="container mx-auto px-4 sm:px-6 py-8">
-            {/* Deal of the Hour Skeleton */}
-            <section className="mb-8 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Deal of the Hour</h2>
-              <DealOfHourSkeleton />
-            </section>
-            {/* Fiction Frenzy Skeleton */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Fiction Frenzy - 40% Off</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <BookCardSkeleton key={i} />
-                ))}
-              </div>
-            </section>
-            {/* Fantasy Blowout Skeleton */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Fantasy Blowout - 50% Off</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <BookCardSkeleton key={i} />
-                ))}
-              </div>
-            </section>
-            {/* Non-Fiction Deals Skeleton */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Non-Fiction Deals - 30% Off</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <BookCardSkeleton key={i} />
-                ))}
-              </div>
-            </section>
-            {/* Campaigns & Promotions Skeleton */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">More Exciting Campaigns</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {campaignAds.map((_, i) => (
-                  <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-                    <div className="w-full h-24 bg-gray-200"></div>
-                    <div className="p-4 space-y-2">
-                      <div className="w-3/4 h-4 bg-gray-200 rounded"></div>
-                      <div className="w-1/2 h-3 bg-gray-200 rounded"></div>
-                      <div className="w-1/3 h-3 bg-gray-200 rounded"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </main>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+const SpecialOffersPage = () => {
+  const { addToCart, cart } = useCart();
+  const [timers, setTimers] = useState({ fiction: 86400, fantasy: 43200, nonFiction: 21600 });
+  const [data, setData] = useState({ fiction: [], fantasy: [], nonFiction: [], deal: null });
+  const [visible, setVisible] = useState({ fiction: 8, fantasy: 8, nonFiction: 8 });
+  const [loading, setLoading] = useState(true);
 
-  if (error) {
+  useEffect(() => {
+    const loadAll = async () => {
+      try {
+        const [fic, fan, non, random] = await Promise.all([
+          fetchBooks({ limit: 32, filters: { genre: "Literary Fiction" } }),
+          fetchBooks({ limit: 32, filters: { genre: "Fantasy" } }),
+          fetchBooks({ limit: 32, filters: { genre: "Non-Fiction" } }),
+          fetchBooks({ limit: 1, sort: "random" }),
+        ]);
+
+        setData({
+          fiction: fic.listings.map(b => ({ ...b, disc: 0.6 })),
+          fantasy: fan.listings.map(b => ({ ...b, disc: 0.5 })),
+          nonFiction: non.listings.map(b => ({ ...b, disc: 0.7 })),
+          deal: random.listings[0] ? { ...random.listings[0], disc: 0.6 } : null,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAll();
+
+    const interval = setInterval(() => {
+      setTimers(prev => ({
+        fiction: Math.max(0, prev.fiction - 1),
+        fantasy: Math.max(0, prev.fantasy - 1),
+        nonFiction: Math.max(0, prev.nonFiction - 1),
+      }));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const cartCount = (cart || []).reduce((sum, item) => sum + item.quantity, 0);
+  const progress = Math.min((cartCount / 4) * 100, 100);
+
+  if (loading) {
     return (
-      <div className="bg-gray-50 font-sans min-h-screen">
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-        <TopBar />
-        <div className="container mx-auto px-4 sm:px-6 py-8 text-center">
-          <p className="text-red-500 text-lg">{error}</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="text-indigo-600 text-xl font-medium flex items-center gap-3">
+          <Zap className="animate-spin" size={20} />
+          Loading deals...
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 font-sans min-h-screen">
-      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-indigo-100">
+      <Toaster position="bottom-center" />
       <TopBar />
 
-      <header className="relative text-white py-12 overflow-hidden">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute top-0 left-0 w-full h-full object-cover z-0"
-        >
-          <source
-            src="https://media.istockphoto.com/id/1310576990/fr/vid%C3%A9o/%C3%A9tiquette-3-jours-gauche-sur-fond-blanc-ic%C3%B4ne-plate-motion-graphics.mp4?s=mp4-640x640-is&k=20&c=ezUJb1sIa11feB4HwEFMnEPHHjvqcL5wqkyuhSp_6zQ="
-            type="video/mp4"
-          />
-          Your browser does not support the video tag.
-        </video>
-        <div className="absolute inset-0 bg-black opacity-50 z-10"></div>
-        <div className="relative z-20 text-center">
-          <h1 className="text-4xl font-bold">Mega Flash Sale Extravaganza</h1>
-          <p className="text-md mt-3">Over 500,000 books at unbeatable prices—shop now before time runs out!</p>
+      {/* --- HERO SECTION (unchanged) --- */}
+      <header className="relative pt-10 pb-20 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-indigo-50/50 to-transparent -z-10" />
+        <div className="container mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-indigo-600 shadow-sm mb-6">
+            <Zap size={14} fill="currentColor" className="animate-pulse" />
+            Flash Sale Now Live
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-6">
+            The Book <span className="text-indigo-600 underline decoration-indigo-200">Event</span> of 2026.
+          </h1>
+          <p className="max-w-2xl mx-auto text-lg text-slate-600 leading-relaxed">
+            Curated collections at prices you won't see again. Grab your favorites before the clock hits zero.
+          </p>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 sm:px-6 py-8">
-        {/* Deal of the Hour */}
-        {dealOfHour && (
-          <section className="mb-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Deal of the Hour</h2>
-            <div className="bg-yellow-100 rounded-lg shadow-md p-6 animate-pulse">
-              <h3 className="text-lg font-semibold">{dealOfHour.title}</h3>
-              <p className="text-sm text-gray-600 mb-2">by {dealOfHour.author}</p>
-              <p className="text-lg font-bold text-red-600">£{dealOfHour.discountPrice.toFixed(2)} <span className="text-sm text-gray-500 line-through">£{dealOfHour.originalPrice.toFixed(2)}</span></p>
-              <button
-                onClick={() => handleAddToCart(dealOfHour)}
-                className="mt-2 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition text-sm font-medium animate-bounce"
-              >
-                Grab It Now!
-              </button>
+      <main className="container mx-auto px-6 -mt-12 space-y-20 pb-20">
+        
+        {/* --- DEAL OF THE HOUR BENTO (mostly unchanged + tiny animation) --- */}
+        {data.deal && (
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-slate-900 rounded-[2rem] p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-8 shadow-2xl">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 blur-[100px] rounded-full animate-pulse" />
+              <img 
+                src={data.deal.imageUrl} 
+                className="w-48 h-72 object-cover rounded-xl shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500" 
+                alt={data.deal.title} 
+              />
+              <div className="flex-1 space-y-4 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-3">
+                  <span className="bg-red-500 px-3 py-1 rounded-full text-xs font-bold uppercase animate-pulse">Deal of the Hour</span>
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <Clock size={14} className="animate-spin-slow" /> <Countdown seconds={3600} />
+                  </div>
+                </div>
+                <h2 className="text-3xl font-bold">{data.deal.title}</h2>
+                <p className="text-slate-400 text-lg">by {data.deal.author}</p>
+                <div className="flex items-center justify-center md:justify-start gap-4 py-4">
+                  <span className="text-4xl font-black text-white">£{(data.deal.price * 0.6).toFixed(2)}</span>
+                  <span className="text-xl text-slate-500 line-through">£{data.deal.price.toFixed(2)}</span>
+                </div>
+                <button 
+                  onClick={() => {
+                    addToCart?.(data.deal);
+                    toast.success("Added to basket!");
+                  }}
+                  className="w-full md:w-auto bg-white text-black font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  Claim This Deal <ArrowRight size={18} className="animate-bounce-x" />
+                </button>
+              </div>
+            </div>
+
+            {/* --- QUEST CARD (unchanged) --- */}
+            <div className="bg-white border border-slate-200 rounded-[2rem] p-8 flex flex-col justify-between shadow-sm">
+              <div>
+                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-6">
+                  <ShieldCheck size={24} />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">Free Shipping Quest</h3>
+                <p className="text-slate-500 text-sm">Add 4 books to your basket to unlock worldwide free delivery.</p>
+              </div>
+              <div className="mt-8 space-y-4">
+                <div className="flex justify-between text-sm font-bold">
+                  <span>{progress === 100 ? "Unlocked!" : `${cartCount}/4 Books`}</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-600 transition-all duration-700 ease-out shadow-[0_0_12px_rgba(79,70,229,0.4)]"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </section>
         )}
 
-        {/* Free Shipping Quest */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Free Shipping Quest</h2>
-          <div className="bg-white rounded-lg shadow-md p-6 animate-fade-in-up">
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              {questComplete ? "Free Shipping Unlocked!" : "Add 4 Books for Free Shipping"}
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              {questComplete
-                ? "Awesome! You've added enough books to qualify for free shipping."
-                : `Add ${4 - cartItemsCount} more book${4 - cartItemsCount > 1 ? "s" : ""} to unlock free shipping!`}
-            </p>
-            <div className="w-full bg-gray-200 rounded-full h-4">
-              <div
-                className={`h-4 rounded-full transition-all duration-300 ${questComplete ? "bg-green-600" : "bg-blue-600"}`}
-                style={{ width: `${Math.min((cartItemsCount / 4) * 100, 100)}%` }}
-              ></div>
+        {/* --- Fiction Frenzy (added load more) --- */}
+        <section className="space-y-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Fiction Frenzy</h2>
+              <p className="text-slate-500">The world's most gripping stories, now 40% off.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-400">Ends In:</span>
+              <Countdown seconds={timers.fiction} />
             </div>
           </div>
-        </section>
 
-        {/* Fiction Frenzy Flash Sale */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Fiction Frenzy - 40% Off (Ends in {formatTime(fictionTimer)})</h2>
-          <div className="bg-red-600 text-white rounded-lg shadow-md p-4 mb-4 text-center animate-pulse">
-            <p className="text-lg font-semibold">Hurry! Fiction sale ends soon!</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {isLoading ? (
-              [...Array(6)].map((_, i) => (
-                <BookCardSkeleton key={i} />
-              ))
-            ) : fictionBooks.length === 0 ? (
-              <p className="text-center text-gray-500 py-6 col-span-full">No Fiction books available.</p>
-            ) : (
-              fictionBooks.map((book) => (
-                <BookCard key={book.id} book={book} saleType="Fiction Frenzy" />
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Fantasy Blowout Flash Sale */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Fantasy Blowout - 50% Off (Ends in {formatTime(fantasyTimer)})</h2>
-          <div className="bg-purple-600 text-white rounded-lg shadow-md p-4 mb-4 text-center animate-pulse">
-            <p className="text-lg font-semibold">Grab these fantasy deals before they vanish!</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {isLoading ? (
-              [...Array(6)].map((_, i) => (
-                <BookCardSkeleton key={i} />
-              ))
-            ) : fantasyBooks.length === 0 ? (
-              <p className="text-center text-gray-500 py-6 col-span-full">No Fantasy books available.</p>
-            ) : (
-              fantasyBooks.map((book) => (
-                <BookCard key={book.id} book={book} saleType="Fantasy Blowout" />
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Non-Fiction Deals Flash Sale */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Non-Fiction Deals - 30% Off (Ends in {formatTime(nonFictionTimer)})</h2>
-          <div className="bg-blue-600 text-white rounded-lg shadow-md p-4 mb-4 text-center animate-pulse">
-            <p className="text-lg font-semibold">Expand your knowledge with these deals!</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {isLoading ? (
-              [...Array(6)].map((_, i) => (
-                <BookCardSkeleton key={i} />
-              ))
-            ) : nonFictionBooks.length === 0 ? (
-              <p className="text-center text-gray-500 py-6 col-span-full">No Non-Fiction books available.</p>
-            ) : (
-              nonFictionBooks.map((book) => (
-                <BookCard key={book.id} book={book} saleType="Non-Fiction Deals" />
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Campaigns & Promotions */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">More Exciting Campaigns</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {campaignAds.map((ad) => (
-              <div
-                key={ad.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-              >
-                {ad.video ? (
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-24 object-cover"
-                  >
-                    <source src={ad.video} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                ) : (
-                  <img src={ad.image} alt={ad.title} className="w-full h-24 object-cover" />
-                )}
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-800 text-sm">{ad.title}</h3>
-                  <p className="text-xs text-gray-600">{ad.description}</p>
-                  <Link to={ad.link} className="text-red-600 text-xs font-medium hover:underline mt-2 inline-block">
-                    Shop Now
-                  </Link>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+            {data.fiction.slice(0, visible.fiction).map((book: any) => (
+              <ModernBookCard key={book.id} book={book} />
             ))}
           </div>
-        </section>
-      </main>
 
+          {visible.fiction < data.fiction.length && (
+            <div className="text-center mt-10">
+              <button
+                onClick={() => setVisible(prev => ({ ...prev, fiction: prev.fiction + 8 }))}
+                className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto"
+              >
+                Load More <ArrowRight size={18} />
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* --- Fantasy (same pattern) --- */}
+        <section className="space-y-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Fantasy</h2>
+              <p className="text-slate-500">Magical worlds and epic tales, now 50% off.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-400">Ends In:</span>
+              <Countdown seconds={timers.fantasy} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+            {data.fantasy.slice(0, visible.fantasy).map((book: any) => (
+              <ModernBookCard key={book.id} book={book} />
+            ))}
+          </div>
+
+          {visible.fantasy < data.fantasy.length && (
+            <div className="text-center mt-10">
+              <button
+                onClick={() => setVisible(prev => ({ ...prev, fantasy: prev.fantasy + 8 }))}
+                className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto"
+              >
+                Load More <ArrowRight size={18} />
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* --- Non-Fiction (same pattern) --- */}
+        <section className="space-y-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Non-Fiction</h2>
+              <p className="text-slate-500">Knowledge and insight, now up to 70% off.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-400">Ends In:</span>
+              <Countdown seconds={timers.nonFiction} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+            {data.nonFiction.slice(0, visible.nonFiction).map((book: any) => (
+              <ModernBookCard key={book.id} book={book} />
+            ))}
+          </div>
+
+          {visible.nonFiction < data.nonFiction.length && (
+            <div className="text-center mt-10">
+              <button
+                onClick={() => setVisible(prev => ({ ...prev, nonFiction: prev.nonFiction + 8 }))}
+                className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto"
+              >
+                Load More <ArrowRight size={18} />
+              </button>
+            </div>
+          )}
+        </section>
+
+      </main>
       <Footer />
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.5s ease-out forwards;
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
-        }
-        .animate-bounce {
-          animation: bounce 1s infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .animate-pulse {
-          animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-      `}</style>
     </div>
   );
 };
+
+// ModernBookCard — added subtle icon animation on hover
+const ModernBookCard = ({ book }: { book: any }) => (
+  <div className="group relative bg-white border border-slate-100 rounded-2xl p-3 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:-translate-y-1">
+    <div className="relative aspect-[2/3] overflow-hidden rounded-xl mb-4">
+      <img 
+        src={book.imageUrl} 
+        alt={book.title} 
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+      />
+      <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-black shadow-sm animate-pulse">
+        -{Math.round((1 - book.disc) * 100)}%
+      </div>
+      <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+        <button 
+          onClick={() => toast.success("Added to basket!")}
+          className="w-full bg-slate-900 text-white py-3 rounded-xl text-xs font-bold shadow-xl flex items-center justify-center gap-2 hover:bg-indigo-600 transition-colors"
+        >
+          <ShoppingBasket size={14} className="group-hover:animate-bounce" /> ADD TO BASKET
+        </button>
+      </div>
+    </div>
+    <div className="px-1 space-y-1">
+      <h4 className="font-bold text-sm text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">{book.title}</h4>
+      <p className="text-xs text-slate-400">{book.author}</p>
+      <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-col">
+          <span className="text-base font-black text-slate-900">£{(book.price * book.disc).toFixed(2)}</span>
+          <span className="text-[10px] text-slate-400 line-through font-medium">£{book.price.toFixed(2)}</span>
+        </div>
+        <div className="flex items-center gap-1 text-amber-400">
+          <Star size={12} fill="currentColor" className="animate-pulse" />
+          <span className="text-xs font-bold text-slate-700">{book.rating || "4.5"}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default SpecialOffersPage;

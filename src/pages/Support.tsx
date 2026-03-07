@@ -105,7 +105,7 @@ const faqData = [
   { question: "What payment methods do you accept?", answer: "We accept all major credit and debit cards, including Visa, Mastercard, and American Express. We also support payments via PayPal." },
 ];
 
-const API_BASE = "https://britbooks-api-production.up.railway.app/api/chat";
+const API_BASE = "https://britbooks-api-production-8ebd.up.railway.app/api/chat";
 
 const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const { auth } = useAuth();
@@ -124,7 +124,7 @@ const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [chatError, setChatError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const API_BASE = "https://britbooks-api-production.up.railway.app/api/chat";
+  const API_BASE = "https://britbooks-api-production-8ebd.up.railway.app/api/chat";
 
   // Auto-scroll to bottom
   useEffect(() => {

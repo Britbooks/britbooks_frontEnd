@@ -9,7 +9,7 @@ import TopBar from '../components/Topbar';
 import Footer from '../components/footer';
 
 // API URL consistent with AuthContext
-const API_URL = import.meta.env.VITE_API_URL || 'https://britbooks-api-production.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://britbooks-api-production-8ebd.up.railway.app';
 
 // --- SVG ICONS ---
 const XIcon = (props) => (
