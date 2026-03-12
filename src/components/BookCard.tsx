@@ -40,12 +40,19 @@ const BookCard: React.FC<BookCardProps> = ({
   };
 
   return (
-    <div className="relative group flex-shrink-0 w-full max-w-[180px] text-center border border-gray-200 rounded-lg p-3 transition-shadow hover:shadow-lg">
+    <div
+      className="relative group flex-shrink-0 w-full max-w-[180px] text-center
+      border border-gray-200 rounded-lg p-3
+      transform transition-all duration-500
+      hover:shadow-xl hover:-translate-y-1
+      animate-zoomIn"
+    >
       
-      {/* ❤️ Wishlist Button */}
+      {/* ❤️ Wishlist */}
       <button
         onClick={handleWishlistToggle}
-        className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md z-10 hover:scale-110 transition-transform"
+        className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md z-10
+        hover:scale-110 transition-transform"
       >
         <Heart
           size={16}
@@ -57,12 +64,14 @@ const BookCard: React.FC<BookCardProps> = ({
         />
       </button>
 
-      <div className="relative">
+      <div className="relative overflow-hidden rounded">
         <img
           src={img}
           alt={title}
           loading="lazy"
-          className="w-full h-60 object-cover mb-3 rounded"
+          className="w-full h-60 object-cover mb-3 rounded
+          transition-transform duration-500
+          group-hover:scale-110"
           onError={(e) => {
             const target = e.currentTarget;
             target.onerror = null;
@@ -70,9 +79,15 @@ const BookCard: React.FC<BookCardProps> = ({
           }}
         />
 
-        <div className="absolute inset-x-0 top-0 h-60 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-100 flex items-center justify-center">
+        {/* Overlay */}
+        <div className="absolute inset-x-0 top-0 h-60 bg-black bg-opacity-0 
+        group-hover:bg-opacity-20 transition-opacity duration-300
+        flex items-center justify-center">
           <Link to={`/browse/${id}`}>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all duration-100">
+            <button className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold
+            opacity-0 group-hover:opacity-100
+            transform translate-y-6 group-hover:translate-y-0
+            transition-all duration-300">
               QUICK VIEW
             </button>
           </Link>
@@ -92,7 +107,8 @@ const BookCard: React.FC<BookCardProps> = ({
 
       <button
         onClick={handleAddToCart}
-        className="bg-red-400 text-white px-4 py-2 rounded-full hover:bg-red-500 text-xs w-full transition-colors"
+        className="bg-red-400 text-white px-4 py-2 rounded-full hover:bg-red-500
+        text-xs w-full transition-all duration-300 hover:scale-105"
       >
         ADD TO BASKET
       </button>
