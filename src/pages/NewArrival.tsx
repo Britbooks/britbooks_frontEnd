@@ -57,6 +57,18 @@ const NewArrivalsPage: React.FC = () => {
       <Toaster position="bottom-right" />
       <TopBar />
 
+      <div className="bg-white border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <nav className="flex items-center justify-end text-[10px] font-black uppercase tracking-widest">
+            <ol className="flex items-center gap-2">
+              <li><Link to="/" className="text-slate-400 hover:text-indigo-600">HOME</Link></li>
+              <li className="text-slate-300">/</li>
+              <li className="text-slate-900 border-b-2 border-indigo-500">New-Arrival</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+
       {/* Modern Hero Section */}
       <section className="relative pt-20 pb-32 px-6 overflow-hidden bg-white">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full">
@@ -165,7 +177,7 @@ const NewArrivalsPage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-            <LayoutGrid size={14} className="text-indigo-600" />
+            <LayoutGrid size={10} className="text-indigo-600" />
             <span className="text-xs font-bold">{books.length} Items</span>
           </div>
         </div>
