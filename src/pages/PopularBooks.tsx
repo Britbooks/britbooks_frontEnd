@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { 
   Star, ChevronLeft, ChevronRight, Search, 
-  Book as BookIcon, TrendingUp, Zap, Heart, Eye
+  Book as BookIcon, TrendingUp, Zap, Heart, Eye, ListFilter
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import TopBar from "../components/Topbar";
@@ -36,7 +36,7 @@ const PopularBooksPage: React.FC = () => {
   // Trending Rotation State
   const [trendingIndex, setTrendingIndex] = useState(0);
 
-  const BOOKS_PER_PAGE = 30;
+  const BOOKS_PER_PAGE = 12;
 
   // 1. Debounce Logic for Search
   useEffect(() => {
@@ -214,23 +214,29 @@ const PopularBooksPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full lg:flex-1">
+            <nav className="sticky top-6 z-50 bg-white/80 backdrop-blur-xl p-2 rounded-2xl border border-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] mb-12 flex items-center justify-between">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth">
+            <button 
+              onClick={() => setSelectedCategory(null)}
+              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${!selectedCategory ? 'bg-slate-900  shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              <Zap size={14} /> All New
+            </button>
+            {categories.map(cat => (
               <button 
-                onClick={() => setSelectedCategory(null)}
-                className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${!selectedCategory ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.name ? 'bg-slate-900 text-black' : 'text-slate-500 hover:bg-slate-500'}`}
               >
-                All
+                {cat.name}
               </button>
-              {categories.map(c => (
-                <button 
-                  key={c.id} 
-                  onClick={() => setSelectedCategory(c.name)}
-                  className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === c.name ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
+            ))}
+          </div>
+          <div className="hidden md:flex items-center gap-4 px-4 border-l border-slate-100 ml-4">
+             <TrendingUp size={18} className="text-indigo-500" />
+             <ListFilter size={18} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+          </div>
+        </nav>
 
             <select
               value={sortBy}
@@ -254,7 +260,7 @@ const PopularBooksPage: React.FC = () => {
         ) : (
           <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {isLoading ? (
-              [...Array(14)].map((_, i) => <BookCardSkeleton key={i} />)
+              [...Array(10)].map((_, i) => <BookCardSkeleton key={i} />)
             ) : (
               books.map((book) => (
                 <BookCard
