@@ -217,10 +217,18 @@ const TopBar = () => {
           .then((data) => {
             const results = Array.isArray(data) ? data : data.results || [];
             const mappedResults = results.map((book) => ({
-              id: book._id || book.bookId || book.id || 'unknown',
-              imageUrl: book.imageUrl || book.coverImage || book.samplePageUrls?.[0] || '',
-              title: book.title || book.name || 'Untitled',
-              author: book.author || book.authors || 'Unknown Author',
+              id: book._id || book.bookId || book.id || "unknown",
+            
+              imageUrl:
+                book.coverImageUrl ||     // your DB field
+                book.imageUrl ||
+                book.coverImage ||
+                book.thumbnail ||
+                book.samplePageUrls?.[0] ||
+                "https://via.placeholder.com/120x180?text=No+Cover",
+            
+              title: book.title || book.name || "Untitled",
+              author: book.author || book.authors || "Unknown Author",
               price: book.price || 0,
               rating: book.rating || 0,
             }));
