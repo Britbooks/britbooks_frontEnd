@@ -120,7 +120,14 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
 
-  const itemsPerPage = 5;
+  // Different number of items depending on screen size
+  const getItemsPerPage = () => {
+    if (typeof window === 'undefined') return 5; // SSR/default = desktop
+    return window.innerWidth < 640 ? 2 : 5; // < 640px → 2 books
+  };
+
+  const itemsPerPage = getItemsPerPage();
+
   const pageCache = useRef<Map<number, BookCardProps[]>>(new Map());
 
   const loadPage = useCallback(
@@ -137,7 +144,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
       try {
         const { listings: fetchedBooks, meta } = await fetchBooks({
           page: pageNum,
-          limit: itemsPerPage,
+          limit: itemsPerPage,           // ← uses 2 or 5 depending on screen
           ...fetchParams,
         });
 
@@ -157,7 +164,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
         setIsLoadingMore(false);
       }
     },
-    [fetchParams, title]
+    [fetchParams, title, itemsPerPage]   // ← added itemsPerPage dependency
   );
 
   useEffect(() => {
@@ -174,11 +181,10 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   }
 
   if (isLoading) {
-    // Initial loading skeleton
     return (
       <section className="py-8 animate-on-scroll">
         <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
           {[...Array(itemsPerPage)].map((_, i) => (
             <div
               key={i}
@@ -228,8 +234,8 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
         </div>
       </div>
 
-      {/* Books Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+      {/* Books Grid – mobile: 2 columns, desktop: 5 columns */}
+      <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
         {displayedBooks.map((book, idx) =>
           book ? (
             <BookCard key={book.id} {...book} />
@@ -242,9 +248,8 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
         )}
       </div>
 
-      {/* Pagination skeleton */}
       {isLoadingMore && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 mt-6">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-5 mt-6">
           {[...Array(itemsPerPage)].map((_, idx) => (
             <div
               key={`skeleton-${idx}`}
@@ -268,7 +273,6 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
     </section>
   );
 };
-
 
 const RecentlyViewedShelf = () => {
   const { recentlyViewed } = useRecentlyViewed();
