@@ -3,13 +3,14 @@ import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { 
   ChevronLeft, ChevronRight, Star, Filter, Brain, Flame, 
   PenTool, ChefHat, Palette, Laugh, Building, Award, 
-  Users, Zap, Book as BookIcon, ShoppingBag, Eye, TrendingUp
+  Users, Zap, Book as BookIcon, ShoppingBag, Eye, TrendingUp, ListFilter
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { fetchBooks, fetchCategories, Book } from "../data/books";
 import { useCart } from "../context/cartContext";
+import BookCard from "../components/BookCard";
 
 /**
  * REDESIGN HIGHLIGHTS:
@@ -40,81 +41,7 @@ const BookCardSkeleton = () => (
   </div>
 );
 
-const BookCard: React.FC<{ book: Book; rank: number }> = React.memo(({ book, rank }) => {
-  const { addToCart } = useCart();
-  const isTopTen = rank <= 10;
 
-  const handleAddToCart = () => {
-    addToCart({
-      id: book.id,
-      img: book.imageUrl || "https://via.placeholder.com/150",
-      title: book.title,
-      author: book.author,
-      price: `£${book.price.toFixed(2)}`,
-      quantity: 1,
-    });
-    toast.success(`${book.title} added!`, {
-      icon: '🛒',
-      style: { borderRadius: '12px', background: '#1e293b', color: '#fff' },
-    });
-  };
-
-  return (
-    <div className={`group relative bg-white rounded-2xl border transition-all duration-500 hover:shadow-2xl flex flex-col h-full overflow-hidden ${
-      isTopTen ? "border-amber-200 ring-1 ring-amber-50" : "border-slate-100"
-    }`}>
-      <div className="relative aspect-[2/3] overflow-hidden bg-slate-50">
-        <Link to={`/browse/${book.id}`} className="block h-full">
-          <img
-            src={book.imageUrl || "https://via.placeholder.com/150"}
-            alt={book.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          />
-        </Link>
-        
-        <div className={`absolute top-0 left-0 px-4 py-2 font-black text-sm rounded-br-2xl shadow-lg z-10 ${
-          isTopTen ? "bg-amber-400 text-amber-950" : "bg-slate-900 text-white"
-        }`}>
-          #{rank}
-        </div>
-
-        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 px-4">
-          <Link to={`/browse/${book.id}`} className="w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-            <button className="w-full bg-white text-slate-900 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
-              <Eye size={14} /> Quick View
-            </button>
-          </Link>
-          <button 
-            onClick={handleAddToCart}
-            disabled={book.stock === 0}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75 disabled:bg-slate-500"
-          >
-            <ShoppingBag size={14} /> {book.stock === 0 ? "Out of Stock" : "Add to Bag"}
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4 flex flex-col flex-grow">
-        <h4 className="font-bold text-sm text-slate-800 line-clamp-2 leading-tight min-h-[2.5rem] mb-1">
-          {book.title}
-        </h4>
-        <p className="text-xs text-slate-400 mb-3">{book.author}</p>
-        
-        <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-50">
-          <div className="flex flex-col">
-            <span className="text-sm font-black text-slate-900">£{book.price.toFixed(2)}</span>
-            <StarRating rating={book.rating || 0} />
-          </div>
-          {book.stock < 10 && book.stock > 0 && (
-            <div className="flex items-center gap-1 text-[9px] font-black text-rose-500 uppercase bg-rose-50 px-2 py-1 rounded-md animate-pulse">
-              <TrendingUp size={10} /> Fast Seller
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
 
 const BestsellersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -125,7 +52,7 @@ const BestsellersPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const BOOKS_PER_PAGE = 105;
+  const BOOKS_PER_PAGE = 12;
   const previousCategory = (location.state as { category?: string })?.category || "Browse";
 
   useEffect(() => {
@@ -237,41 +164,44 @@ const BestsellersPage: React.FC = () => {
 
         {/* Filter & Grid Section */}
         <section className="max-w-[1600px] mx-auto px-4 sm:px-8 -mt-8 pb-20 relative z-20">
-          <div className="bg-white/80 backdrop-blur-xl p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xl flex flex-col md:flex-row items-center gap-4 mb-10">
-            <div className="flex items-center gap-3 px-4 border-r border-slate-100 hidden md:flex">
-              <Filter size={18} className="text-indigo-600" />
-              <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Filters</span>
-            </div>
-            
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:flex-1">
+        <nav className="sticky top-6 z-50 bg-white/80 backdrop-blur-xl p-2 rounded-2xl border border-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] mb-12 flex items-center justify-between">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth">
+            <button 
+              onClick={() => setSelectedCategory(null)}
+              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${!selectedCategory ? 'bg-slate-900  shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              <Zap size={14} /> All New
+            </button>
+            {categories.map(cat => (
               <button 
-                onClick={() => setSelectedCategory(null)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${!selectedCategory ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.name ? 'bg-slate-900 text-black' : 'text-slate-500 hover:bg-slate-500'}`}
               >
-                All Genres
+                {cat.name}
               </button>
-              {categories.map(cat => (
-                <button 
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedCategory === cat.name ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
+          <div className="hidden md:flex items-center gap-4 px-4 border-l border-slate-100 ml-4">
+             <TrendingUp size={18} className="text-indigo-500" />
+             <ListFilter size={18} className="text-slate-400 cursor-pointer hover:text-slate-900" />
+          </div>
+        </nav>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 sm:gap-6">
             {isLoading ? (
-              [...Array(21)].map((_, i) => <BookCardSkeleton key={i} />)
+              [...Array(10)].map((_, i) => <BookCardSkeleton key={i} />)
             ) : (
               books.map((book, index) => (
                 <div key={book.id} className="fade-in-up" style={{ animationDelay: `${index * 0.05}s` }}>
-                  <BookCard
-                    book={book}
-                    rank={(currentPage - 1) * BOOKS_PER_PAGE + index + 1}
-                  />
+                    <BookCard
+                  key={book._id || book.id}
+                  id={book._id || book.id}
+                  img={book.imageUrl}  
+                  title={book.title}
+                  author={book.author}
+                  price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+                />
                 </div>
               ))
             )}
