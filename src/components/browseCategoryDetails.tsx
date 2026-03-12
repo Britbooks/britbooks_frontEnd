@@ -22,6 +22,9 @@ import { Book, fetchBooks } from "../data/books";
 import { generatePlaceholderImage } from "../data/books";
 import { useRecentlyViewed } from "../context/viewManager";
 import BookCard from "./BookCard";
+import { useWishlist } from "../context/wishlistContext";
+
+
 
 
 // --- Star Rating Component ---
@@ -53,7 +56,11 @@ const StarRating = ({ rating = 0 }: { rating: number }) => {
 
 // --- Book Card Component ---
 interface BookCardProps {
-  book: Book;
+  id: string;
+  img: string;
+  title: string;
+  author: string;
+  price: string;
 }
 
 
@@ -190,6 +197,28 @@ const BrowseCategoryDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "info" | "reviews">("details");
   const { addToRecentlyViewed } = useRecentlyViewed();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
+
+const inWishlist = book ? isInWishlist(book.id) : false;
+
+const handleWishlistToggle = () => {
+  if (!book) return;
+
+  if (inWishlist) {
+    removeFromWishlist(book.id);
+  } else {
+    addToWishlist({
+      id: book.id,
+      img: book.imageUrl,
+      title: book.title,
+      author: book.author,
+      price: `£${book.price.toFixed(2)}`
+    });
+  }
+};
+
+
 
  
 
@@ -234,7 +263,7 @@ const BrowseCategoryDetail = () => {
           imageUrl: data.coverImageUrl || placeholderImage,
           category: data.category || "General",
           condition: data.condition || "Good",
-          description: data.description || data.notes || "",
+          description: typeof data.notes === "string" ? data.notes.trim() : "",
           stock: data.stock ?? 1,
           rating: data.rating || 4.5,
           isbn: data.isbn || "",
@@ -422,14 +451,15 @@ const BrowseCategoryDetail = () => {
             </div>
 
             {book.description ? (
-              <p className="text-gray-600 leading-relaxed mb-3">
-                {book.description.substring(0, 150)}...
-              </p>
-            ) : (
-              <p className="text-gray-400 italic mb-3">
-                No description available for this book.
-              </p>
-            )}
+  <p className="text-gray-600 leading-relaxed mb-3">
+    {book.description.slice(0, 150)}
+    {book.description.length > 150 && "..."}
+  </p>
+) : (
+  <p className="text-gray-400 italic mb-3">
+    No description available for this book.
+  </p>
+)}
 
             <div className="mb-3">
               <span className="font-semibold">Condition: </span>
@@ -473,7 +503,10 @@ const BrowseCategoryDetail = () => {
             </div>
 
             <div className="flex items-center gap-6 mb-3">
-              <button className="flex items-center text-gray-600 hover:text-red-600">
+              <button
+                 onClick={handleWishlistToggle}
+               className="flex items-center text-gray-600 hover:text-red-600">
+              
                 <Heart size={18} className="mr-1" /> Add to Wish List
               </button>
               <div className="flex items-center text-sm text-gray-600">
