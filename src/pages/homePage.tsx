@@ -119,16 +119,39 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
-
-  // Different number of items depending on screen size
-  const getItemsPerPage = () => {
-    if (typeof window === 'undefined') return 5; // SSR/default = desktop
-    return window.innerWidth < 640 ? 2 : 5; // < 640px → 2 books
-  };
-
-  const itemsPerPage = getItemsPerPage();
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const pageCache = useRef<Map<number, BookCardProps[]>>(new Map());
+
+  // Responsive items per page
+  const getItemsPerPage = () => {
+    if (typeof window === 'undefined') return 5;
+    return window.innerWidth < 640 ? 2 : 5;
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      const newItems = getItemsPerPage();
+      if (newItems !== itemsPerPage) {
+        setItemsPerPage(newItems);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // run once on mount
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [itemsPerPage]);
+
+  // Reset when itemsPerPage or fetchParams change
+  useEffect(() => {
+    pageCache.current.clear();
+    setCurrentPage(1);
+    setBooks([]);
+    setTotalBooks(0);
+    setError(null);
+    loadPage(1);
+  }, [itemsPerPage, fetchParams]);
 
   const loadPage = useCallback(
     async (pageNum: number) => {
@@ -138,13 +161,13 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
         return;
       }
 
-      if (pageNum === 1) setIsLoading(true);
-      else setIsLoadingMore(true);
+      const setLoading = pageNum === 1 ? setIsLoading : setIsLoadingMore;
+      setLoading(true);
 
       try {
         const { listings: fetchedBooks, meta } = await fetchBooks({
           page: pageNum,
-          limit: itemsPerPage,           // ← uses 2 or 5 depending on screen
+          limit: itemsPerPage,
           ...fetchParams,
         });
 
@@ -157,30 +180,28 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
         setCurrentPage(pageNum);
         setError(null);
       } catch (err) {
-        console.error(err);
-        setError(`Failed to load ${title.toLowerCase()}.`);
+        console.error('Failed to load books:', err);
+        setError(`Failed to load ${title.toLowerCase()}. Please try again.`);
       } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        setLoading(false);
       }
     },
-    [fetchParams, title, itemsPerPage]   // ← added itemsPerPage dependency
+    [fetchParams, itemsPerPage, title]
   );
-
-  useEffect(() => {
-    pageCache.current.clear();
-    loadPage(1);
-  }, [fetchParams, loadPage]);
 
   const totalPages = Math.ceil(totalBooks / itemsPerPage) || 1;
 
-  // Fill books array to maintain grid layout
+  // Fill with placeholders to maintain grid shape
   const displayedBooks = [...books];
-  while (displayedBooks.length < itemsPerPage) {
+  while (displayedBooks.length < itemsPerPage && !isLoading && !error) {
     displayedBooks.push(null as any);
   }
 
-  if (isLoading) {
+  // ────────────────────────────────────────────────
+  // Render
+  // ────────────────────────────────────────────────
+
+  if (isLoading && currentPage === 1) {
     return (
       <section className="py-8 animate-on-scroll">
         <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
@@ -188,8 +209,35 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
           {[...Array(itemsPerPage)].map((_, i) => (
             <div
               key={i}
-              className="bg-gray-200 border-2 border-dashed rounded-xl w-full aspect-[3/4] animate-pulse"
-            />
+              className="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-b from-gray-300 to-gray-100 animate-pulse shadow-sm"
+            >
+              {/* Spooky book cover gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-300/40 via-indigo-300/30 to-blue-300/20" />
+
+              {/* Spine */}
+              <div className="absolute left-1/2 top-1/5 -translate-x-1/2 w-4 h-3/5 bg-gray-500/70 rounded-full" />
+
+              {/* Tiny skeleton arms/ribs */}
+              <div className="absolute left-[25%] top-[45%] w-2.5 h-4 bg-gray-600/60 rounded-full" />
+              <div className="absolute right-[25%] top-[45%] w-2.5 h-4 bg-gray-600/60 rounded-full" />
+
+              {/* Skull eyes */}
+              <div className="absolute top-[18%] left-1/2 -translate-x-1/2 flex gap-5">
+                <div className="w-4 h-4 bg-black/50 rounded-full" />
+                <div className="w-4 h-4 bg-black/50 rounded-full" />
+              </div>
+
+              {/* Title placeholder lines */}
+              <div className="absolute bottom-8 left-5 right-5 space-y-2.5">
+                <div className="h-3.5 bg-gray-500/60 rounded w-4/5" />
+                <div className="h-3 bg-gray-400/50 rounded w-2/3" />
+              </div>
+
+              {/* Floating "boo!" */}
+              <div className="absolute -top-2 -right-2 text-5xl font-black text-white/25 rotate-12 animate-bounce-slow pointer-events-none">
+                boo!
+              </div>
+            </div>
           ))}
         </div>
       </section>
@@ -200,23 +248,31 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
     return (
       <section className="py-8 animate-on-scroll">
         <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
-        <p className="text-red-600 text-center">{error}</p>
+        <p className="text-red-600 text-center font-medium animate-pulse">{error}</p>
       </section>
     );
   }
 
   return (
     <section className="py-8 animate-on-scroll">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-800">{title}</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-blue-800 transition-all duration-500">
+          {title}
+        </h2>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 self-end sm:self-auto">
           <button
             onClick={() => currentPage > 1 && loadPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
+            disabled={currentPage === 1 || isLoadingMore}
+            className={`
+              p-3 bg-white border border-gray-300 rounded-full shadow-sm 
+              hover:shadow-lg hover:scale-110 active:scale-95 
+              disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed
+              transition-all duration-300
+            `}
+            aria-label="Previous page"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={24} className="transition-transform duration-300" />
           </button>
 
           <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
@@ -226,54 +282,94 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
 
           <button
             onClick={() => currentPage < totalPages && loadPage(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-            className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
+            disabled={currentPage >= totalPages || isLoadingMore}
+            className={`
+              p-3 bg-white border border-gray-300 rounded-full shadow-sm 
+              hover:shadow-lg hover:scale-110 active:scale-95 
+              disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed
+              transition-all duration-300
+            `}
+            aria-label="Next page"
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={24} className="transition-transform duration-300" />
           </button>
         </div>
       </div>
 
-      {/* Books Grid – mobile: 2 columns, desktop: 5 columns */}
-      <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
+      {/* Main books grid */}
+      <div
+        className={`
+          grid grid-cols-2 gap-6 md:grid-cols-5
+          ${isLoadingMore ? 'opacity-70' : 'opacity-100'}
+          transition-opacity duration-500
+        `}
+      >
         {displayedBooks.map((book, idx) =>
           book ? (
-            <BookCard key={book.id} {...book} />
+            <div
+              key={book.id}
+              className={`
+                transform transition-all duration-600 ease-out
+                ${isLoadingMore ? 'opacity-0 translate-y-10 scale-95' : 'opacity-100 translate-y-0 scale-100'}
+              `}
+              style={{ transitionDelay: `${idx * 90}ms` }}
+            >
+              <BookCard {...book} />
+            </div>
           ) : (
             <div
               key={`placeholder-${idx}`}
-              className="bg-gray-100 border border-dashed rounded-xl w-full aspect-[3/4] animate-pulse"
+              className="w-full aspect-[3/4] rounded-xl bg-gray-50 border border-dashed border-gray-300 opacity-40"
             />
           )
         )}
       </div>
 
+      {/* Loading more – spooky skeletons again */}
       {isLoadingMore && (
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-5 mt-6">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-5 mt-10">
           {[...Array(itemsPerPage)].map((_, idx) => (
             <div
               key={`skeleton-${idx}`}
-              className="w-full aspect-[3/4] bg-gray-200 rounded-xl animate-pulse"
-            />
+              className="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-b from-gray-300 to-gray-100 animate-pulse shadow-sm"
+              style={{ animationDelay: `${idx * 140}ms` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-300/35 via-indigo-300/25 to-blue-300/15" />
+              <div className="absolute left-1/2 top-1/5 -translate-x-1/2 w-4 h-3/5 bg-gray-500/70 rounded-full" />
+              <div className="absolute left-[25%] top-[45%] w-2.5 h-4 bg-gray-600/60 rounded-full" />
+              <div className="absolute right-[25%] top-[45%] w-2.5 h-4 bg-gray-600/60 rounded-full" />
+              <div className="absolute top-[18%] left-1/2 -translate-x-1/2 flex gap-5">
+                <div className="w-4 h-4 bg-black/50 rounded-full" />
+                <div className="w-4 h-4 bg-black/50 rounded-full" />
+              </div>
+              <div className="absolute bottom-8 left-5 right-5 space-y-2.5">
+                <div className="h-3.5 bg-gray-500/60 rounded w-4/5" />
+                <div className="h-3 bg-gray-400/50 rounded w-2/3" />
+              </div>
+              <div className="absolute -top-2 -right-2 text-5xl font-black text-white/25 rotate-12 animate-bounce-slow pointer-events-none">
+                boo!
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      {books.length === 0 && (
-        <p className="text-center text-gray-500 py-12 text-lg">
+      {/* Empty state */}
+      {!isLoading && books.length === 0 && !error && (
+        <p className="text-center text-gray-500 py-16 text-lg font-medium animate-fade-in">
           No {title.toLowerCase()} available right now.
         </p>
       )}
 
-      {books.length > 0 && (
-        <p className="text-center text-sm text-gray-500 mt-8">
+      {/* Summary */}
+      {books.length > 0 && !isLoadingMore && (
+        <p className="text-center text-sm text-gray-500 mt-10 animate-slide-up">
           Showing {books.length} of {totalBooks.toLocaleString()} books
         </p>
       )}
     </section>
   );
 };
-
 const RecentlyViewedShelf = () => {
   const { recentlyViewed } = useRecentlyViewed();
   const [currentPage, setCurrentPage] = useState(1);
