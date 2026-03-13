@@ -21,6 +21,7 @@ import { Elements, CardElement, useStripe, useElements } from "@stripe/react-str
 import { Addresses } from "./Addresses";
 import toast, { Toaster } from "react-hot-toast";
 import { fetchBooks } from "../data/books";
+import BookCard from "../components/BookCard";
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -57,65 +58,65 @@ const StarIcon = ({ filled }: { filled: boolean }) => (
   </svg>
 );
 
-const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, category, genre }: any) => {
-  const { addToCart } = useCart();
-  const [imgError, setImgError] = useState(false);
+// const BookCard = ({ id, imageUrl, title, author, price, rating, isbn, category, genre }: any) => {
+//   const { addToCart } = useCart();
+//   const [imgError, setImgError] = useState(false);
 
-  const numericPrice = Number(String(price).replace("£", "")) || 0;
-  const src = imgError ? "https://placehold.co/300x450?text=Book+Cover" : imageUrl;
+//   const numericPrice = Number(String(price).replace("£", "")) || 0;
+//   const src = imgError ? "https://placehold.co/300x450?text=Book+Cover" : imageUrl;
 
-  const handleAddToCart = () => {
-    addToCart({
-      id,
-      img: imageUrl,               // ← match cart context field name
-      title,
-      author,
-      price: `£${numericPrice.toFixed(2)}`,
-      quantity: 1,
-      genre: category || genre || "default",
-    });
-    toast.success(`${title} added to your basket!`);
-  };
+//   const handleAddToCart = () => {
+//     addToCart({
+//       id,
+//       img: imageUrl,               // ← match cart context field name
+//       title,
+//       author,
+//       price: `£${numericPrice.toFixed(2)}`,
+//       quantity: 1,
+//       genre: category || genre || "default",
+//     });
+//     toast.success(`${title} added to your basket!`);
+//   };
 
-  return (
-    <div className="group relative flex-shrink-0 w-[180px] text-left p-2">
-      <div className="relative">
-        <Link to={`/browse/${id}`}>
-          <img
-            src={src}
-            alt={title}
-            className="w-full h-48 object-cover mb-2 rounded-md transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImgError(true)}
-            loading="lazy"
-          />
-        </Link>
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
-          <Link to={`/browse/${id}`}>
-            <button className="bg-white text-gray-900 px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all hover:bg-gray-200">
-              QUICK VIEW
-            </button>
-          </Link>
-        </div>
-      </div>
-      <div className="p-2 flex flex-col items-start">
-        <h3 className="font-semibold text-sm truncate mt-1">{title}</h3>
-        <p className="text-gray-500 text-xs mb-1">{author}</p>
-        <div className="flex items-center mb-1">
-          {[...Array(5)].map((_, i) => (
-            <StarIcon key={i} filled={i < Math.round(rating || 0)} />
-          ))}
-        </div>
-        <p className="text-lg font-bold text-gray-900">£{numericPrice.toFixed(2)}</p>
-        <button
-          onClick={handleAddToCart}
-          className="bg-red-600 text-white font-medium px-3 py-1 rounded-md text-xs w-full transition-colors hover:bg-red-700 mt-2"
-        >
-          ADD TO BASKET
-        </button>
-      </div>
-    </div>
-  );
-};
+//   return (
+//     <div className="group relative flex-shrink-0 w-[180px] text-left p-2">
+//       <div className="relative">
+//         <Link to={`/browse/${id}`}>
+//           <img
+//             src={src}
+//             alt={title}
+//             className="w-full h-48 object-cover mb-2 rounded-md transition-transform duration-300 group-hover:scale-105"
+//             onError={() => setImgError(true)}
+//             loading="lazy"
+//           />
+//         </Link>
+//         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
+//           <Link to={`/browse/${id}`}>
+//             <button className="bg-white text-gray-900 px-4 py-2 rounded-md text-sm font-semibold opacity-0 group-hover:opacity-100 transform group-hover:translate-y-0 translate-y-4 transition-all hover:bg-gray-200">
+//               QUICK VIEW
+//             </button>
+//           </Link>
+//         </div>
+//       </div>
+//       <div className="p-2 flex flex-col items-start">
+//         <h3 className="font-semibold text-sm truncate mt-1">{title}</h3>
+//         <p className="text-gray-500 text-xs mb-1">{author}</p>
+//         <div className="flex items-center mb-1">
+//           {[...Array(5)].map((_, i) => (
+//             <StarIcon key={i} filled={i < Math.round(rating || 0)} />
+//           ))}
+//         </div>
+//         <p className="text-lg font-bold text-gray-900">£{numericPrice.toFixed(2)}</p>
+//         <button
+//           onClick={handleAddToCart}
+//           className="bg-red-600 text-white font-medium px-3 py-1 rounded-md text-xs w-full transition-colors hover:bg-red-700 mt-2"
+//         >
+//           ADD TO BASKET
+//         </button>
+//       </div>
+//     </div>
+//   );
+// };
 
 const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetchParams: any; currentBookId?: string }) => {
   const [books, setBooks] = useState<any[]>([]);
@@ -205,11 +206,14 @@ const BookShelf = ({ title, fetchParams, currentBookId }: { title: string; fetch
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         {paginatedBooks.map((book) => (
-          <BookCard
-            key={book.id}
-            {...book}
-            price={`£${Number(book.price).toFixed(2)}`}
-          />
+         <BookCard
+         key={book._id || book.id}
+         id={book._id || book.id}
+         img={book.imageUrl}  
+         title={book.title}
+         author={book.author}
+         price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+       />
         ))}
       </div>
       {paginatedBooks.length === 0 && (
