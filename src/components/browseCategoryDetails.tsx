@@ -306,8 +306,9 @@ const handleWishlistToggle = () => {
         title: book.title,
         author: book.author,
         price: `£${book.price.toFixed(2)}`,
-        quantity: 1,
+        quantity: quantity, 
       });
+  
       toast.success(`${quantity} x ${book.title} added to your basket!`);
     }
   };
