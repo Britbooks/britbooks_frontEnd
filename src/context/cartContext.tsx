@@ -32,19 +32,25 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
      }, [cartItems]);
 
      const addToCart = (item: CartItem) => {
-       setCartItems((prev) => {
-         const existingItem = prev.find((cartItem) => cartItem.id === item.id);
-         if (existingItem) {
-           return prev.map((cartItem) =>
-             cartItem.id === item.id
-               ? { ...cartItem, quantity: cartItem.quantity + 1 }
-               : cartItem
-           );
-         }
-         return [...prev, { ...item, quantity: 1 }];
-       });
-       console.log(`Added ${item.title} to cart`);
-     };
+      setCartItems((prev) => {
+        const existingItem = prev.find((cartItem) => cartItem.id === item.id);
+    
+        if (existingItem) {
+          return prev.map((cartItem) =>
+            cartItem.id === item.id
+              ? {
+                  ...cartItem,
+                  quantity: cartItem.quantity + item.quantity,
+                }
+              : cartItem
+          );
+        }
+    
+        return [...prev, item];
+      });
+    
+      console.log(`Added ${item.quantity} x ${item.title} to cart`);
+    };
 
      const removeFromCart = (id: string) => {
        setCartItems((prev) => prev.filter((item) => item.id !== id));
