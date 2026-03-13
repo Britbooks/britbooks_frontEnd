@@ -315,11 +315,36 @@ const handleWishlistToggle = () => {
   if (isLoading) {
     return (
       <div className="bg-gray-50 min-h-screen">
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+        <Toaster position="top-right" />
         <TopBar />
-        <div className="container mx-auto px-4 sm:px-8 py-8 text-center">
-          <p className="text-gray-500 text-lg">Loading book details...</p>
-        </div>
+        
+        <main className="container mx-auto px-4 sm:px-8 py-8">
+          {/* Animated Skeleton Wrapper */}
+          <div className="animate-pulse flex flex-col md:flex-row gap-8">
+            
+            {/* Book Cover Skeleton */}
+            <div className="w-full md:w-1/3 aspect-[2/3] bg-gray-200 rounded-lg shadow-sm"></div>
+            
+            {/* Content Skeleton */}
+            <div className="flex-1 space-y-6 py-2">
+              <div className="h-8 bg-gray-200 rounded w-3/4"></div> {/* Title */}
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div> {/* Author */}
+              
+              <div className="space-y-3">
+                <div className="h-3 bg-gray-100 rounded"></div>
+                <div className="h-3 bg-gray-100 rounded"></div>
+                <div className="h-3 bg-gray-100 rounded w-5/6"></div>
+              </div>
+  
+              <div className="flex gap-4 pt-4">
+                <div className="h-10 bg-gray-200 rounded w-32"></div>
+                <div className="h-10 bg-gray-200 rounded w-32"></div>
+              </div>
+            </div>
+  
+          </div>
+        </main>
+  
         <Footer />
       </div>
     );
