@@ -5,6 +5,7 @@ import Footer from "../components/footer";
 import TopBar from "../components/Topbar";
 import { fetchBooks } from "../data/books";
 import { useCart } from "../context/cartContext";
+import BookCard from "../components/BookCard";
 
 // ── Countdown (added subtle urgency pulse when low) ─────────────────────────
 const Countdown = ({ seconds }: { seconds: number }) => {
@@ -178,7 +179,13 @@ const SpecialOffersPage = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
             {data.fiction.slice(0, visible.fiction).map((book: any) => (
-              <ModernBookCard key={book.id} book={book} />
+             <BookCard
+             id={book._id || book.id}
+             img={book.imageUrl}  
+             title={book.title}
+             author={book.author}
+             price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+           />
             ))}
           </div>
 
@@ -209,7 +216,13 @@ const SpecialOffersPage = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
             {data.fantasy.slice(0, visible.fantasy).map((book: any) => (
-              <ModernBookCard key={book.id} book={book} />
+              <BookCard
+              id={book._id || book.id}
+              img={book.imageUrl}  
+              title={book.title}
+              author={book.author}
+              price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+            />
             ))}
           </div>
 
@@ -240,7 +253,13 @@ const SpecialOffersPage = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
             {data.nonFiction.slice(0, visible.nonFiction).map((book: any) => (
-              <ModernBookCard key={book.id} book={book} />
+            <BookCard
+            id={book._id || book.id}
+            img={book.imageUrl}  
+            title={book.title}
+            author={book.author}
+            price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+          />
             ))}
           </div>
 
@@ -263,41 +282,6 @@ const SpecialOffersPage = () => {
 };
 
 // ModernBookCard — added subtle icon animation on hover
-const ModernBookCard = ({ book }: { book: any }) => (
-  <div className="group relative bg-white border border-slate-100 rounded-2xl p-3 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:-translate-y-1">
-    <div className="relative aspect-[2/3] overflow-hidden rounded-xl mb-4">
-      <img 
-        src={book.imageUrl} 
-        alt={book.title} 
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-      />
-      <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-black shadow-sm animate-pulse">
-        -{Math.round((1 - book.disc) * 100)}%
-      </div>
-      <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-        <button 
-          onClick={() => toast.success("Added to basket!")}
-          className="w-full bg-slate-900 text-white py-3 rounded-xl text-xs font-bold shadow-xl flex items-center justify-center gap-2 hover:bg-indigo-600 transition-colors"
-        >
-          <ShoppingBasket size={14} className="group-hover:animate-bounce" /> ADD TO BASKET
-        </button>
-      </div>
-    </div>
-    <div className="px-1 space-y-1">
-      <h4 className="font-bold text-sm text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">{book.title}</h4>
-      <p className="text-xs text-slate-400">{book.author}</p>
-      <div className="flex items-center justify-between pt-2">
-        <div className="flex flex-col">
-          <span className="text-base font-black text-slate-900">£{(book.price * book.disc).toFixed(2)}</span>
-          <span className="text-[10px] text-slate-400 line-through font-medium">£{book.price.toFixed(2)}</span>
-        </div>
-        <div className="flex items-center gap-1 text-amber-400">
-          <Star size={12} fill="currentColor" className="animate-pulse" />
-          <span className="text-xs font-bold text-slate-700">{book.rating || "4.5"}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-);
+
 
 export default SpecialOffersPage;
