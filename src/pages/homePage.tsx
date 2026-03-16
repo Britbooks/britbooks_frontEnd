@@ -51,6 +51,21 @@ const formatBooksForHomepage = (books: Book[]): BookCardProps[] => {
 };
 
 // --- Reusable Components ---
+const getCategoryPlaceholderImage = (categoryName: string) => {
+  switch (categoryName.toLowerCase()) {
+    case "children's books":
+      return "http://choicetextileimages.blob.core.windows.net/img-1/stand_1004118_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "fiction":
+      return "http://choicetextileimages.blob.core.windows.net/img-1/stand_1547728_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "non-fiction":
+      return "http://choicetextileimages.blob.core.windows.net/img-1/stand_1022627_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "biography & memoir":
+      return "http://choicetextileimages.blob.core.windows.net/img-1/stand_423514_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    default:
+      return `https://picsum.photos/seed/${encodeURIComponent(categoryName)}/600/800`;
+  }
+};
+
 
 
 const CategoryCard = ({ 
@@ -67,9 +82,7 @@ const CategoryCard = ({
     threshold: 0.15,
   });
 
-  const placeholderImage = `https://source.unsplash.com/600x800/?${encodeURIComponent(
-    name.toLowerCase().replace(/&/g, '').replace(/\s+/g, '-')
-  )},book,library,reading&sig=${name}`;
+  const placeholderImage = getCategoryPlaceholderImage(name);
 
   return (
     <motion.button
@@ -84,11 +97,8 @@ const CategoryCard = ({
       <img 
         src={placeholderImage}
         alt={name}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover opacity-60"
         loading="lazy"
-        onError={(e) => {
-          e.currentTarget.src = `https://picsum.photos/seed/${name}/600/800`;
-        }}
       />
 
       <div className="absolute inset-0 bg-black/90 group-hover:bg-black/70 transition-all duration-300" />
@@ -97,9 +107,7 @@ const CategoryCard = ({
         <h3 className="text-2xl font-bold leading-tight drop-shadow-lg">
           {name}
         </h3>
-        <p className="text-lg opacity-90 mt-1 drop-shadow">
-          {count.toLocaleString()} books
-        </p>
+     
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center opacity-0 
