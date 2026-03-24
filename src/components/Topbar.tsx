@@ -299,7 +299,7 @@ const TopBar = () => {
             <MenuIcon className="h-6 w-6 text-gray-700" />
           </button>
           <Link to="/">
-            <img src="/logobrit.png" alt="BritBooks Logo" className="h-10" />
+            <img src="/logobrit.png" alt="BritBooks Logo" className="h-10 " />
           </Link>
           <Link to="/checkout" className="p-2 relative">
             <ShoppingCartIcon className="h-6 w-6 text-red-500" />
@@ -393,7 +393,7 @@ const TopBar = () => {
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center relative">
           <div className="hidden sm:block absolute top-0 left-0 h-36 sm:h-40 z-10">
             <Link to="/" className="block w-auto h-full">
-              <img src="/logobrit.png" alt="BritBooks Logo" className="h-full w-auto object-contain" />
+              <img src="/logobrit.png" alt="BritBooks Logo" className="h-full w-auto object-contain mt-7 ml-[5cm] " />
             </Link>
           </div>
           <div className="hidden sm:block h-24 sm:h-24 w-44 sm:w-60 flex-shrink-0"></div>
