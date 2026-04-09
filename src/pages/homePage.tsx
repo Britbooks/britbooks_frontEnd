@@ -61,6 +61,31 @@ const getCategoryPlaceholderImage = (categoryName: string) => {
       return "http://choicetextileimages.blob.core.windows.net/img-1/stand_1022627_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
     case "biography & memoir":
       return "http://choicetextileimages.blob.core.windows.net/img-1/stand_423514_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "education":
+      return "http://choicetextileimages.blob.core.windows.net/img-1/stand_837421_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "history":
+      return "http://choicetextileimages.blob.core.windows.net/img-1/stand_595562_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "health & wellness":
+      return "https://books.google.com/books/content?id=EUz7pwAACAAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api";
+    case "mystery & thriller":
+      return "https://books.google.com/books/content?id=levT0AEACAAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api";
+    case "religion & spirituality":
+      return "https://books.google.com/books/content?id=PWKnpOvl7k0C&printsec=frontcover&img=1&zoom=1&source=gbs_api";
+    case "travel":  
+      return "http://choicetextileimages.blob.core.windows.net/img-1/stand_355902_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "business & finance":
+      return "https://books.google.com/books/content?id=zhzyswEACAAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api";
+    case "romance":
+        return "http://choicetextileimages.blob.core.windows.net/img-1/stand_1042181_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "science":
+        return "http://choicetextileimages.blob.core.windows.net/img-1/stand_1092933_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "fantasy":
+        return "http://choicetextileimages.blob.core.windows.net/img-1/stand_94593_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "philosophy":
+        return "http://choicetextileimages.blob.core.windows.net/img-1/stand_1105643_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+    case "horror":
+        return "http://choicetextileimages.blob.core.windows.net/img-1/stand_261514_jpg.jpg?sv=2012-02-12&sr=c&si=policy&sig=UJGArnU2SSaCcGE3m8IeJaXsv77mtWiIDK%2F7XslOY0w%3D";
+        
     default:
       return `https://picsum.photos/seed/${encodeURIComponent(categoryName)}/600/800`;
   }
@@ -781,6 +806,7 @@ const Homepage = () => {
   return (
     <>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      
       <style>{`
         @keyframes fadeInUp {
           from {
