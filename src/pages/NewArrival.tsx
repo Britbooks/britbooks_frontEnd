@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Search, ChevronLeft, ChevronRight, Sparkles, 
-  Clock, ArrowRight, Filter, Bookmark 
+  Search, ChevronLeft, ChevronRight, 
+  Clock, ArrowRight 
 } from "lucide-react";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
@@ -25,10 +25,17 @@ const NewArrivalsPage: React.FC = () => {
       setLoading(true);
       try {
         const res = await fetchBooks({ 
-          page, category, search, 
-          limit: 12, sort: "createdAt", order: "desc" 
+          page, 
+          category, 
+          search, 
+          limit: 12, 
+          sort: "createdAt", 
+          order: "desc" 
         });
-        setBooks(res.listings || []);
+        // Ensure we are getting the correct array from the response
+        setBooks(res.listings || res.books || []);
+      } catch (err) {
+        console.error("Error loading books:", err);
       } finally {
         setLoading(false);
       }
@@ -40,11 +47,10 @@ const NewArrivalsPage: React.FC = () => {
     <div className="bg-[#fcfcfd] min-h-screen text-slate-900 font-sans selection:bg-indigo-100">
       <TopBar />
 
-      {/* Modern Editorial Hero */}
       <header className="relative pt-20 pb-32 px-6 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-indigo-50/50 to-transparent -z-10" />
         
-        <div className="max-w-7xl mx-auto flex flex-col items-center">
+        <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-sm mb-8 animate-fade-in">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
@@ -53,11 +59,10 @@ const NewArrivalsPage: React.FC = () => {
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Freshly Catalogued</span>
           </div>
 
-          <h1 className="text-6xl md:text-8xl font-serif italic text-slate-900 text-center tracking-tight mb-12">
+          <h1 className="text-6xl md:text-8xl font-serif italic text-slate-900 tracking-tight mb-12">
             The New <span className="font-sans not-italic font-black text-indigo-600">Standard.</span>
           </h1>
 
-          {/* Integrated Search Bar */}
           <div className="w-full max-w-2xl relative group">
             <div className="absolute inset-0 bg-indigo-500/10 blur-2xl group-focus-within:blur-3xl transition-all opacity-0 group-focus-within:opacity-100" />
             <div className="relative flex items-center bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden transition-all focus-within:border-indigo-300">
@@ -68,6 +73,7 @@ const NewArrivalsPage: React.FC = () => {
                 type="text"
                 placeholder="Find your next obsession..."
                 className="w-full px-4 py-6 outline-none text-lg bg-transparent"
+                value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
               <div className="pr-3">
@@ -81,12 +87,11 @@ const NewArrivalsPage: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 pb-24">
-        {/* Sticky Utility Bar */}
         <div className="sticky top-4 z-40 mb-16 flex flex-col md:flex-row items-center justify-between gap-4 p-2 bg-white/80 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl">
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full md:w-auto">
             <button 
               onClick={() => setCategory(null)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${!category ? 'bg-indigo-600 text-white shadow-md shadow-slate-900/20' : 'text-slate-500 hover:bg-slate-100'}`}
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${!category ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-100'}`}
             >
               Everything
             </button>
@@ -109,7 +114,6 @@ const NewArrivalsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Grid System */}
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-10">
             {Array(12).fill(0).map((_, i) => (
@@ -122,30 +126,28 @@ const NewArrivalsPage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">
             {books.map((book) => (
-              <div key={book._id} className="relative group">
-                <div className="absolute -top-3 -right-3 z-10 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
-              
-                </div>
-                <BookCard 
-                  id={book._id}
-                  img={book.imageUrl}
-                  title={book.title}
-                  author={book.author}
-                  price={book.price}
-                  
-                />
-              </div>
+              <BookCard 
+              key={book.id}
+              id={book.id}
+                img={book.imageUrl}
+                title={book.title}
+                author={book.author}
+                price={book.price}
+              />
             ))}
           </div>
         )}
 
-        {/* Minimalist Pagination */}
+        {/* Pagination Logic */}
         <div className="mt-32 flex flex-col items-center gap-8">
           <div className="flex items-center gap-2">
             <button 
               disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              className="w-12 h-12 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all disabled:opacity-30"
+              onClick={() => {
+                setPage(p => p - 1);
+                window.scrollTo({ top: 400, behavior: 'smooth' });
+              }}
+              className="w-12 h-12 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={20} />
             </button>
@@ -156,7 +158,10 @@ const NewArrivalsPage: React.FC = () => {
             </div>
 
             <button 
-              onClick={() => setPage(p => p + 1)}
+              onClick={() => {
+                setPage(p => p + 1);
+                window.scrollTo({ top: 400, behavior: 'smooth' });
+              }}
               className="w-12 h-12 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all"
             >
               <ChevronRight size={20} />
@@ -173,14 +178,7 @@ const NewArrivalsPage: React.FC = () => {
       </main>
 
       <Footer />
-      <style>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in { animation: fade-in 0.6s ease-out forwards; }
-      `}</style>
+      <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
     </div>
   );
 };
