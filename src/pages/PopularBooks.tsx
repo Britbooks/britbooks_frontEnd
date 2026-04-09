@@ -196,8 +196,8 @@ const PopularBooksPage: React.FC = () => {
               ? Array(10).fill(0).map((_, i) => <BookCardSkeleton key={i} />)
               : state.books.map(book => (
                 <BookCard 
-                  key={book._id}
-                  id={book._id}
+                key={book.id}
+                id={book.id}
                   img={book.imageUrl}
                   title={book.title}
                   author={book.author}
