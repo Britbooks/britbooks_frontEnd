@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { 
   Star, ChevronLeft, ChevronRight, Search, 
-  Book as BookIcon, TrendingUp, Zap, Heart, Eye, ListFilter
+  Book as BookIcon, TrendingUp, Zap, ListFilter, SlidersHorizontal
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import TopBar from "../components/Topbar";
@@ -10,19 +10,8 @@ import Footer from "../components/footer";
 import { fetchBooks, fetchCategories } from "../data/books";
 import BookCard from "../components/BookCard";
 
-// --- Sub-components ---
-
-const BookCardSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-4 animate-pulse">
-    <div className="aspect-[3/4] bg-slate-100 rounded-xl" />
-    <div className="h-4 bg-slate-100 w-3/4 rounded" />
-    <div className="h-3 bg-slate-100 w-1/2 rounded" />
-  </div>
-);
-
-// --- Main Page Component ---
-
-const PopularBooksPage: React.FC = () => {
+// --- Logic Hook: Separating State from View ---
+const useBookPulse = (initialLimit: number) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,289 +20,236 @@ const PopularBooksPage: React.FC = () => {
   const [books, setBooks] = useState<any[]>([]);
   const [totalBooks, setTotalBooks] = useState(0);
   const [categories, setCategories] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true); 
-  
-  // Trending Rotation State
+  const [isLoading, setIsLoading] = useState(true);
   const [trendingIndex, setTrendingIndex] = useState(0);
 
-  const BOOKS_PER_PAGE = 12;
-
-  // 1. Debounce Logic for Search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // 2. Fetch Categories on Mount
   useEffect(() => {
-    const fetchCategoryData = async () => {
+    const init = async () => {
       try {
         const fetched = await fetchCategories();
         setCategories(fetched.map((cat: any) => ({ id: cat._id, name: cat.name })));
-      } catch (err) { console.error("Category fetch error:", err); }
+      } catch (err) { console.error(err); }
     };
-    fetchCategoryData();
-    document.title = "Popular Books | Pulse";
+    init();
   }, []);
 
-  // 3. Main Data Fetch
   useEffect(() => {
-    const fetchPopularBooks = async () => {
+    const load = async () => {
       setIsLoading(true);
       try {
-        const reqBody = {
+        const result = await fetchBooks({
           page: currentPage,
-          limit: BOOKS_PER_PAGE,
+          limit: initialLimit,
           category: selectedCategory,
           search: debouncedSearch,
           sort: sortBy.includes("price") ? "price" : sortBy,
           order: sortBy === "priceHighLow" ? "desc" : "asc"
-        };
-  
-        const result = await fetchBooks(reqBody);
+        });
         setBooks(result.listings || result.books || []);
         setTotalBooks(result.meta?.count || result.total || 0);
-      } catch (err) {
-        console.error("Fetch error:", err);
-      } finally {
-        setIsLoading(false);
-      }
+      } finally { setIsLoading(false); }
     };
-    fetchPopularBooks();
-  }, [currentPage, selectedCategory, debouncedSearch, sortBy]);
+    load();
+  }, [currentPage, selectedCategory, debouncedSearch, sortBy, initialLimit]);
 
-  // 4. Trending Rotation Logic (Every 5 Seconds)
   useEffect(() => {
     if (books.length > 0) {
       const interval = setInterval(() => {
-        setTrendingIndex((prev) => (prev + 1) % Math.min(books.length, 10));
-      }, 5000);
+        setTrendingIndex((p) => (p + 1) % Math.min(books.length, 8));
+      }, 6000);
       return () => clearInterval(interval);
     }
   }, [books]);
 
-  // 5. Derived State
-  const totalPages = useMemo(() => Math.ceil(totalBooks / BOOKS_PER_PAGE), [totalBooks]);
-  const trendingBook = books[trendingIndex] || null;
-
-  const handlePageChange = (page: number) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-      window.scrollTo({ top: 300, behavior: "smooth" });
-    }
+  return {
+    state: { books, categories, isLoading, trendingIndex, totalBooks, currentPage, selectedCategory, searchTerm, sortBy },
+    actions: { setCurrentPage, setSelectedCategory, setSearchTerm, setSortBy }
   };
+};
+
+// --- Redesigned UI Component ---
+const PopularBooksPage: React.FC = () => {
+  const BOOKS_PER_PAGE = 14;
+  const { state, actions } = useBookPulse(BOOKS_PER_PAGE);
+  const totalPages = Math.ceil(state.totalBooks / BOOKS_PER_PAGE);
+  const trendingBook = state.books[state.trendingIndex];
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen flex flex-col font-sans selection:bg-indigo-100">
-      <style>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes progress-bar {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-        .animate-progress { animation: progress-bar 5s linear forwards; }
-      `}</style>
-      
-      <Toaster position="bottom-right" />
+    <div className="bg-[#FBFBFE] min-h-screen font-sans selection:bg-indigo-100">
+      <Toaster position="top-center" />
       <TopBar />
 
-      {/* Breadcrumbs */}
-      <div className="bg-white border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <nav className="flex items-center justify-end text-[10px] font-black uppercase tracking-widest">
-            <ol className="flex items-center gap-2">
-              <li><Link to="/" className="text-slate-400 hover:text-indigo-600">HOME</Link></li>
-              <li className="text-slate-300">/</li>
-              <li className="text-slate-900 border-b-2 border-indigo-500">POPULAR</li>
-            </ol>
-          </nav>
-        </div>
-      </div>
-
-      {/* --- INTERACTIVE PROMO BANNER --- */}
-      <div className="relative max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-10 mb-6">
-        <div className="relative overflow-hidden bg-slate-950 rounded-[2rem] border border-white/10 shadow-2xl">
-          {/* Animated Glows */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/20 blur-[100px] -mr-40 -mt-40" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-600/10 blur-[100px] -ml-40 -mb-40" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between px-10 py-10 gap-8">
+      {/* Modern Hero Section */}
+      <header className="relative pt-10 pb-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-12 gap-8 items-center">
             
-            {/* Left: Live Status */}
-            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left flex-1">
-              <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
-                  <Zap size={30} className="text-white animate-pulse" fill="currentColor" />
-                </div>
-                <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-slate-950"></span>
-                </span>
+            {/* Headline */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[11px] font-bold tracking-widest uppercase">
+                <TrendingUp size={14} /> The Reader's Pulse
               </div>
+              <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight">
+                Discover <span className="text-indigo-600">Popular</span> Stories.
+              </h1>
+              <p className="text-lg text-slate-500 max-w-lg leading-relaxed">
+                Explore the titles topping charts this week across all genres, 
+                curated by our community of bibliophiles.
+              </p>
+            </div>
 
-              <div className="overflow-hidden">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-[10px] font-black tracking-widest uppercase mb-3">
-                  <TrendingUp size={12} /> Trending: {selectedCategory || "All Stories"}
+            {/* Featured Trending Card */}
+            <div className="lg:col-span-5">
+              <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full" />
+                
+                <div className="relative z-10 flex items-start gap-6">
+                  <div className="w-24 h-36 bg-slate-800 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 transition-transform group-hover:-rotate-2">
+                    {trendingBook?.imageUrl && <img src={trendingBook.imageUrl} alt="Trend" className="w-full h-full object-cover" />}
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                      <Zap size={12} fill="currentColor" /> Live Trend
+                    </span>
+                    <h3 className="text-xl font-bold leading-tight line-clamp-2">{trendingBook?.title || "Curating trends..."}</h3>
+                    <p className="text-slate-400 text-sm">by {trendingBook?.author || "..."}</p>
+                    <button className="pt-2 text-white font-bold text-sm border-b-2 border-indigo-500 hover:text-indigo-400 transition-colors">
+                      Quick View
+                    </button>
+                  </div>
                 </div>
                 
-                <div key={trendingBook?.id || 'loading'} className="transition-all duration-700 animate-in fade-in slide-in-from-bottom-3">
-                  <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight line-clamp-1">
-                    {trendingBook ? trendingBook.title : "Calculating Trends..."}
-                  </h2>
-                  <p className="text-slate-400 text-sm font-medium mt-1">
-                    {trendingBook 
-                      ? <span>By <span className="text-indigo-400">{trendingBook.author}</span> — Trending 15% higher this hour.</span>
-                      : "Aggregating community data for your selection."
-                    }
-                  </p>
+                {/* Progress Bar for rotation */}
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
+                  <div key={state.trendingIndex} className="h-full bg-indigo-500 origin-left animate-[progress_6s_linear_forwards]" />
                 </div>
-              </div>
-            </div>
-
-            {/* Right: Book Preview & Action */}
-            <div className="flex items-center gap-8">
-              {trendingBook && (
-                <div className="hidden xl:block w-16 h-24 rounded-xl overflow-hidden shadow-2xl border border-white/10 rotate-3 transition-transform hover:rotate-0">
-                  <img src={trendingBook.imageUrl} alt="cover" className="w-full h-full object-cover" />
-                </div>
-              )}
-              <div className="flex flex-col items-center lg:items-end gap-3">
-                <button className="px-10 py-4 bg-white text-slate-950 font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:bg-indigo-500 hover:text-white transition-all shadow-xl active:scale-95">
-                  View Detail
-                </button>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
-                  Next update in <span className="text-indigo-400">5s</span>
-                </p>
               </div>
             </div>
           </div>
+        </div>
+      </header>
 
-          {/* Timer Progress Bar */}
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
-            <div 
-              key={trendingIndex} 
-              className="h-full bg-indigo-500 animate-progress"
+      {/* Dynamic Filter Section */}
+      <section className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-y border-slate-100 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row gap-4 items-center">
+          
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search titles, authors..."
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 border-transparent rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all"
+              value={state.searchTerm}
+              onChange={(e) => actions.setSearchTerm(e.target.value)}
             />
           </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar">
+            <button 
+              onClick={() => actions.setSelectedCategory(null)}
+              className={`px-5 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${!state.selectedCategory ? 'bg-indigo-600 text-white shadow-indigo-200 shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              All Genres
+            </button>
+            {state.categories.map(cat => (
+              <button 
+                key={cat.id}
+                onClick={() => actions.setSelectedCategory(cat.name)}
+                className={`px-5 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${state.selectedCategory === cat.name ? 'bg-indigo-600 text-white shadow-indigo-200 shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl">
+            <SlidersHorizontal size={16} className="ml-3 text-slate-400" />
+            <select 
+              className="bg-transparent border-none text-xs font-bold uppercase py-2 focus:ring-0 cursor-pointer"
+              value={state.sortBy}
+              onChange={(e) => actions.setSortBy(e.target.value)}
+            >
+              <option value="rating">Top Rated</option>
+              <option value="priceLowHigh">Lowest Price</option>
+              <option value="priceHighLow">Highest Price</option>
+            </select>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* --- STICKY FILTER BAR --- */}
-      <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-8 pb-20">
-        <div className=" top-4 z-50 mb-12">
-        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-  {/* Search Bar */}
-  <div className="relative w-full lg:w-96 flex-shrink-0">
-    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-    <input
-      type="text"
-      placeholder="Search the pulse..."
-      value={searchTerm}
-      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-      className="w-full bg-slate-100 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-indigo-500/20"
-    />
-  </div>
-
-  {/* Category Buttons */}
-  <div className="flex-1 overflow-x-auto no-scrollbar scroll-smooth my-2 lg:my-0">
-    <div className="flex gap-2 min-w-max">
-      <button
-        onClick={() => setSelectedCategory(null)}
-        className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 ${!selectedCategory ? 'bg-slate-900 text-black shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-      >
-        <Zap size={14} /> All New
-      </button>
-
-      {categories.map(cat => (
-        <button
-          key={cat.id}
-          onClick={() => setSelectedCategory(cat.name)}
-          className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.name ? 'bg-blue-400 text-black shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-        >
-          {cat.name}
-        </button>
-      ))}
-    </div>
-  </div>
-
-  {/* Sort Dropdown */}
-  <div className="flex-shrink-0">
-    <select
-      value={sortBy}
-      onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-      className="bg-slate-100 border-none rounded-xl py-3 px-4 text-xs font-black uppercase text-slate-700 w-full lg:w-auto cursor-pointer"
-    >
-      <option value="rating">Top Rated</option>
-      <option value="priceLowHigh">Price: Low</option>
-      <option value="priceHighLow">Price: High</option>
-    </select>
-  </div>
-
-</div>
-        </div>
-
-        {/* --- BOOK GRID --- */}
-        {books.length === 0 && !isLoading ? (
-          <div className="py-32 text-center bg-white rounded-3xl border border-slate-100 shadow-inner">
-            <BookIcon size={64} className="mx-auto text-slate-200 mb-6" />
-            <h3 className="text-xl font-black text-slate-900">No Titles Found</h3>
-            <p className="text-slate-500 mt-2">Try adjusting your filters or category selection.</p>
+      {/* Main Grid Content */}
+      <main className="max-w-7xl mx-auto px-4 py-12">
+        {state.books.length === 0 && !state.isLoading ? (
+          <div className="text-center py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
+            <BookIcon size={48} className="mx-auto text-slate-300 mb-4" />
+            <h2 className="text-2xl font-bold text-slate-800">No matches found</h2>
+            <p className="text-slate-500">Try broadening your search or choosing a different genre.</p>
           </div>
         ) : (
-          <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-            {isLoading ? (
-              [...Array(10)].map((_, i) => <BookCardSkeleton key={i} />)
-            ) : (
-              books.map((book) => (
-                <BookCard
-                  key={book._id || book.id}
-                  id={book._id || book.id}
-                  img={book.imageUrl}  
+          <div className="grid gap-x-6 gap-y-10 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {state.isLoading 
+              ? Array(10).fill(0).map((_, i) => <BookCardSkeleton key={i} />)
+              : state.books.map(book => (
+                <BookCard 
+                  key={book._id}
+                  id={book._id}
+                  img={book.imageUrl}
                   title={book.title}
                   author={book.author}
-                  price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+                  price={book.price}
                 />
               ))
-            )}
+            }
           </div>
         )}
 
-        {/* --- PAGINATION --- */}
-        {!isLoading && totalPages > 1 && (
-          <div className="mt-24 flex flex-col items-center gap-6">
-            <div className="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => handlePageChange(currentPage - 1)}
-                className="p-3 rounded-xl hover:bg-slate-50 disabled:opacity-20 transition-all"
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-20 flex justify-center">
+            <div className="flex items-center gap-2 bg-white p-2 rounded-3xl shadow-xl border border-slate-100">
+              <button 
+                disabled={state.currentPage === 1}
+                onClick={() => actions.setCurrentPage(p => p - 1)}
+                className="p-3 rounded-2xl hover:bg-slate-100 disabled:opacity-30 transition-colors"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={24} />
               </button>
-              
-              <div className="px-6 py-2 text-sm font-black tracking-widest text-slate-900 border-x border-slate-100">
-                {currentPage} <span className="text-slate-300 mx-1">/</span> {totalPages}
-              </div>
-
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => handlePageChange(currentPage + 1)}
-                className="p-3 rounded-xl hover:bg-slate-50 disabled:opacity-20 transition-all"
+              <span className="px-6 text-sm font-bold tracking-widest text-slate-400">
+                <span className="text-slate-900">{state.currentPage}</span> / {totalPages}
+              </span>
+              <button 
+                disabled={state.currentPage === totalPages}
+                onClick={() => actions.setCurrentPage(p => p + 1)}
+                className="p-3 rounded-2xl hover:bg-slate-100 disabled:opacity-30 transition-colors"
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={24} />
               </button>
             </div>
-            <p className="text-[10px] font-black text-slate-400 tracking-[0.4em] uppercase">
-              {totalBooks} total results found
-            </p>
           </div>
         )}
       </main>
 
       <Footer />
+
+      <style>{`
+        @keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 };
+
+const BookCardSkeleton = () => (
+  <div className="space-y-4 animate-pulse">
+    <div className="aspect-[3/4.5] bg-slate-200 rounded-[2rem]" />
+    <div className="h-4 bg-slate-200 w-full rounded" />
+    <div className="h-4 bg-slate-100 w-2/3 rounded" />
+  </div>
+);
 
 export default PopularBooksPage;
