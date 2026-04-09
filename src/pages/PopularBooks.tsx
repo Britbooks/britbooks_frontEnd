@@ -202,52 +202,56 @@ const PopularBooksPage: React.FC = () => {
       {/* --- STICKY FILTER BAR --- */}
       <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-8 pb-20">
         <div className=" top-4 z-50 mb-12">
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-col lg:flex-row items-center gap-4">
-            <div className="relative w-full lg:w-96">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search the pulse..."
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-slate-100 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-indigo-500/20"
-              />
-            </div>
+        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-            <nav className="sticky top-6 z-50 bg-white/80 backdrop-blur-xl p-2 rounded-2xl border border-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] mb-12 flex items-center justify-between">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth">
-            <button 
-              onClick={() => setSelectedCategory(null)}
-              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${!selectedCategory ? 'bg-slate-900  shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-            >
-              <Zap size={14} /> All New
-            </button>
-            {categories.map(cat => (
-              <button 
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.name)}
-                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.name ? 'bg-slate-900 text-black' : 'text-slate-500 hover:bg-slate-500'}`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-          <div className="hidden md:flex items-center gap-4 px-4 border-l border-slate-100 ml-4">
-             <TrendingUp size={18} className="text-indigo-500" />
-             <ListFilter size={18} className="text-slate-400 cursor-pointer hover:text-slate-900" />
-          </div>
-        </nav>
+  {/* Search Bar */}
+  <div className="relative w-full lg:w-96 flex-shrink-0">
+    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+    <input
+      type="text"
+      placeholder="Search the pulse..."
+      value={searchTerm}
+      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+      className="w-full bg-slate-100 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-indigo-500/20"
+    />
+  </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-              className="bg-slate-100 border-none rounded-xl py-3 px-4 text-xs font-black uppercase text-slate-700 w-full lg:w-auto cursor-pointer"
-            >
-              <option value="rating">Top Rated</option>
-              <option value="priceLowHigh">Price: Low</option>
-              <option value="priceHighLow">Price: High</option>
-            </select>
-          </div>
+  {/* Category Buttons */}
+  <div className="flex-1 overflow-x-auto no-scrollbar scroll-smooth my-2 lg:my-0">
+    <div className="flex gap-2 min-w-max">
+      <button
+        onClick={() => setSelectedCategory(null)}
+        className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 ${!selectedCategory ? 'bg-slate-900 text-black shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+      >
+        <Zap size={14} /> All New
+      </button>
+
+      {categories.map(cat => (
+        <button
+          key={cat.id}
+          onClick={() => setSelectedCategory(cat.name)}
+          className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.name ? 'bg-blue-400 text-black shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+        >
+          {cat.name}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Sort Dropdown */}
+  <div className="flex-shrink-0">
+    <select
+      value={sortBy}
+      onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
+      className="bg-slate-100 border-none rounded-xl py-3 px-4 text-xs font-black uppercase text-slate-700 w-full lg:w-auto cursor-pointer"
+    >
+      <option value="rating">Top Rated</option>
+      <option value="priceLowHigh">Price: Low</option>
+      <option value="priceHighLow">Price: High</option>
+    </select>
+  </div>
+
+</div>
         </div>
 
         {/* --- BOOK GRID --- */}
