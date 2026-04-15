@@ -10,7 +10,7 @@ import BookCard from "../components/BookCard";
 
 
 import { useCart } from '../context/cartContext';
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { MD5 } from "crypto-js";
 
@@ -237,7 +237,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   if (isLoading && currentPage === 1) {
     return (
       <section className="py-8 animate-on-scroll">
-        <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
+        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628] mb-6">{title}</h2>
         <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
           {[...Array(itemsPerPage)].map((_, i) => (
             <div
@@ -280,7 +280,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   if (error) {
     return (
       <section className="py-8 animate-on-scroll">
-        <h2 className="text-2xl font-bold text-blue-800 mb-6">{title}</h2>
+        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628] mb-6">{title}</h2>
         <p className="text-red-600 text-center font-medium animate-pulse">{error}</p>
       </section>
     );
@@ -289,7 +289,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   return (
     <section className="py-8 animate-on-scroll">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-blue-800 transition-all duration-500">
+        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628] transition-all duration-500">
           {title}
         </h2>
 
@@ -417,7 +417,7 @@ const RecentlyViewedShelf = () => {
   return (
     <section className="py-8 animate-on-scroll">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-800">Recently Viewed</h2>
+        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628]">Recently Viewed</h2>
 
         {totalPages > 1 && (
           <div className="flex items-center gap-4">
@@ -459,6 +459,86 @@ const RecentlyViewedShelf = () => {
   );
 };
 
+// ─── Mobile Book Carousel ────────────────────────────────────────────────────
+interface MobileCarouselProps {
+  title: string;
+  fetchParams?: any;
+  seeAllLink: string;
+  accentColor?: string;
+}
+
+const MobileBookCarousel: React.FC<MobileCarouselProps> = ({ title, fetchParams, seeAllLink, accentColor = '#c9a84c' }) => {
+  const [books, setBooks] = useState<BookCardProps[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchBooks({ ...(fetchParams || {}), limit: 10, page: 1 })
+      .then((res: any) => {
+        if (!cancelled) {
+          const raw = res.listings || res.books || [];
+          setBooks(formatBooksForHomepage(raw));
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.1 }}
+      transition={{ duration: 0.5 }}
+      className="mb-6"
+    >
+      <div className="flex items-center justify-between px-4 mb-3">
+        <h2 className="text-sm font-black text-[#0a1628]">{title}</h2>
+        <Link to={seeAllLink}
+          className="text-[10px] font-bold uppercase tracking-widest"
+          style={{ color: accentColor }}>
+          See all →
+        </Link>
+      </div>
+
+      <div
+        className="flex gap-3 overflow-x-auto px-4 pb-3"
+        style={{ scrollbarWidth: 'none', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
+      >
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ flexShrink: 0, width: 150, minWidth: 150, maxWidth: 150, scrollSnapAlign: 'start' }}>
+                <div className="w-full h-56 bg-[#e8e0d0] rounded-lg animate-pulse mb-2" />
+                <div className="h-3 bg-[#e8e0d0] rounded animate-pulse mb-1.5" />
+                <div className="h-3 bg-[#e8e0d0] rounded animate-pulse w-2/3" />
+              </div>
+            ))
+          : books.map((book, idx) => (
+              <motion.div
+                key={book.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: idx * 0.04 }}
+                style={{ scrollSnapAlign: 'start', flexShrink: 0, width: 150, minWidth: 150, maxWidth: 150, overflow: 'hidden' }}
+              >
+                <BookCard
+                  id={book.id}
+                  img={book.img}
+                  title={book.title}
+                  author={book.author}
+                  price={book.price}
+                />
+              </motion.div>
+            ))
+        }
+      </div>
+    </motion.section>
+  );
+};
+
 // --- Main Homepage Component ---
 
 const Homepage = () => {
@@ -479,6 +559,41 @@ const Homepage = () => {
   const [hoveredMainCat, setHoveredMainCat] = useState<CategoryNode | null>(null);
   const { recentlyViewed } = useRecentlyViewed();
 
+  // ── Mobile hero carousel ──
+  const [heroIndex, setHeroIndex] = useState(0);
+  const heroSlides = [
+    {
+      tag: '🆕 Just Arrived',
+      headline: 'Fresh reads,\njust landed.',
+      sub: 'New titles added every week across all genres.',
+      cta: 'Shop New In',
+      to: '/new-arrivals',
+      bg: 'linear-gradient(135deg, #0a1628 0%, #1a2f50 100%)',
+      dot: '#c9a84c',
+    },
+    {
+      tag: '🏆 Bestsellers',
+      headline: 'The UK\'s\ntop reads.',
+      sub: 'Books everyone\'s talking about right now.',
+      cta: 'See Bestsellers',
+      to: '/bestsellers',
+      bg: 'linear-gradient(135deg, #1a0a28 0%, #2d1650 100%)',
+      dot: '#a78bfa',
+    },
+    {
+      tag: '🏷️ Hot Deals',
+      headline: 'Up to 60%\noff today.',
+      sub: 'Limited-time clearance on thousands of titles.',
+      cta: 'Grab a Deal',
+      to: '/clearance',
+      bg: 'linear-gradient(135deg, #1a0e00 0%, #3d2500 100%)',
+      dot: '#f59e0b',
+    },
+  ];
+  useEffect(() => {
+    const t = setInterval(() => setHeroIndex(i => (i + 1) % heroSlides.length), 4000);
+    return () => clearInterval(t);
+  }, []);
 
   const BOOKS_PER_PAGE = 24;
   const observer = useRef<IntersectionObserver | null>(null);
@@ -873,9 +988,318 @@ const Homepage = () => {
       <div className="bg-white">
         <TopBar />
         
-        <main className="container mx-auto px-4 sm:px-8">
-          {/* Hero Section */}
-          <section className="sm:block hidden relative text-white my-4 sm:my-8 py-12 sm:py-20 px-4 sm:px-12 rounded-lg overflow-hidden">
+        {/* ═══════════════════════════════════════════
+              MOBILE APP LAYOUT  (hidden on sm+)
+            ═══════════════════════════════════════════ */}
+        <div className="sm:hidden" style={{ backgroundColor: '#f0ebe1', minHeight: '100vh' }}>
+
+          {/* ── Animated Hero Carousel ── */}
+          <div className="relative overflow-hidden mx-4 mt-4 rounded-3xl shadow-xl" style={{ height: 240 }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={heroIndex}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className="absolute inset-0 px-6 pt-5 pb-6 flex flex-col justify-between"
+                style={{ background: heroSlides[heroIndex].bg }}
+              >
+                {/* Top gold accent line */}
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent" />
+                {/* Decorative orb */}
+                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full opacity-20 blur-2xl"
+                  style={{ backgroundColor: heroSlides[heroIndex].dot }} />
+
+                <motion.span
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full self-start"
+                  style={{ backgroundColor: heroSlides[heroIndex].dot + '22', color: heroSlides[heroIndex].dot, border: `1px solid ${heroSlides[heroIndex].dot}44` }}
+                >
+                  {heroSlides[heroIndex].tag}
+                </motion.span>
+
+                <div>
+                  <motion.h1
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-white text-[26px] font-black leading-tight mb-2"
+                    style={{ whiteSpace: 'pre-line' }}
+                  >
+                    {heroSlides[heroIndex].headline}
+                  </motion.h1>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-white/55 text-xs leading-relaxed mb-4"
+                  >
+                    {heroSlides[heroIndex].sub}
+                  </motion.p>
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                  >
+                    <Link
+                      to={heroSlides[heroIndex].to}
+                      className="inline-flex items-center gap-2 text-[#0a1628] text-xs font-black px-4 py-2.5 rounded-xl active:scale-95 transition-transform"
+                      style={{ backgroundColor: heroSlides[heroIndex].dot }}
+                    >
+                      {heroSlides[heroIndex].cta}
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </motion.div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Progress dots */}
+            <div className="absolute bottom-4 right-5 flex gap-1.5 z-10">
+              {heroSlides.map((s, i) => (
+                <button key={i} onClick={() => setHeroIndex(i)}
+                  className="rounded-full transition-all duration-300"
+                  style={{
+                    width: i === heroIndex ? 20 : 6,
+                    height: 6,
+                    backgroundColor: i === heroIndex ? heroSlides[heroIndex].dot : 'rgba(255,255,255,0.3)',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Quick Actions (iOS-style app icons) ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="grid grid-cols-5 gap-2 px-4 mt-5"
+          >
+            {[
+              { emoji: '🔍', label: 'Browse',     to: '/category',        bg: '#dbeafe', emoji2: '#1d4ed8' },
+              { emoji: '🆕', label: 'New In',     to: '/new-arrivals',   bg: '#dcfce7', emoji2: '#15803d' },
+              { emoji: '🏆', label: 'Best',       to: '/bestsellers',    bg: '#fef3c7', emoji2: '#b45309' },
+              { emoji: '🏷️', label: 'Deals',     to: '/special-offers', bg: '#fce7f3', emoji2: '#be185d' },
+              { emoji: '💰', label: 'Order',       to: '/orders',     bg: '#ede9fe', emoji2: '#6d28d9' },
+            ].map(a => (
+              <Link key={a.label} to={a.to} className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm text-xl"
+                  style={{ backgroundColor: a.bg }}>
+                  {a.emoji}
+                </div>
+                <span className="text-[9px] font-bold text-[#0a1628]/70 text-center leading-tight">{a.label}</span>
+              </Link>
+            ))}
+          </motion.div>
+
+          {/* ── Genre Chip Rail ── */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-5"
+          >
+            <div className="flex items-center justify-between px-4 mb-3">
+              <h2 className="text-sm font-black text-[#0a1628]">Browse by Genre</h2>
+              <Link to="/category" className="text-[10px] font-bold text-[#c9a84c] uppercase tracking-widest">All →</Link>
+            </div>
+            <div className="flex gap-2 overflow-x-auto px-4 pb-2" style={{ scrollbarWidth: 'none' }}>
+              {(categories.length === 0 ? Array.from({ length: 8 }) : categories).map((cat: any, i) =>
+                cat ? (
+                  <motion.button
+                    key={cat.name}
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => openCategoryModal(cat.name)}
+                    className="flex-shrink-0 bg-white border border-[#e8e0d0] rounded-2xl px-3 py-2 text-[11px] font-bold text-[#0a1628] whitespace-nowrap shadow-sm"
+                  >
+                    {cat.name}
+                  </motion.button>
+                ) : (
+                  <div key={i} className="flex-shrink-0 w-20 h-8 bg-[#e8e0d0] rounded-2xl animate-pulse" />
+                )
+              )}
+            </div>
+          </motion.div>
+
+          {/* ── New Arrivals Carousel ── */}
+          <div className="mt-5">
+            <MobileBookCarousel
+              title="New Arrivals"
+              fetchParams={shelfFetchParams.newArrivals}
+              seeAllLink="/new-arrivals"
+              accentColor="#c9a84c"
+            />
+          </div>
+
+          {/* ── Promo Duo Cards ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-2 gap-3 px-4 mb-5"
+          >
+            {[
+              {
+                emoji: '🏆', title: 'Bestsellers', sub: "This week's top picks",
+                to: '/bestsellers', bg: '#0a1628', text: '#fff', badge: '#c9a84c',
+              },
+              {
+                emoji: '🏷️', title: 'Clearance', sub: 'Up to 60% off now',
+                to: '/clearance', bg: '#c9a84c', text: '#0a1628', badge: '#0a1628',
+              },
+            ].map((item, idx) => (
+              <Link key={idx} to={item.to}>
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  className="rounded-3xl p-4 flex flex-col justify-between"
+                  style={{ backgroundColor: item.bg, minHeight: 130 }}
+                >
+                  <div className="w-9 h-9 rounded-2xl flex items-center justify-center text-xl mb-2"
+                    style={{ backgroundColor: item.badge + '22' }}>
+                    {item.emoji}
+                  </div>
+                  <div>
+                    <p className="font-black text-sm leading-tight" style={{ color: item.text }}>{item.title}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: item.text, opacity: 0.6 }}>{item.sub}</p>
+                  </div>
+                </motion.div>
+              </Link>
+            ))}
+          </motion.div>
+
+          {/* ── Popular Books Carousel ── */}
+          <MobileBookCarousel
+            title="Popular Books"
+            fetchParams={shelfFetchParams.popularBooks}
+            seeAllLink="/popular"
+            accentColor="#6366f1"
+          />
+
+          {/* ── Best Sellers Carousel ── */}
+          <MobileBookCarousel
+            title="Best Sellers"
+            fetchParams={shelfFetchParams.bestSellers}
+            seeAllLink="/bestsellers"
+            accentColor="#c9a84c"
+          />
+
+          {/* ── Special Offer Banner ── */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.45 }}
+            className="mx-4 mb-5"
+          >
+            <Link to="/special-offers">
+              <div className="rounded-3xl overflow-hidden relative" style={{ height: 110, background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>
+                <div className="absolute inset-0 flex items-center px-5 gap-4">
+                  <div>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-0.5">Limited Time</p>
+                    <p className="text-white text-xl font-black leading-tight">Student Deals</p>
+                    <p className="text-white/60 text-[11px] mt-0.5">Extra 10% off for students</p>
+                  </div>
+                  <div className="ml-auto text-5xl leading-none">🎓</div>
+                </div>
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-30"
+                  style={{ backgroundColor: '#a78bfa', transform: 'translate(30%, -30%)' }} />
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* ── Children's Books Carousel ── */}
+          <MobileBookCarousel
+            title="Children's Books"
+            fetchParams={shelfFetchParams.childrensBooks}
+            seeAllLink="/category?category=Children's%20Books"
+            accentColor="#10b981"
+          />
+
+          {/* ── Clearance Carousel ── */}
+          <MobileBookCarousel
+            title="Clearance"
+            fetchParams={shelfFetchParams.clearanceItems}
+            seeAllLink="/clearance"
+            accentColor="#f59e0b"
+          />
+
+          {/* ── Recently Viewed ── */}
+          {recentlyViewed.length > 0 && (
+            <motion.section
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="mb-5"
+            >
+              <div className="flex items-center justify-between px-4 mb-3">
+                <h2 className="text-sm font-black text-[#0a1628]">Recently Viewed</h2>
+              </div>
+              <div
+                className="flex gap-3 overflow-x-auto px-4 pb-3"
+                style={{ scrollbarWidth: 'none', scrollSnapType: 'x mandatory' }}
+              >
+                {recentlyViewed.slice(0, 10).map((book, idx) => (
+                  <motion.div
+                    key={book.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.04 }}
+                    style={{ scrollSnapAlign: 'start', flexShrink: 0, width: 150, minWidth: 150, maxWidth: 150, overflow: 'hidden' }}
+                  >
+                    <BookCard
+                      id={book.id}
+                      img={book.img}
+                      title={book.title}
+                      author={book.author}
+                      price={book.price}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── Trust Strip ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mx-4 mb-8 bg-white border border-[#e8e0d0] rounded-2xl overflow-hidden shadow-sm"
+          >
+            {[
+              { icon: '🚚', title: 'Free Shipping', sub: 'On orders over £100' },
+              { icon: '↩️', title: '30-Day Returns', sub: 'No questions asked' },
+              { icon: '🔒', title: 'Secure Payment', sub: 'All major cards accepted' },
+            ].map((item, i) => (
+              <div key={i} className={`flex items-center gap-4 px-5 py-4 ${i < 2 ? 'border-b border-[#e8e0d0]' : ''}`}>
+                <div className="w-10 h-10 rounded-2xl bg-[#f5f0e8] flex items-center justify-center text-xl shrink-0">
+                  {item.icon}
+                </div>
+                <div>
+                  <p className="text-xs font-black text-[#0a1628]">{item.title}</p>
+                  <p className="text-[10px] text-[#0a1628]/50">{item.sub}</p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+
+        </div>
+        {/* ═══════════════════════════════════════════
+              END MOBILE LAYOUT
+            ═══════════════════════════════════════════ */}
+
+        {/* ═══ DESKTOP LAYOUT (hidden on mobile) ═══ */}
+        <main className="hidden sm:block container mx-auto px-4 sm:px-8">
+          {/* Desktop Hero Section */}
+          <section className="relative text-white my-4 sm:my-8 py-12 sm:py-20 px-4 sm:px-12 rounded-lg overflow-hidden">
             <video
               autoPlay
               muted
