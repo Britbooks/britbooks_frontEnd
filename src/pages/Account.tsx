@@ -105,10 +105,17 @@ const AccountSettingsPage: React.FC = () => {
   if (loading) return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <TopBar />
-      <div className="max-w-6xl mx-auto px-6 py-16 flex gap-8">
+      {/* Mobile skeleton */}
+      <div className="lg:hidden px-4 py-6 space-y-4">
+        <div className="h-24 bg-gray-200 rounded-2xl animate-pulse" />
+        <div className="h-12 bg-gray-200 rounded-2xl animate-pulse" />
+        <div className="h-64 bg-gray-200 rounded-2xl animate-pulse" />
+      </div>
+      {/* Desktop skeleton */}
+      <div className="hidden lg:flex max-w-6xl mx-auto px-6 py-16 gap-8">
         <div className="w-64 shrink-0 space-y-3">
           {[80, 56, 56, 56].map((h, i) => (
-            <div key={i} className={`h-${h === 80 ? '20' : '14'} bg-gray-200 rounded-2xl animate-pulse`} style={{ height: h }} />
+            <div key={i} className="bg-gray-200 rounded-2xl animate-pulse" style={{ height: h }} />
           ))}
         </div>
         <div className="flex-1 space-y-4">
@@ -125,17 +132,65 @@ const AccountSettingsPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 font-sans antialiased">
       <TopBar />
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Page title */}
-        <div className="mb-10">
+      {/* ══════════════════════════════════════════
+          MOBILE HEADER (hidden on desktop)
+      ══════════════════════════════════════════ */}
+      <div className="lg:hidden bg-white border-b border-gray-100">
+        {/* Avatar + user info */}
+        <div className="px-4 pt-6 pb-4 flex items-center gap-4">
+          <div className="relative shrink-0">
+            <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-gray-100">
+              <img
+                src={userData?.profilePicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userData?.fullName}`}
+                alt="avatar"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-red-600 rounded-lg flex items-center justify-center cursor-pointer shadow-sm hover:bg-red-700 transition-colors">
+              <Camera className="w-3 h-3 text-white" />
+              <input type="file" accept="image/*" className="hidden" onChange={() => {}} />
+            </label>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-gray-900 text-base truncate">{userData?.fullName}</p>
+            <p className="text-xs text-gray-400 truncate mt-0.5">{userData?.email}</p>
+            <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+              <Activity className="w-2.5 h-2.5" /> Verified
+            </span>
+          </div>
+          <button onClick={() => setModal("logout")}
+            className="shrink-0 p-2.5 rounded-xl border border-gray-100 hover:bg-red-50 hover:border-red-100 transition-colors group">
+            <LogOut className="w-4 h-4 text-gray-400 group-hover:text-red-600 transition-colors" />
+          </button>
+        </div>
+
+        {/* Mobile tab bar */}
+        <div className="flex border-t border-gray-100">
+          {navItems.map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => setActiveTab(id)}
+              className={`flex-1 flex flex-col items-center gap-1 py-3 text-[11px] font-bold transition-all border-b-2 ${
+                activeTab === id
+                  ? 'border-red-600 text-red-600'
+                  : 'border-transparent text-gray-400 hover:text-gray-600'
+              }`}>
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-12">
+        {/* Desktop page title */}
+        <div className="hidden lg:block mb-10">
           <p className="text-xs font-bold text-red-600 uppercase tracking-widest mb-1">Account</p>
           <h1 className="text-3xl font-black text-gray-900">Settings</h1>
         </div>
 
-        <div className="flex gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
 
-          {/* ── SIDEBAR ── */}
-          <aside className="w-64 shrink-0 sticky top-24 space-y-3">
+          {/* ── SIDEBAR (desktop only) ── */}
+          <aside className="hidden lg:block w-64 shrink-0 sticky top-24 space-y-3">
             {/* Avatar card */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
               <div className="relative shrink-0">
@@ -199,7 +254,7 @@ const AccountSettingsPage: React.FC = () => {
           </aside>
 
           {/* ── MAIN CONTENT ── */}
-          <form onSubmit={handleSave} className="flex-1 min-w-0 space-y-4">
+          <form onSubmit={handleSave} className="flex-1 min-w-0 w-full space-y-4">
 
             {/* Status banner */}
             {status && (
@@ -386,6 +441,14 @@ const AccountSettingsPage: React.FC = () => {
             )}
           </form>
         </div>
+
+        {/* Mobile danger zone */}
+        <div className="lg:hidden mt-6 pb-8">
+          <button onClick={() => setModal("delete")}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 transition-all text-sm font-semibold">
+            <Trash2 className="w-4 h-4" /> Delete account
+          </button>
+        </div>
       </div>
 
       <Footer />
@@ -463,9 +526,10 @@ const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 );
 
 const SaveBar = ({ saving }: { saving: boolean }) => (
-  <div className="flex justify-end">
+  <div className="flex items-center justify-between gap-4">
+    <div className="lg:hidden" />
     <button type="submit" disabled={saving}
-      className="inline-flex items-center gap-2 bg-gray-900 hover:bg-red-600 active:scale-[0.98] text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all shadow-md disabled:opacity-60">
+      className="w-full lg:w-auto inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-red-600 active:scale-[0.98] text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all shadow-md disabled:opacity-60">
       {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save changes'}
     </button>
   </div>
