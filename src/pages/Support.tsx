@@ -1,1227 +1,805 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import Footer from '../components/footer';
-import TopBar from '../components/Topbar';
-import { useAuth } from '../context/authContext';
-import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusIcon, XMarkIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
-import { 
-  Package, 
-  Truck, 
-  Receipt, 
-  Calendar, 
-  CreditCard, 
-  Info, 
-  BookOpen, 
-  CheckCircle2 ,
-  ArrowRight,
-  ShoppingBag,
-  ChevronRight
-} from 'lucide-react';
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  PaperAirplaneIcon,
+  PlusIcon,
+  XMarkIcon,
+  ChatBubbleOvalLeftEllipsisIcon,
+  ShieldCheckIcon,
+  ClockIcon,
+  ArrowRightIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
+} from "@heroicons/react/24/outline";
+import {
+  CheckCircle,
+  Clock,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Search,
+  Send,
+  Zap,
+  Globe,
+  Users,
+  Award,
+} from "lucide-react";
+import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
 
-
-
-// === ALL YOUR ORIGINAL ICONS ===
-const ChevronDownIcon = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9"></polyline>
-  </svg>
-);
-
-const MailIcon = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-    <polyline points="22,6 12,13 2,6"></polyline>
-  </svg>
-);
-
-const MessageSquareIcon = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-  </svg>
-);
-
-const SendIcon = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="22" y1="2" x2="11" y2="13"></line>
-    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-  </svg>
-);
-
-const XIcon = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
-  </svg>
-);
-
-const newsItems = [
-  {
-    text: "System maintenance scheduled for Dec 24, 2025 – Minimal downtime expected",
-    iconUrl: "https://media.istockphoto.com/id/1219484410/vector/calendar-days-of-the-month-with-a-scheduled-reminder-and-a-wrench-and-screwdriver-for.jpg?s=612x612&w=0&k=20&c=0WWqOpdUub3xwuTjfHWQrf9u__SMcQ2L3CVPhBW1C1I=",
-  },
-  {
-    text: "New feature released: Advanced ticket analytics dashboard!",
-    iconUrl: "https://www.shutterstock.com/image-vector/vector-new-update-bell-modern-260nw-2440669853.jpg",
-  },
-  {
-    text: "Security tip: Enable two-factor authentication for better protection",
-    iconUrl: "https://www.shutterstock.com/image-vector/security-shield-sign-vector-illustration-260nw-2486879781.jpg",
-  },
-  {
-    text: "All systems operational – Server status: 100% uptime",
-    iconUrl: "https://www.shutterstock.com/image-vector/arrow-icon-set-cursor-down-260nw-2663185649.jpg", // Using a clean "up/online" arrow icon
-  },
-  {
-    text: "Happy Holidays! Support hours adjusted Dec 25–Jan 1",
-    iconUrl: "https://media.istockphoto.com/id/2165186116/vector/upcoming-holidays-and-celebrations-icons-editable-stroke.jpg?s=612x612&w=0&k=20&c=xMOViWRyOmUe6udobVbssGw8FR-ZwXlx4811NaWfDpE=",
-  },
-];
-
-// === FAQ COMPONENT (YOUR ORIGINAL) ===
-const FaqItem = ({ question, answer }: { question: string; answer: string }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div className="border-b">
-      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center text-left py-3 sm:py-4">
-        <span className="font-semibold text-gray-800 text-sm sm:text-base">{question}</span>
-        <ChevronDownIcon className={`w-4 sm:w-5 h-4 sm:h-5 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-      {isOpen && (
-        <div className="pb-3 sm:pb-4 text-gray-600 text-sm sm:text-base">
-          <p>{answer}</p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const faqData = [
-  { question: "How do I track my order?", answer: "You can track your order status from the 'My Orders' section in your account dashboard. Once an item is dispatched, you will receive a tracking number via email." },
-  { question: "What is your return policy?", answer: "We accept returns within 30 days of receipt, provided the book is in its original condition. Please visit our Shipping & Returns page for detailed instructions on how to initiate a return." },
-  { question: "How do I sell my books on BritBooks?", answer: "To sell your books, navigate to the 'Sell Books' section. You can enter the ISBN of your book to get an instant quote. We provide a pre-paid shipping label to send your books to us." },
-  { question: "What payment methods do you accept?", answer: "We accept all major credit and debit cards, including Visa, Mastercard, and American Express. We also support payments via PayPal." },
-];
+import Footer from "../components/footer";
+import TopBar from "../components/Topbar";
+import { useAuth } from "../context/authContext";
 
 const API_BASE = "https://britbooks-api-production-8ebd.up.railway.app/api/chat";
+const PER_PAGE = 5;
+const VIDEO_SRC =
+  "https://media.istockphoto.com/id/1919183911/video/chatbot-ai-online-assistant-support-symbol-loop-digital-concept.mp4?s=mp4-640x640-is&k=20&c=Y1twA0JDp3uAQPe0Ap5RH3aZTi3yNwy5ThqSZdm5QXM=";
 
-const SupportTicketSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  const { auth } = useAuth();
-  const userId = auth.user?.userId;
-  const token = auth.token;
+type View = "inbox" | "newticket" | "chat";
 
-  const [view, setView] = useState<'list' | 'form' | 'chat'>('list'); // list → form → chat
-  const [threads, setThreads] = useState<any[]>([]);                    // All user threads
-  const [selectedChat, setSelectedChat] = useState<any>(null);          // Currently open chat
-  const [messages, setMessages] = useState<any[]>([]);
-  const [subject, setSubject] = useState('');
-  const [description, setDescription] = useState('');
-  const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [chatLoading, setChatLoading] = useState(true);
-  const [chatError, setChatError] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+function fmtDate(iso: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 86400000) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (diff < 172800000) return "Yesterday";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
 
-  const API_BASE = "https://britbooks-api-production-8ebd.up.railway.app/api/chat";
+/* ────────────────────────────────────────────────────────────────
+   CHAT WIDGET
+──────────────────────────────────────────────────────────────── */
+interface SharedChatState {
+  view: View;
+  chatId: string | null;
+  messages: any[];
+  threads: any[];
+  page: number;
+  form: { subject: string; description: string };
+  loading: boolean;
+}
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+interface ChatWidgetProps {
+  userId?: string;
+  token?: string;
+  onClose?: () => void;
+  newChatTrigger?: number;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  // Shared state (lifted to parent so panel + expanded stay in sync)
+  shared: SharedChatState;
+  onSharedChange: (s: Partial<SharedChatState>) => void;
+}
 
-  // Load all threads when sidebar opens
-  useEffect(() => {
-    if (isOpen && userId && token) {
-      loadUserThreads();
-    } else if (isOpen && !userId) {
-      setChatLoading(false);
-    }
-  }, [isOpen, userId, token]);
+function ChatWidget({ userId, token, onClose, newChatTrigger = 0, expanded = false, onToggleExpand, shared, onSharedChange }: ChatWidgetProps) {
+  const { view, chatId, messages, threads, page, form, loading } = shared;
+  const setView = (v: View) => onSharedChange({ view: v });
+  const setChatId = (id: string | null) => onSharedChange({ chatId: id });
+  const setMessages = (msgs: any[]) => onSharedChange({ messages: msgs });
+  const setThreads = (t: any[]) => onSharedChange({ threads: t });
+  const setPage = (p: number) => onSharedChange({ page: p });
+  const setForm = (f: { subject: string; description: string }) => onSharedChange({ form: f });
+  const setLoading = (l: boolean) => onSharedChange({ loading: l });
 
-  const loadUserThreads = async () => {
-    if (!userId || !token) return;
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
 
-    setChatLoading(true);
-    setChatError('');
+  const headers = { Authorization: `Bearer ${token}` };
+  const totalPages = Math.ceil(threads.length / PER_PAGE);
+  const visible = threads.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
 
+  const loadThreads = useCallback(async () => {
+    if (!userId) return;
     try {
-      const res = await fetch(`${API_BASE}/user/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const res = await axios.get(`${API_BASE}/user/${userId}`, { headers });
+      const d = res.data?.data || res.data?.threads || res.data || [];
+      setThreads(Array.isArray(d) ? d : []);
+    } catch { setThreads([]); }
+  }, [userId, token]);
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  useEffect(() => { loadThreads(); }, [loadThreads]);
 
-      const result = await res.json();
-      const threadList = result.data || [];
-
-      // Sort by last message time (newest first)
-      threadList.sort((a: any, b: any) => 
-        new Date(b.lastMessageAt || b.updatedAt).getTime() - 
-        new Date(a.lastMessageAt || a.updatedAt).getTime()
-      );
-
-      setThreads(threadList);
-
-      if (threadList.length > 0) {
-        // Auto-open the most recent thread
-        setSelectedChat(threadList[0]);
-        setMessages(threadList[0].messages || []);
-        setView('chat');
-      } else {
-        setView('form');
-      }
-    } catch (err) {
-      console.error("Failed to load threads:", err);
-      setChatError("Could not load your support history.");
-      setView('form');
-    } finally {
-      setChatLoading(false);
+  useEffect(() => {
+    if (newChatTrigger > 0) {
+      setView("newticket");
+      setForm({ subject: "", description: "" });
+      setChatId(null);
+      setMessages([]);
     }
+  }, [newChatTrigger]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, typing]);
+
+  const openThread = async (id: string) => {
+    setLoading(true); setChatId(id); setView("chat");
+    try {
+      const res = await axios.get(`${API_BASE}/${id}/messages`, { headers });
+      const msgs = res.data?.messages || res.data || [];
+      setMessages(Array.isArray(msgs) ? msgs : []);
+    } catch { toast.error("Could not load messages"); }
+    finally { setLoading(false); }
   };
 
-  const handleCreateTicket = async (e: React.FormEvent) => {
+  const createTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject.trim() || !description.trim()) return;
-
+    if (!userId) return toast.error("Please log in");
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userId, subject, description }),
-      });
-
-      if (!res.ok) throw new Error('Failed to create ticket');
-
-      const newChat = await res.json();
-      setThreads(prev => [newChat, ...prev]);
-      setSelectedChat(newChat);
-      setMessages(newChat.messages || []);
-      setView('chat');
-      setSubject('');
-      setDescription('');
-    } catch (err) {
-      alert("Failed to create ticket. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+      const res = await axios.post(`${API_BASE}/create`, { userId, ...form }, { headers });
+      setChatId(res.data._id); setMessages(res.data.messages || []);
+      setView("chat"); loadThreads();
+    } catch { toast.error("Failed to create ticket"); }
+    finally { setLoading(false); }
   };
 
-  const dedupeMessages = (msgs: any[]) => {
-    const map = new Map<string, any>();
-    msgs.forEach(m => map.set(m._id, m));
-    return Array.from(map.values());
-  };
-  
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedChat?._id) return;
-  
+  const send = async () => {
+    if (!input.trim() || !chatId) return;
+    const msg = input;
+    setInput("");
+    if (taRef.current) taRef.current.style.height = "auto";
+
+    // Optimistic: show message immediately as "sending"
     const tempId = `temp_${Date.now()}`;
-  
-    const optimisticMsg = {
-      _id: tempId,
-      senderId: userId,
-      message: newMessage,
-      createdAt: new Date().toISOString(),
+    const optimistic = {
+      _id: tempId, senderId: userId, message: msg,
+      createdAt: new Date().toISOString(), status: "sending",
     };
-  
-    // 1️⃣ Optimistic render
-    setMessages(prev => [...prev, optimisticMsg]);
-    const text = newMessage;
-    setNewMessage('');
-  
+    setMessages([...messages, optimistic]);
+
     try {
-      const res = await fetch(`${API_BASE}/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          chatId: selectedChat._id,
-          senderId: userId,
-          message: text,
-        }),
-      });
-  
-      if (!res.ok) throw new Error();
-  
-      const updatedChat = await res.json();
-  
-      // 2️⃣ Merge + dedupe instead of replace
-      setMessages(prev =>
-        dedupeMessages([
-          ...prev.filter(m => m._id !== tempId), // remove temp
-          ...(updatedChat.messages || []),
-        ])
-      );
-  
-      setSelectedChat(updatedChat);
-  
-      // 3️⃣ Update thread list safely
-      setThreads(prev =>
-        prev.map(t => (t._id === updatedChat._id ? updatedChat : t))
-      );
-    } catch (err) {
-      // Rollback optimistic message
-      setMessages(prev => prev.filter(m => m._id !== tempId));
-      setNewMessage(text);
-      alert("Failed to send message.");
+      const res = await axios.post(`${API_BASE}/send`, { chatId, senderId: userId, message: msg }, { headers });
+      // Replace with server messages (includes agent reply if any)
+      setMessages(res.data.messages || []);
+      setTyping(false);
+    } catch {
+      toast.error("Failed to send");
+      // Remove optimistic message on failure and restore input
+      setMessages(messages.filter((m: any) => m._id !== tempId));
+      setInput(msg);
     }
   };
-  
 
-  const getSenderName = (msg: any) => {
-    if (msg.senderId === userId) return 'You';
-    if (msg.senderId === 'bot') return 'Alex';
-    return 'Support Team';
+  const resize = () => {
+    if (!taRef.current) return;
+    taRef.current.style.height = "auto";
+    taRef.current.style.height = Math.min(taRef.current.scrollHeight, 96) + "px";
   };
 
-  const extractSubject = (chat: any) => {
-    const firstMsg = chat.messages?.[0]?.message;
-    if (firstMsg?.startsWith('Subject:')) {
-      return firstMsg.split('\n')[0].replace('Subject:', '').trim();
-    }
-    return 'Support Thread';
-  };
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString([], {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
-  const renderMessageContent = (rawText: string) => {
-    let text = rawText.trim();
-  
-    const displayText = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  
-    const lines = text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-  
-    // ==================== PAYMENT CARD (COMPLETELY UNTOUCHED) ====================
-    const paymentIdMatch = text.match(/pi_[A-Za-z0-9_]+/);
-  
-    if (paymentIdMatch) {
-      const paymentId = paymentIdMatch[0];
-  
-      const details: { label: string; value: string }[] = [];
-      let politeLine = "";
-      let closingQuestion = "";
-      let receiptLink = "";
-  
-      let canonicalAmount: string | null = null;
-      const seenLabels = new Set<string>();
-  
-      for (const line of lines) {
-        if (line.length < 3) continue;
-  
-        if (!line.includes(":")) {
-          if (/confirmed|processed|succeeded|successful|completed|great|perfect/i.test(line)) {
-            politeLine = line;
-          } else if (/anything else|can I help|assist|need anything/i.test(line)) {
-            closingQuestion = line;
-          }
-          continue;
-        }
-  
-        const kvMatch = line.match(/^[\*\-\•\s]*(.+?)\s*:\s*(.+)$/);
-        if (!kvMatch) continue;
-  
-        let label = kvMatch[1].trim().replace(/:$/, "");
-        let rawValue = kvMatch[2].trim();
-        let value = rawValue.replace(/✅$/, "").trim();
-  
-        if (/amount|total|paid/i.test(label)) {
-          label = "Amount";
-          if (!canonicalAmount) canonicalAmount = value;
-          value = canonicalAmount || value;
-        } else if (/date/i.test(label)) {
-          label = "Date";
-        } else if (/status/i.test(label)) {
-          label = "Status";
-        } else if (/payment\s*id/i.test(label)) {
-          label = "Payment ID";
-        } else if (/receipt/i.test(label)) {
-          label = "Receipt";
-          const mdLink = rawValue.match(/\[(.*?)\]\((https?:\/\/[^)\s]+)\)/);
-          const plainLink = rawValue.match(/(https?:\/\/[^\s\)]+)/);
-          receiptLink = mdLink?.[2] || plainLink?.[1] || "";
-          value = "View Receipt";
-        }
-  
-        if (seenLabels.has(label)) continue;
-        seenLabels.add(label);
-        details.push({ label, value });
-      }
-  
-      if (details.length === 0) {
-        details.push({
-          label: "Status",
-          value: /success|succeeded|confirmed|completed/i.test(text) ? "Succeeded" : "Processed",
-        });
-      }
-  
-      return (
-        <div className="space-y-5">
-          <div className="flex justify-center">
-            <span className="px-6 py-2.5 rounded-full bg-red-50 text-red-700 font-bold text-sm shadow-sm">
-              {paymentId}
-            </span>
-          </div>
-  
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-3 bg-gray-50 font-semibold text-gray-700">
-              Payment Summary
+  /* INBOX */
+  if (view === "inbox") return (
+    <div className="flex flex-col h-full">
+      <div className="px-6 pt-6 pb-5 shrink-0 bg-gradient-to-br from-red-600 to-red-800">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center text-xs font-black text-white">BB</div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-red-700" />
             </div>
-  
-            <div className="divide-y divide-gray-100">
-              {details.map((d, i) => (
-                <div key={i} className="flex justify-between px-5 py-3.5 text-sm">
-                  <span className="text-gray-500">{d.label}</span>
-                  <span className="font-medium text-gray-900 flex items-center gap-1.5">
-                    {d.value}
-                    {/succeeded|success/i.test(d.value) && (
-                      <span className="text-green-600">✓</span>
-                    )}
-                  </span>
-                </div>
-              ))}
+            <div>
+              <p className="text-[10px] text-red-200 font-bold tracking-widest uppercase">BritBooks Support</p>
+              <p className="text-base font-bold text-white leading-none">Customer Care</p>
             </div>
           </div>
-  
-          {receiptLink && (
-            <div className="flex justify-center">
-              <a
-                href={receiptLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-7 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
-              >
-                Download Receipt
-              </a>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-emerald-400/20 border border-emerald-400/30 px-2.5 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-bold text-emerald-300">Online</span>
             </div>
-          )}
-  
-          {(politeLine || closingQuestion) && (
-            <div className="text-center space-y-2">
-              {politeLine && <p>{politeLine}</p>}
-              {closingQuestion && <p className="italic">{closingQuestion}</p>}
-            </div>
-          )}
-        </div>
-      );
-    }
-  
-    // ==================== ORDER CARD (ONLY ONE – RETURNS EARLY) ====================
-    const orderKeywordMatch = text.match(/\bOrder\b/i);
-    const orderIdMatch = text.match(/Order\s*#?([A-Za-z0-9]{8,})/i);
-    const isLogisticsQuery = lines.some(l => 
-      /Recent|History|Status|Track|Refund|Return|Deliver|Cancel|Ship/i.test(l)
-    );
-    
-    if (orderIdMatch || (orderKeywordMatch && isLogisticsQuery)) {
-      const orderId = orderIdMatch ? `#${orderIdMatch[1]}` : "Order Summary";
-      const details: { label: string; value: string }[] = [];
-      const bookItems: string[] = []; // Specifically for the list of books in the order
-      const narrativeText: string[] = []; // For the AI's descriptive response
-      let politeLine = "";
-      let closingQuestion = "";
-      const seenLabels = new Set<string>();
-    
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.length < 2) continue;
-    
-        // 1. Capture Key-Value Details (Status, Date, Total)
-        const kvMatch = trimmed.match(/^[\s•\-\*]*(\*?\**)?([^:*]+?)\*?\**?\s*:\s*(.+)$/);
-        if (kvMatch) {
-          let label = kvMatch[2].trim().replace(/\*/g, '').replace(/:$/, '');
-          let value = kvMatch[3].trim().replace(/✅$/, '').trim();
-    
-          if (/date|placed/i.test(label)) label = "Date";
-          else if (/total|amount|price|cost/i.test(label)) label = "Total";
-          else if (/status|progress/i.test(label)) label = "Status";
-          else if (/track|carrier|shipped|shipping/i.test(label)) label = "Shipping";
-          
-          if (label.length > 2 && !seenLabels.has(label)) {
-            seenLabels.add(label);
-            details.push({ label, value });
-            continue;
-          }
-        }
-    
-        // 2. Capture Book Listings (Specific items in the order)
-        // Filters for lines that look like product titles (often start with numbers or bullets)
-        const isBookItem = (/^[\s•\-\*0-9]+[\s\.]/.test(trimmed) || /by [A-Z]/i.test(trimmed)) 
-                           && trimmed.length > 5 && !trimmed.includes('?');
-        
-        if (isBookItem && !trimmed.includes(':')) {
-          const cleanBook = trimmed.replace(/^[\s•\-\*0-9\.]+/, '').trim();
-          if (!bookItems.includes(cleanBook)) {
-            bookItems.push(cleanBook);
-            continue;
-          }
-        }
-    
-        // 3. Context & Politeness
-        if (/thank|soon|today|arrive|delivery|dispatched|confirm|sorry|help|update/i.test(trimmed) && trimmed.length < 50) {
-          politeLine = trimmed;
-        } else if (/anything else|can I help|need anything/i.test(trimmed)) {
-          closingQuestion = trimmed;
-        } else {
-          // 4. Narrative Fallback (The AI's actual sentences)
-          narrativeText.push(trimmed);
-        }
-      }
-    
-      return (
-        <div className="mx-auto w-full max-w-[200px] space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
-    {/* Minimalist Header */}
-    <div className="flex items-center justify-between px-1">
-      <div className="flex items-center gap-2">
-        <div className="h-8 w-8 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg ring-4 ring-slate-50">
-          <ShoppingBag className="w-4 h-4 text-white" />
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-[11px] font-black text-slate-800 leading-none tracking-tight">Purchase</h3>
-          <p className="text-[8px] font-bold text-indigo-500 uppercase tracking-tighter mt-1">{orderId}</p>
-        </div>
-      </div>
-    </div>
-
-    {/* AI Narrative Text - Clean Typography */}
-    {narrativeText.length > 0 && (
-      <div className="px-1 space-y-1">
-        {narrativeText.map((t, i) => (
-          <p key={i} className="text-[10px] text-slate-500 leading-relaxed font-medium">{t}</p>
-        ))}
-      </div>
-    )}
-
-    {/* Modern Book Items - Card Style */}
-    {bookItems.length > 0 && (
-      <div className="space-y-1.5">
-        {bookItems.map((book, i) => (
-          <div key={i} className="group relative flex items-start gap-2.5 p-2 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
-            <div className="h-6 w-6 shrink-0 bg-slate-50 rounded-lg flex items-center justify-center text-[10px] group-hover:bg-indigo-50 transition-colors">
-              📖
-            </div>
-            <p className="text-[10px] font-bold text-slate-700 leading-tight line-clamp-2 pt-0.5">
-              {book}
-            </p>
-          </div>
-        ))}
-      </div>
-    )}
-
-    {/* Summary Card - Soft Glass Look */}
-    {details.length > 0 && (
-      <div className="bg-slate-50/50 backdrop-blur-sm rounded-[20px] border border-white p-1.5 shadow-inner">
-        <div className="bg-white rounded-[14px] border border-slate-100 overflow-hidden divide-y divide-slate-50 shadow-sm">
-          {details.map((d, i) => {
-             const isStatus = d.label === "Status";
-             return (
-              <div key={i} className="p-2 flex flex-col gap-0.5">
-                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">{d.label}</span>
-                <p className={`text-[10px] font-black leading-tight truncate ${isStatus ? 'text-indigo-600' : 'text-slate-900'}`}>
-                  {d.value}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    )}
-
-    {/* Floating Footer Notification */}
-    {(politeLine || closingQuestion) && (
-      <div className="relative overflow-hidden p-2.5 bg-slate-900 rounded-2xl shadow-xl shadow-slate-200">
-        <div className="absolute top-0 right-0 p-1 opacity-20">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 -mr-4 -mt-4" />
-        </div>
-        {politeLine && (
-          <p className="text-[9px] text-white font-bold leading-tight relative z-10">
-            {politeLine}
-          </p>
-        )}
-        {closingQuestion && (
-          <p className="text-[8px] text-slate-400 font-medium italic mt-1 relative z-10">
-            {closingQuestion}
-          </p>
-        )}
-      </div>
-    )}
-  </div>
-      );
-    }
-  
-    // ==================== GENERAL TEXT FALLBACK – IMPROVED STYLE FOR CHATS ====================
-    const paragraphs = displayText
-      .split("\n\n")
-      .map((p) => p.trim())
-      .filter(Boolean);
-  
-    return (
-      <div className="space-y-5 text-gray-800 leading-relaxed">
-        {paragraphs.map((paragraph, i) => {
-          const paraLines = paragraph.split("\n");
-          // Detect bullet lists (lines starting with *, -, •, or spaces before them)
-          const isList = paraLines.length > 1 && paraLines.every((l) => /^[\*\-\•\s]/.test(l.trimStart()));
-  
-          if (isList) {
-            return (
-              <ul key={i} className="space-y-3 ml-5">
-                {paraLines.map((line, j) => {
-                  const content = line.replace(/^[\*\-\•\s]+/, "").trim();
-                  // Re-apply bold markup inside list items
-                  const processedContent = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  
-                  return (
-                    <li key={j} className="flex items-start gap-3">
-                      <span className="text-red-600 mt-1.5 flex-shrink-0 text-lg">•</span>
-                      <span
-                        className="text-gray-800"
-                        dangerouslySetInnerHTML={{ __html: processedContent }}
-                      />
-                    </li>
-                  );
-                })}
-              </ul>
-            );
-          }
-  
-          // Regular paragraph – preserve line breaks and bold
-          const processedParagraph = paragraph
-            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-            .replace(/\n/g, "<br/>");
-  
-          return (
-            <p
-              key={i}
-              className="text-gray-800 text-base leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: processedParagraph }}
-            />
-          );
-        })}
-  
-        {/* Optional friendly emoji touch for short, warm responses */}
-        {rawText.trim().length < 300 && /😊|📚|♥/.test(rawText) && (
-          <div className="mt-6 text-center">
-            <span className="text-4xl">
-              {rawText.includes("😊") ? "😊" : rawText.includes("📚") ? "📚" : "♥"}
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  };
-  
-  
-  
-  // Not logged in
-  if (!userId) {
-    return (
-      <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center ${isOpen ? 'block' : 'hidden'}`} onClick={onClose}>
-        <div className="bg-white p-8 rounded-xl shadow-2xl text-center max-w-sm" onClick={e => e.stopPropagation()}>
-          <h3 className="text-2xl font-bold mb-4">Login Required</h3>
-          <p className="text-gray-600 mb-6">Please log in to access support.</p>
-          <button onClick={onClose} className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700">
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-      <div className="flex flex-col h-full">
-
-        {/* Header */}
-        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
-  {/* Main Header Row */}
-  <div className="px-6 py-5 flex items-center justify-between">
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={view}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-        className="flex items-center gap-4"
-      >
-        {/* Icon with modern gradient badge */}
-        <div className="p-2.5 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 border border-violet-200 shadow-sm">
-          {view === "form" ? (
-            <PlusIcon className="w-6 h-6 text-violet-700" />
-          ) : (
-            <ChatBubbleLeftRightIcon className="w-6 h-6 text-indigo-700" />
-          )}
-        </div>
-
-        {/* Bold gradient title */}
-        <h2 className="text-2xl font-extrabold bg-gradient-to-r from-gray-800 via-gray-900 to-indigo-900 bg-clip-text text-transparent">
-          {view === "form"
-            ? "New Support Ticket"
-            : view === "list"
-            ? "Support Threads"
-            : "Conversation"}
-        </h2>
-      </motion.div>
-    </AnimatePresence>
-
-    {/* Modern close button */}
-    <button
-      onClick={onClose}
-      className="group p-3 rounded-2xl bg-gray-100/70 hover:bg-gray-200/80 backdrop-blur-sm transition-all duration-200 active:scale-90"
-      aria-label="Close"
-    >
-      <XMarkIcon className="w-5 h-5 text-gray-600 group-hover:text-gray-900 transition-colors" />
-    </button>
-  </div>
-
-  {/* Show news feed only for support threads (list or conversation views) */}
-  {(view === "list" || view === "conversation") && (
-    <div className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 py-4 px-6">
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_50%,white_0.5px,transparent_0.5px)] bg-[length:30px_30px]" />
-
-      <motion.div
-        className="flex items-center gap-12 whitespace-nowrap"
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{ duration: 30, ease: "linear", repeat: Infinity }}
-      >
-        {[...messages, ...messages].map((msg, idx) => (
-          <div
-            key={idx}
-            className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/25 backdrop-blur-md border border-white/30 text-white text-sm font-semibold shadow-lg"
-          >
-            <div className="w-2 h-2 rounded-full bg-white animate-ping" />
-            {msg.text}
-          </div>
-        ))}
-      </motion.div>
-
-      {/* Fade edges */}
-      <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-violet-600 to-transparent pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-purple-600 to-transparent pointer-events-none" />
-    </div>
-  )}
-</div>
-
-
-
-        {/* Loading */}
-        {chatLoading && (
-  <div className="flex-1 flex items-center justify-center">
-    <div className="flex flex-col items-center gap-4">
-      {/* Minimal Spinner */}
-      <div className="relative w-8 h-8">
-        <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
-        <div className="absolute inset-0 rounded-full border-2 border-red-600 border-t-transparent animate-spin"></div>
-      </div>
-
-      {/* Text */}
-      <p className="text-sm text-gray-500 tracking-wide">
-        Loading conversations
-      </p>
-    </div>
-  </div>
-)}
-
-
-        {/* Error */}
-        {chatError && !chatLoading && (
-          <div className="p-4 text-center text-red-600 bg-red-50 mx-4 rounded-lg">
-            {chatError}
-          </div>
-        )}
-
-        {/* Thread List View */}
-        {!chatLoading && view === "list" && threads.length > 0 && (
-  <div className="flex flex-col h-full bg-[#fafafa]">
-    {/* Header */}
-    <div className="bg-white px-6 py-5 border-b border-gray-100">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Support
-          </h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Conversations with BritBooks
-          </p>
-        </div>
-
-        <button
-          onClick={() => setView("form")}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          New ticket
-        </button>
-      </div>
-    </div>
-
-    {/* Thread List */}
-    <div
-      className="flex-1 overflow-y-auto"
-      style={{
-        paddingBottom:
-          "max(calc(env(safe-area-inset-bottom) + 2rem), 4rem)",
-      }}
-    >
-      <div className="px-4 py-3 space-y-2">
-        {threads.map((thread) => {
-          const unreadCount = thread.unreadCount || 0;
-          const isUnread = unreadCount > 0;
-
-          return (
-            <div
-              key={thread._id}
-              onClick={() => {
-                setSelectedChat(thread);
-                setMessages(thread.messages || []);
-                setView("chat");
-              }}
-              className={`group cursor-pointer rounded-xl bg-white px-4 py-3 transition-all ${
-                isUnread
-                  ? "ring-1 ring-red-100"
-                  : "hover:bg-gray-50"
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                {/* Avatar */}
-                <div
-                  className={`relative w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-white text-sm ${
-                    isUnread ? "bg-red-600" : "bg-gray-800"
-                  }`}
-                >
-                  B
-                  {isUnread && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" />
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3
-                      className={`truncate text-sm font-medium ${
-                        isUnread
-                          ? "text-gray-900"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {extractSubject(thread)}
-                    </h3>
-
-                    <span className="text-xs text-gray-400 whitespace-nowrap">
-                      {formatTime(
-                        thread.lastMessageAt || thread.updatedAt
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Unread Badge */}
-                {isUnread && (
-                  <span className="ml-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-
-                {/* Chevron */}
-                <svg
-                  className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  </div>
-)}
-
-
-        {/* Form View */}
-        {!chatLoading && view === 'form' && (
-          <div className="flex-1 overflow-y-auto p-6">
-            <form onSubmit={handleCreateTicket} className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Subject</label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={e => setSubject(e.target.value)}
-                  placeholder="e.g. Order not received"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Description</label>
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Describe your issue..."
-                  className="w-full p-3 border rounded-lg h-40 resize-none focus:ring-2 focus:ring-red-500"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:opacity-70"
-              >
-                {loading ? 'Creating...' : 'Submit Ticket'}
+            {onToggleExpand && (
+              <button onClick={onToggleExpand} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors" title={expanded ? "Collapse" : "Expand"}>
+                {expanded ? <ArrowsPointingInIcon className="w-4 h-4 text-white/70" /> : <ArrowsPointingOutIcon className="w-4 h-4 text-white/70" />}
               </button>
-            </form>
-
-            {threads.length > 0 && (
-              <button
-                onClick={() => setView('list')}
-                className="w-full mt-4 text-blue-600 font-medium hover:underline"
-              >
-                ← View Previous Threads
+            )}
+            {onClose && (
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+                <XMarkIcon className="w-4 h-4 text-white/70" />
               </button>
             )}
           </div>
-        )}
+        </div>
+        <p className="text-sm text-red-100/80 leading-relaxed">How can we help you today?</p>
+      </div>
 
-        {/* Chat View */}
-        {!chatLoading && view === 'chat' && selectedChat && (
-  <div className="flex flex-col h-full bg-gradient-to-b from-gray-50 to-gray-100">
-    {/* Modern Header with subtle glass effect */}
-    <div className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-5 py-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setView(threads.length > 1 ? 'list' : 'form')}
-          className="text-blue-600 text-sm font-medium flex items-center gap-2 hover:gap-3 transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          {threads.length > 1 ? 'All Threads' : 'New Ticket'}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+        {loading ? (
+          <div className="flex justify-center py-14"><Loader2 className="w-5 h-5 text-red-500 animate-spin" /></div>
+        ) : threads.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center gap-4">
+            <div className="w-16 h-16 rounded-3xl bg-white border border-gray-100 shadow flex items-center justify-center">
+              <MessageSquare className="w-7 h-7 text-gray-300" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">No conversations yet</p>
+              <p className="text-xs text-gray-400 mt-1">Start a conversation and we'll reply promptly.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 space-y-1.5">
+            {visible.map((t) => (
+              <button key={t._id} onClick={() => openThread(t._id)}
+                className="w-full text-left p-4 bg-white rounded-xl border border-gray-100 hover:border-red-200 hover:shadow-sm transition-all group flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0 group-hover:bg-red-500 group-hover:text-white transition-all">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-red-600 transition-colors">{t.subject || t.title || t.topic || "New conversation"}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t.createdAt ? fmtDate(t.createdAt) : "Active"}</p>
+                </div>
+                <ArrowRightIcon className="w-3.5 h-3.5 text-gray-300 group-hover:text-red-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-1.5 py-3">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button key={i} onClick={() => setPage(i)}
+                className={`rounded-full transition-all duration-200 ${i === page ? "w-5 h-1.5 bg-red-500" : "w-1.5 h-1.5 bg-gray-300 hover:bg-gray-400"}`} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 bg-white border-t border-gray-100 shrink-0">
+        <button onClick={() => setView("newticket")}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gray-900 hover:bg-red-600 text-white text-sm font-bold tracking-wide transition-all duration-200">
+          <PlusIcon className="w-4 h-4" /> New conversation
         </button>
-      </div>
-      <div className="flex items-center gap-4 mt-3">
-        <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
-          B
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-900 text-lg truncate">
-            {extractSubject(selectedChat)}
-          </p>
-          <p className="text-sm text-green-600 font-medium">Support • Usually replies quickly</p>
-        </div>
-      </div>
-    </div>
-
-    {/* Messages Area - Modern bubble design */}
-    <div 
-      className="flex-1 overflow-y-auto px-4 pt-6"
-      style={{ 
-        paddingBottom: 'max(calc(env(safe-area-inset-bottom) + 6rem), 9rem)' 
-      }}
-    >
-      <div className="max-w-4xl mx-auto space-y-4">
-      {messages.map((msg: any, index) => {
-  const isUser = msg.senderId === userId;
-  const showAvatar = !isUser && (index === 0 || messages[index - 1]?.senderId === userId);
-
-
-
-  return (
-    <div
-      key={msg._id}
-      className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
-    >
-      {!isUser && showAvatar && (
-        <div className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center font-bold shadow mb-6">
-          A
-        </div>
-      )}
-      {!isUser && !showAvatar && <div className="w-9" />}
-
-      <div
-        className={`relative max-w-[85%] px-5 py-4 rounded-2xl shadow ${
-          isUser
-            ? 'bg-red-600 text-white rounded-br-md'
-            : 'bg-white border border-gray-200 rounded-bl-md'
-        }`}
-      >
-        {!isUser && (
-          <p className="text-xs font-semibold text-red-600 mb-2">
-            {getSenderName(msg)}
-          </p>
-        )}
-
-        {renderMessageContent(msg.message)}
-
-        <p className={`text-[11px] mt-3 text-right ${isUser ? 'text-red-200' : 'text-gray-400'}`}>
-          {new Date(msg.createdAt).toLocaleTimeString([], {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          })}
-        </p>
       </div>
     </div>
   );
-})}
 
-        <div ref={messagesEndRef} />
+  /* NEW TICKET */
+  if (view === "newticket") return (
+    <div className="flex flex-col h-full">
+      <div className="px-6 pt-5 pb-5 shrink-0 bg-gradient-to-br from-red-600 to-red-800 flex items-center gap-3">
+        <button onClick={() => setView("inbox")} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+          <ChevronLeftIcon className="w-4 h-4 text-white" />
+        </button>
+        <p className="text-sm font-bold text-white flex-1">New conversation</p>
+        {onToggleExpand && (
+          <button onClick={onToggleExpand} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+            {expanded ? <ArrowsPointingInIcon className="w-4 h-4 text-white/70" /> : <ArrowsPointingOutIcon className="w-4 h-4 text-white/70" />}
+          </button>
+        )}
+        {onClose && (
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+            <XMarkIcon className="w-4 h-4 text-white/70" />
+          </button>
+        )}
       </div>
-    </div>
-
-    {/* Modern Input Bar - Glassmorphism + floating feel */}
-    <div
-      className="fixed bottom-0 left-0 right-0 sm:right-auto sm:w-96 bg-white/90 backdrop-blur-lg border-t border-gray-200 shadow-2xl"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.5rem)' }}
-    >
-      <form onSubmit={handleSendMessage} className="px-4 py-4 flex items-center gap-3">
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="w-full px-6 py-4 bg-gray-100 rounded-full text-base placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-red-300 transition-all shadow-inner"
-            autoFocus
-          />
+      <form onSubmit={createTicket} className="flex flex-col flex-1 p-5 gap-4 bg-gray-50 overflow-y-auto">
+        <div>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Subject</label>
+          <input required placeholder="e.g. Order Issue, Account Help"
+            className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition-all"
+            value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} />
         </div>
-
-        <button
-          type="submit"
-          disabled={!newMessage.trim()}
-          className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-full shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-        >
-          <SendIcon className="w-6 h-6" />
+        <div className="flex-1 flex flex-col min-h-[120px]">
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Details</label>
+          <textarea required placeholder="Describe your issue in detail"
+            className="flex-1 px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 resize-none transition-all"
+            value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+        </div>
+        <button type="submit" disabled={loading}
+          className="flex items-center justify-center gap-2 py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm tracking-wide transition-all shadow-sm disabled:opacity-60">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send message</>}
         </button>
       </form>
     </div>
-  </div>
-)}
+  );
 
-        {/* Empty State */}
-        {!chatLoading && threads.length === 0 && view === 'list' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-            <MessageSquareIcon className="w-20 h-20 text-gray-300 mb-4" />
-            <p className="text-gray-500 mb-6">No support threads yet.</p>
-            <button
-              onClick={() => setView('form')}
-              className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700"
-            >
-              Create Your First Ticket
-            </button>
+  /* CHAT */
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-5 py-4 shrink-0 bg-gradient-to-br from-red-600 to-red-800 flex items-center gap-3">
+        <button onClick={() => { setView("inbox"); setChatId(null); setMessages([]); }}
+          className="p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+          <ChevronLeftIcon className="w-4 h-4 text-white" />
+        </button>
+        <div className="relative shrink-0">
+          <div className="w-9 h-9 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center text-xs font-black text-white">BB</div>
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-red-800" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-white leading-tight">BritBooks Support</p>
+          <p className="text-[10px] text-emerald-300 font-semibold">Online now</p>
+        </div>
+        <button onClick={() => { setView("newticket"); setChatId(null); setMessages([]); setForm({ subject: "", description: "" }); }}
+          className="p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+          <PlusIcon className="w-4 h-4 text-white" />
+        </button>
+        {onToggleExpand && (
+          <button onClick={onToggleExpand} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors" title={expanded ? "Collapse" : "Expand"}>
+            {expanded ? <ArrowsPointingInIcon className="w-4 h-4 text-white/70" /> : <ArrowsPointingOutIcon className="w-4 h-4 text-white/70" />}
+          </button>
+        )}
+        {onClose && (
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+            <XMarkIcon className="w-4 h-4 text-white/70" />
+          </button>
+        )}
+      </div>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-2 bg-gray-50">
+        {loading ? (
+          <div className="flex justify-center py-14"><Loader2 className="w-5 h-5 text-red-500 animate-spin" /></div>
+        ) : messages.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 text-sm">No messages yet</div>
+        ) : (
+          messages.map((msg, i) => {
+            const isMe = msg.senderId === userId;
+            const isSending = msg.status === "sending";
+            // A message is "read" if the agent replied after it
+            const hasAgentReplyAfter = messages.slice(i + 1).some((m: any) => m.senderId !== userId);
+            return (
+              <motion.div key={msg._id ?? i}
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.2 }}
+                className={`flex ${isMe ? "justify-end" : "justify-start"} items-end gap-2`}>
+                {!isMe && (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-600 to-red-800 text-white text-[9px] font-black flex items-center justify-center shrink-0">BB</div>
+                )}
+                <div className={`max-w-[78%] flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMe
+                    ? "bg-red-600 text-white rounded-br-sm shadow-sm shadow-red-200"
+                    : "bg-white text-gray-700 border border-gray-100 rounded-bl-sm shadow-sm"}`}>
+                    {msg.message}
+                  </div>
+                  {isMe && (
+                    <div className={`flex items-center gap-1 mt-1 ${isSending ? "opacity-50" : "opacity-100"}`}>
+                      <span className="text-[10px] text-gray-400">
+                        {msg.createdAt ? fmtDate(msg.createdAt) : ""}
+                      </span>
+                      {/* Ticks */}
+                      {isSending ? (
+                        <svg className="w-3.5 h-3.5 text-gray-400" viewBox="0 0 16 11" fill="none">
+                          <path d="M1 5.5L5 9.5L13 1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : (
+                        <svg className={`w-4.5 h-3.5 ${hasAgentReplyAfter ? "text-blue-500" : "text-gray-400"}`} style={{ width: 18, height: 14 }} viewBox="0 0 22 11" fill="none">
+                          <path d="M1 5.5L5 9.5L13 1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M7 5.5L11 9.5L19 1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })
+        )}
+        {typing && (
+          <div className="flex items-end gap-2">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-600 to-red-800 text-white text-[9px] font-black flex items-center justify-center shrink-0">BB</div>
+            <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1.5 shadow-sm">
+              {[0, 150, 300].map(d => <span key={d} className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: `${d}ms` }} />)}
+            </div>
           </div>
         )}
       </div>
-    </div>
-  );
-};
 
-// === MAIN PAGE - YOUR ORIGINAL FULL PAGE ===
-const HelpAndSupportPage = () => {
-  const [isSupportSidebarOpen, setIsSupportSidebarOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  const previousCategory = (location.state as { category?: string })?.category || "Browse";
-
-
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) entry.target.classList.add('fade-in-up');
-      });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
-  }, []);
-
-  return (
-    <div className="flex min-h-screen bg-gray-100 font-sans flex-col">
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
-        .hero-section {
-          background-image: url('https://media.istockphoto.com/id/2152866635/video/chatbot-assistant-application-ai-concept-digital-binary-data-and-streaming-digital-code.mp4?s=mp4-640x640-is&k=20&c=ame22KN30JAUvvydaB0UGYk0yyZvRTWVCaHfKP5OpGY=');
-          background-size: cover;
-          background-position: center;
-          position: relative;
-        }
-        .hero-section::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
-          z-index: 1;
-        }
-        .hero-section > * { position: relative; z-index: 2; }
-      `}</style>
-
-      <div className="flex-1 flex flex-col">
-        <TopBar />
-        <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-        <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
-  <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <li className="flex items-center">
-                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
-                  <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                  </svg>
-                  <span className="hidden sm:inline">Home</span>
-                  <span className="sm:hidden">Home</span>
-                </Link>
-              </li>
-              <li className="flex items-center">
-                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                </svg>
-              </li>
-              {(selectedCategory || (previousCategory && previousCategory !== "Browse")) && (
-                <>
-                  <li className="flex items-center">
-                    <Link
-                      to="/category"
-                      state={{ category: selectedCategory || previousCategory }}
-                      className="text-gray-700 hover:text-blue-600 capitalize font-medium truncate max-w-[120px] sm:max-w-none"
-                    >
-                      {selectedCategory || previousCategory}
-                    </Link>
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                    </svg>
-                  </li>
-                </>
-              )}
-              <li className="text-gray-900 font-semibold">Contact</li>
-            </ol>
-          </nav>
+      <div className="px-4 py-3 bg-white border-t border-gray-100 shrink-0">
+        <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-50 transition-all">
+          <textarea ref={taRef} rows={1} value={input}
+            onChange={e => { setInput(e.target.value); resize(); }}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder="Write a message"
+            className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 resize-none py-0.5"
+            style={{ maxHeight: 96 }} />
+          <button onClick={send} disabled={!input.trim()}
+            className="p-2 rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-30 transition-all shrink-0 mb-0.5">
+            <PaperAirplaneIcon className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
-        
-        <main className="flex-1 bg-gray-50 p-4 sm:p-8 overflow-y-auto pb-16 lg:pb-8">
-          <div className="max-w-4xl mx-auto">
-            {/* Hero Section */}
-      {/* Hero Section */}
-<header className="relative text-white py-16 animate-on-scroll rounded-2xl overflow-hidden">
-  {/* Video Background */}
-  <video
-    className="absolute inset-0 w-full h-full object-cover"
-    autoPlay
-    muted
-    loop
-    playsInline
-    poster="https://via.placeholder.com/1920x1080/000000/333333?text=AI+Binary+Background" // Optional fallback image
-  >
-    <source
-      src="https://media.istockphoto.com/id/2152866635/video/chatbot-assistant-application-ai-concept-digital-binary-data-and-streaming-digital-code.mp4?s=mp4-640x640-is&k=20&c=ame22KN30JAUvvydaB0UGYk0yyZvRTWVCaHfKP5OpGY="
-      type="video/mp4"
-    />
-    {/* Add more sources if you have WebM version for better compatibility */}
-    Your browser does not support the video tag.
-  </video>
-
-  {/* Dark Overlay */}
-  <div className="absolute inset-0 bg-black opacity-50 z-10"></div>
-
-  {/* Content */}
-  <div className="relative z-20 text-center px-6">
-    <h1 className="text-4xl sm:text-5xl font-bold">Help & Support</h1>
-    <p className="mt-4 text-lg max-w-2xl mx-auto text-gray-200">
-      Create a ticket to chat with our support team or Alex, our AI assistant.
-    </p>
-  </div>
-</header>
-
-            {/* FAQ Section */}
-            <section className="py-12">
-              <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center animate-on-scroll">Frequently Asked Questions</h2>
-              <div className="bg-white rounded-xl shadow-lg p-6 animate-on-scroll">
-                {faqData.map((faq, i) => (
-                  <FaqItem key={i} question={faq.question} answer={faq.answer} />
-                ))}
-              </div>
-            </section>
-
-            {/* Contact Section */}
-            <section className="py-12 text-center">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 animate-on-scroll">Still Need Help?</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl mx-auto mt-10">
-                <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition">
-                  <MailIcon className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="font-bold text-lg">Email Support</h3>
-                  <a href="mailto:support@britbooks.co.uk" className="text-blue-600 font-medium">support@britbooks.co.uk</a>
-                </div>
-                <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition">
-                  <MessageSquareIcon className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="font-bold text-lg">Live Chat</h3>
-                  <button
-                    onClick={() => setIsSupportSidebarOpen(true)}
-                    className="text-blue-600 font-bold hover:underline mt-2"
-                  >
-                    Start Chat →
-                  </button>
-                </div>
-              </div>
-            </section>
-          </div>
-        </main>
-        <Footer />
-      </div>
-
-      <SupportTicketSidebar
-        isOpen={isSupportSidebarOpen}
-        onClose={() => setIsSupportSidebarOpen(false)}
-      />
     </div>
   );
-};
+}
 
-export default HelpAndSupportPage;
+/* ────────────────────────────────────────────────────────────────
+   FAQ
+──────────────────────────────────────────────────────────────── */
+const faqs = [
+  { q: "How do I track my order?", a: "Track your order from the My Orders section in your account dashboard with real-time status updates." },
+  { q: "What is your return policy?", a: "We accept returns within 30 days of receipt, provided the book is in its original condition with no marks or damage." },
+  { q: "How do I sell my books on BritBooks?", a: "Navigate to Sell Books, enter the ISBN and receive an instant valuation. We collect from your door at no charge." },
+  { q: "What payment methods do you accept?", a: "Visa, Mastercard, American Express, and PayPal. All transactions are protected by 256-bit SSL encryption." },
+  { q: "How long does delivery take?", a: "Standard delivery takes 2 to 4 working days. Express next-day delivery is available at checkout." },
+  { q: "Do you offer business or bulk accounts?", a: "Yes. We offer dedicated account managers, volume pricing, and priority support for business customers. Contact our team to learn more." },
+];
+
+function FaqItem({ q, a, i }: { q: string; a: string; i: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+      transition={{ delay: i * 0.04 }}
+      className={`border-b border-gray-100 last:border-0 transition-all`}
+    >
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-5 text-left py-5 group">
+        <span className={`text-xs font-black tabular-nums transition-colors shrink-0 ${open ? "text-red-600" : "text-gray-300 group-hover:text-red-400"}`}>
+          {String(i + 1).padStart(2, "0")}
+        </span>
+        <span className={`flex-1 text-sm font-semibold transition-colors ${open ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"}`}>{q}</span>
+        <ChevronDownIcon className={`w-4 h-4 transition-all duration-300 shrink-0 ${open ? "rotate-180 text-red-500" : "text-gray-300"}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }} className="overflow-hidden">
+            <p className="pb-5 text-sm text-gray-500 leading-relaxed pl-9">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+   PAGE
+──────────────────────────────────────────────────────────────── */
+export default function HelpAndSupportPage() {
+  const { auth } = useAuth();
+  const [mobileChat, setMobileChat] = useState(false);
+  const [chatExpanded, setChatExpanded] = useState(false);
+  const [newChatTrigger, setNewChatTrigger] = useState(0);
+  const [searchQ, setSearchQ] = useState("");
+  const desktopPanelRef = useRef<HTMLDivElement>(null);
+
+  // Shared state kept here so panel ↔ expanded stay in sync
+  const [chatShared, setChatShared] = useState<SharedChatState>({
+    view: "inbox", chatId: null, messages: [], threads: [], page: 0,
+    form: { subject: "", description: "" }, loading: false,
+  });
+  const updateChatShared = (patch: Partial<SharedChatState>) =>
+    setChatShared(prev => ({ ...prev, ...patch }));
+
+  const filteredFaqs = faqs.filter(f =>
+    !searchQ || f.q.toLowerCase().includes(searchQ.toLowerCase()) || f.a.toLowerCase().includes(searchQ.toLowerCase())
+  );
+
+  const openNewChat = () => {
+    setNewChatTrigger(n => n + 1);
+    setMobileChat(true);
+    desktopPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  return (
+    <div className="min-h-screen bg-white font-sans">
+      <Toaster position="top-center" />
+      <TopBar />
+
+      {/* ════════════════════════════════════════════════════════
+          HERO
+      ════════════════════════════════════════════════════════ */}
+      <section className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-2 min-h-[88vh] items-center gap-12 lg:gap-20 py-16">
+
+            {/* Left — text */}
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="order-2 lg:order-1">
+              <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-8">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-emerald-700 tracking-wide">Support team available now</span>
+              </div>
+
+              <h1 className="text-5xl sm:text-6xl lg:text-[68px] font-black text-gray-900 tracking-tight leading-[1.03] mb-6">
+                World-class<br />
+                support for<br />
+                <span className="text-red-600">every customer.</span>
+              </h1>
+
+              <p className="text-gray-400 text-lg leading-relaxed mb-10 max-w-lg">
+                From first-time buyers to enterprise partners — our dedicated team is here with the answers you need, when you need them.
+              </p>
+
+              {/* Search */}
+              <div className="relative max-w-lg mb-8">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <input type="text" placeholder="Search help articles and FAQs" value={searchQ} onChange={e => setSearchQ(e.target.value)}
+                  className="w-full pl-14 pr-12 py-4.5 py-[18px] bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition-all shadow-sm" />
+                {searchQ && (
+                  <button onClick={() => setSearchQ("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button onClick={openNewChat}
+                  className="inline-flex items-center gap-2 px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-2xl transition-all shadow-md shadow-red-100 hover:shadow-red-200">
+                  <MessageSquare className="w-4 h-4" /> Chat with support
+                </button>
+                <a href="mailto:support@britbooks.co.uk"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-2xl transition-all">
+                  <Mail className="w-4 h-4" /> Email us
+                </a>
+              </div>
+            </motion.div>
+
+            {/* Right — video */}
+            <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.1 }}
+              className="order-1 lg:order-2 relative hidden lg:block">
+              <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl shadow-gray-300/60 lg:h-[580px]">
+                <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
+                  <source src={VIDEO_SRC} type="video/mp4" />
+                </video>
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                {/* Bottom overlay content */}
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-2">Enterprise ready</p>
+                      <div className="flex gap-2.5">
+                        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5">
+                          <ShieldCheckIcon className="w-4 h-4 text-white" />
+                          <span className="text-white text-xs font-bold">256-bit SSL</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5">
+                          <ClockIcon className="w-4 h-4 text-white" />
+                          <span className="text-white text-xs font-bold">24 / 7</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={openNewChat}
+                      className="shrink-0 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-3 rounded-xl transition-all shadow-lg">
+                      Get help <ArrowRightIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating metric card */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                className="absolute -bottom-6 -left-6 hidden lg:block bg-white rounded-2xl shadow-xl shadow-gray-200 border border-gray-100 px-5 py-4"
+              >
+                <p className="text-3xl font-black text-gray-900">98%</p>
+                <p className="text-xs text-gray-400 font-semibold mt-0.5">Customer satisfaction rate</p>
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════
+          STATS BAR
+      ════════════════════════════════════════════════════════ */}
+      <section className="bg-gray-900 border-y border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x lg:divide-gray-700">
+            {[
+              { icon: <Zap className="w-5 h-5 text-amber-400" />, stat: "< 2 hours", label: "Average first response" },
+              { icon: <CheckCircle className="w-5 h-5 text-emerald-400" />, stat: "50,000+", label: "Tickets resolved this year" },
+              { icon: <Users className="w-5 h-5 text-blue-400" />, stat: "2M+", label: "Customers supported" },
+              { icon: <Award className="w-5 h-5 text-purple-400" />, stat: "24 / 7", label: "Always available" },
+            ].map((s, i) => (
+              <motion.div key={i}
+                initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}
+                className="lg:px-10 first:pl-0 last:pr-0 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">{s.icon}</div>
+                <div>
+                  <p className="text-2xl font-black text-white">{s.stat}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 font-medium">{s.label}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════
+          MAIN CONTENT
+      ════════════════════════════════════════════════════════ */}
+      <section className="bg-[#f7f7f9]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+          <div className="flex gap-10 items-start">
+
+            {/* Left */}
+            <div className="flex-1 min-w-0 space-y-8">
+
+              {/* Section heading */}
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Get in touch</h2>
+                <p className="text-gray-400 text-sm mt-1">Choose the channel that works best for you.</p>
+              </div>
+
+              {/* Contact cards */}
+              <div className="grid sm:grid-cols-2 gap-5">
+                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.05 }}
+                  className="bg-white rounded-3xl border border-gray-100 p-7 flex flex-col gap-5 hover:shadow-lg hover:shadow-gray-100 hover:-translate-y-0.5 transition-all duration-200">
+                  <div className="flex items-start justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-200">
+                      <MessageSquare className="w-6 h-6" />
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-bold text-emerald-700">Live now</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-black text-gray-900 text-lg mb-1.5">Live Chat</p>
+                    <p className="text-gray-400 text-sm leading-relaxed">Connect instantly with our support specialists. Real answers from real people — no bots.</p>
+                  </div>
+                  <button onClick={openNewChat}
+                    className="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold tracking-wide transition-all shadow-sm shadow-red-100 flex items-center justify-center gap-2">
+                    Start a conversation <ArrowRightIcon className="w-4 h-4" />
+                  </button>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+                  className="bg-white rounded-3xl border border-gray-100 p-7 flex flex-col gap-5 hover:shadow-lg hover:shadow-gray-100 hover:-translate-y-0.5 transition-all duration-200">
+                  <div className="flex items-start justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-md shadow-gray-200">
+                      <Mail className="w-6 h-6" />
+                    </div>
+                    <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700">Replies in 24h</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-black text-gray-900 text-lg mb-1.5">Email Support</p>
+                    <p className="text-gray-400 text-sm leading-relaxed">Send a detailed message to our team. Perfect for complex queries or documentation requests.</p>
+                  </div>
+                  <a href="mailto:support@britbooks.co.uk"
+                    className="block text-center w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2">
+                    Send an email <ArrowRightIcon className="w-4 h-4" />
+                  </a>
+                </motion.div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-gray-200" />
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Frequently asked questions</p>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              {/* Search result label */}
+              {searchQ && (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">Showing results for <span className="font-bold text-gray-900">"{searchQ}"</span></p>
+                  <button onClick={() => setSearchQ("")} className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors">Clear</button>
+                </div>
+              )}
+
+              {/* FAQ */}
+              {filteredFaqs.length === 0 ? (
+                <div className="bg-white rounded-3xl border border-gray-100 p-14 text-center">
+                  <Search className="w-10 h-10 text-gray-200 mx-auto mb-4" />
+                  <p className="text-base font-bold text-gray-600">No results for "{searchQ}"</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Try different keywords or{" "}
+                    <button onClick={openNewChat} className="text-red-600 hover:text-red-700 font-bold underline underline-offset-2">start a chat</button>.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl border border-gray-100 px-8 divide-y divide-gray-50">
+                  {filteredFaqs.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} i={i} />)}
+                </div>
+              )}
+
+              {/* Enterprise CTA strip */}
+              <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                className="relative bg-gray-900 rounded-3xl p-8 sm:p-10 overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div
+                  className="absolute inset-0 opacity-5"
+                  style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+                />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="w-4 h-4 text-red-400" />
+                    <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Enterprise</span>
+                  </div>
+                  <p className="text-xl font-black text-white">Need a dedicated account manager?</p>
+                  <p className="text-gray-400 text-sm mt-1">We support businesses of all sizes with priority support and tailored solutions.</p>
+                </div>
+                <button onClick={openNewChat}
+                  className="relative shrink-0 flex items-center gap-2 px-7 py-3.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-2xl transition-all shadow-lg shadow-red-900/30">
+                  Contact enterprise team <ArrowRightIcon className="w-4 h-4" />
+                </button>
+              </motion.div>
+            </div>
+
+            {/* Right — sticky chat panel (desktop) */}
+            <div ref={desktopPanelRef}
+              className="hidden lg:block w-[380px] xl:w-[410px] shrink-0 sticky top-6 h-[620px] rounded-3xl border border-gray-200 shadow-xl shadow-gray-200/60 overflow-hidden bg-white">
+              <ChatWidget
+                userId={auth.user?.userId}
+                token={auth.token ?? undefined}
+                newChatTrigger={newChatTrigger}
+                expanded={false}
+                onToggleExpand={() => setChatExpanded(true)}
+                shared={chatShared}
+                onSharedChange={updateChatShared}
+              />
+            </div>
+
+            {/* Expanded chat overlay (desktop) */}
+            <AnimatePresence>
+              {chatExpanded && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={() => setChatExpanded(false)}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden lg:block"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                    className="fixed inset-0 z-50 hidden lg:flex items-center justify-center p-8"
+                  >
+                    <div className="w-full max-w-3xl h-[82vh] rounded-3xl border border-gray-200 shadow-2xl overflow-hidden bg-white flex flex-col">
+                      <ChatWidget
+                        userId={auth.user?.userId}
+                        token={auth.token ?? undefined}
+                        newChatTrigger={newChatTrigger}
+                        expanded={true}
+                        onToggleExpand={() => setChatExpanded(false)}
+                        onClose={() => setChatExpanded(false)}
+                        shared={chatShared}
+                        onSharedChange={updateChatShared}
+                      />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+
+      {/* Mobile FAB */}
+      <AnimatePresence>
+        {!mobileChat && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.07 }} whileTap={{ scale: 0.94 }}
+            onClick={openNewChat}
+            className="fixed bottom-6 right-5 w-14 h-14 bg-red-600 rounded-2xl shadow-xl shadow-red-200 flex items-center justify-center z-40 lg:hidden">
+            <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6 text-white" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile bottom sheet */}
+      <AnimatePresence>
+        {mobileChat && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setMobileChat(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 340, damping: 34 }}
+              className="fixed inset-x-0 bottom-0 z-50 h-[88vh] bg-white rounded-t-3xl overflow-hidden flex flex-col lg:hidden shadow-2xl">
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              <div className="flex-1 min-h-0">
+                <ChatWidget userId={auth.user?.userId} token={auth.token ?? undefined}
+                  onClose={() => setMobileChat(false)} newChatTrigger={newChatTrigger}
+                  shared={chatShared} onSharedChange={updateChatShared} />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
