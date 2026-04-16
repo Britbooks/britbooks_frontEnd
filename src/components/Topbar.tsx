@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import {
   Home, Grid3X3, TrendingUp, Sparkles, Trophy, Tag,
   MessageCircle, ChevronRight, Package, Heart as HeartIcon,
-  Settings, LogOut, LogIn, UserPlus, Truck, Zap, Gift,
+  ShoppingBag, Settings, LogOut, LogIn, UserPlus, Truck, Zap, Gift,
   Instagram, Twitter, Facebook, Mail
 } from 'lucide-react';
 
@@ -160,6 +160,7 @@ const TopBar = () => {
   const navigate = useNavigate();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -168,8 +169,6 @@ const TopBar = () => {
   const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [isCategoryHovered, setIsCategoryHovered] = useState(false);
   const [hoveredMainCat, setHoveredMainCat] = useState<CategoryNode | null>(null);
-
-  // ─── NEW STATES FOR MOBILE CATEGORY DROPDOWN ───
   const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
 
   const searchRef = useRef(null);
@@ -260,399 +259,301 @@ const TopBar = () => {
 
   return (
     <header className="sticky top-0 z-50">
-      {/* ==================== MOBILE TOPBAR ==================== */}
-      <div className="sm:hidden flex flex-col" style={{ boxShadow: '0 2px 16px rgba(10,22,40,0.10)' }}>
 
-      
+      {/* ═══════════════════════════════════════════════
+          MOBILE TOPBAR — navy bar + popover menu
+      ═══════════════════════════════════════════════ */}
+      <div className="sm:hidden">
 
-        {/* Main Bar */}
-        <div className="bg-white flex items-center px-3 py-2.5 gap-2">
-          {/* Hamburger */}
+        {/* ── Main bar ── */}
+        <div
+          className="relative bg-white flex items-center px-4 py-2.5"
+          style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05)' }}
+        >
+          {/* Left: menu button */}
           <motion.button
-            whileTap={{ scale: 0.84 }}
+            whileTap={{ scale: 0.82 }}
             onClick={toggleMobileMenu}
-            className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0"
+            className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: isMobileMenuOpen ? '#0a1628' : '#f3f4f6' }}
           >
-            <MenuIcon className="h-5 w-5 text-gray-700" />
+            <AnimatePresence mode="wait">
+              {isMobileMenuOpen ? (
+                <motion.span key="x"
+                  initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.13 }}
+                  className="flex items-center justify-center"
+                >
+                  <XIcon className="h-4 w-4 text-white" />
+                </motion.span>
+              ) : (
+                <motion.span key="menu"
+                  initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.13 }}
+                  className="flex items-center justify-center"
+                >
+                  <MenuIcon className="h-4 w-4 text-gray-700" />
+                </motion.span>
+              )}
+            </AnimatePresence>
           </motion.button>
 
-          {/* Logo - centred */}
+          {/* Centre: logo — truly centred with flex */}
           <div className="flex-1 flex justify-center">
             <Link to="/">
-              <img src="/logobrit.png" alt="BritBooks" className="h-9 object-contain" />
+              <img src="/logobrit.png" alt="BritBooks" className="h-9 w-auto object-contain" />
             </Link>
           </div>
 
-          {/* Right icons */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <motion.div whileTap={{ scale: 0.84 }}>
-              <Link to="/wishlist" className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center">
-                <HeartIcon size={18} className="text-gray-600" />
-              </Link>
-            </motion.div>
-            <motion.div whileTap={{ scale: 0.84 }}>
-              <Link to="/checkout" className="w-10 h-10 rounded-2xl bg-[#0a1628] flex items-center justify-center relative">
-                <ShoppingCartIcon className="h-5 w-5 text-white" />
-                {cartCount > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center"
-                  >
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="bg-white px-3 pb-3" ref={searchRef}>
-          <div className="relative">
-            <SearchIcon className="absolute  -mt-24  left-3.5  -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search books, authors, genres…"
-              className="w-full pl-10 pr-10 py-2.5 bg-gray-100 rounded-2xl text-[13px] font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a1628] focus:bg-white transition-all"
-              value={searchQuery}
-              onChange={handleInputChange}
-            />
-            {searchQuery ? (
-              <button
-                onClick={clearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center"
-              >
-                <XIcon className="h-3 w-3 text-white" />
-              </button>
-            ) : null}
-          </div>
-
-          {/* Search Results Dropdown */}
-          <AnimatePresence>
-            {searchQuery.trim() && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
-                className="absolute left-3 right-3 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl max-h-96 overflow-y-auto z-40"
-                style={{ boxShadow: '0 8px 32px rgba(10,22,40,0.14)' }}
-              >
-                {isLoading && (
-                  <div className="p-5 flex items-center justify-center gap-3 text-gray-400">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-[#0a1628] rounded-full animate-spin" />
-                    <span className="text-sm font-medium">Searching…</span>
-                  </div>
-                )}
-                {error && <p className="p-4 text-center text-red-500 text-sm">{error}</p>}
-                {!isLoading && !error && searchResults.length === 0 && (
-                  <p className="p-5 text-center text-gray-400 text-sm font-medium">No results found for "{searchQuery}"</p>
-                )}
-                {searchResults.map((book) => (
-                  <SearchResultCard
-                    key={book.id}
-                    id={book.id}
-                    imageUrl={book.imageUrl}
-                    title={book.title}
-                    author={book.author}
-                    price={`£${book.price.toFixed(2)}`}
-                    rating={book.rating}
-                    onSelect={clearSearch}
-                  />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* ==================== MOBILE MENU ==================== */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm sm:hidden"
-              onClick={toggleMobileMenu}
-            />
-
-            {/* Drawer Panel */}
-            <motion.div
-              key="drawer"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-              className="fixed top-0 left-0 bottom-0 z-50 w-[85vw] max-w-sm bg-white flex flex-col sm:hidden shadow-2xl"
+          {/* Right: search + cart */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <motion.button
+              whileTap={{ scale: 0.82 }}
+              onClick={() => setMobileSearchOpen(v => !v)}
+              className="w-9 h-9 rounded-2xl bg-gray-100 flex items-center justify-center"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <Link to="/" onClick={toggleMobileMenu}>
-                  <img src="/logobrit.png" alt="BritBooks Logo" className="h-9" />
-                </Link>
-                <motion.button
-                  whileTap={{ scale: 0.88 }}
-                  onClick={toggleMobileMenu}
-                  className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"
-                >
-                  <XIcon className="h-5 w-5 text-gray-600" />
-                </motion.button>
-              </div>
+              <SearchIcon className="h-4 w-4 text-gray-600" />
+            </motion.button>
 
-              {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto">
+            <motion.div whileTap={{ scale: 0.82 }} className="relative">
+              <Link to="/checkout"
+                className="w-9 h-9 rounded-2xl bg-gray-100 flex items-center justify-center">
+                <ShoppingBag className="h-4 w-4 text-gray-700" />
+              </Link>
+              {cartCount > 0 && (
+                <span className="pointer-events-none absolute -top-1 -right-1 min-w-[17px] h-[17px] px-0.5 rounded-full bg-[#c9a84c] text-black text-[9px] font-black flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </motion.div>
+          </div>
+        </div>
 
-                {/* User Account Strip */}
-                <div className="px-5 py-4 bg-[#0a1628]">
-                  {user ? (
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#c9a84c] flex items-center justify-center flex-shrink-0">
-                        <span className="text-[#0a1628] font-black text-sm">
-                          {user.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-bold text-sm truncate">{user.fullName}</p>
-                        <p className="text-[#c9a84c] text-xs truncate">{user.email}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-3">
-                      <Link
-                        to="/login"
-                        onClick={toggleMobileMenu}
-                        className="flex-1 flex items-center justify-center gap-2 bg-[#c9a84c] text-[#0a1628] font-black text-xs py-2.5 rounded-xl"
-                      >
-                        <LogIn size={14} /> Sign In
-                      </Link>
-                      <Link
-                        to="/signup"
-                        onClick={toggleMobileMenu}
-                        className="flex-1 flex items-center justify-center gap-2 bg-white/10 text-white font-bold text-xs py-2.5 rounded-xl border border-white/20"
-                      >
-                        <UserPlus size={14} /> Register
-                      </Link>
-                    </div>
+        {/* ── Expandable search bar ── */}
+        <AnimatePresence>
+          {mobileSearchOpen && (
+            <motion.div
+              key="mobilesearch"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              className="overflow-hidden bg-white border-b border-gray-100"
+              ref={searchRef}
+            >
+              <div className="px-4 py-3">
+                <div className="flex items-center bg-gray-100 rounded-2xl px-4 py-3 gap-2">
+                  <SearchIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search books, authors…"
+                    autoFocus
+                    className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                    value={searchQuery}
+                    onChange={handleInputChange}
+                  />
+                  {searchQuery && (
+                    <button onClick={clearSearch}>
+                      <XIcon className="h-3.5 w-3.5 text-gray-400" />
+                    </button>
                   )}
                 </div>
 
-                {/* Flash Deal Ad Banner */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="mx-4 mt-4 rounded-2xl overflow-hidden relative"
-                  style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #e8c96a 100%)' }}
-                >
-                  <Link to="/clearance" onClick={toggleMobileMenu} className="flex items-center p-4 gap-3">
-                    <div className="w-10 h-10 bg-white/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Zap size={20} className="text-[#0a1628]" fill="currentColor" />
-                    </div>
-                    <div>
-                      <p className="text-[#0a1628] font-black text-sm leading-tight">Flash Sale Live</p>
-                      <p className="text-[#0a1628]/70 text-xs font-medium">Up to 60% off clearance titles</p>
-                    </div>
-                    <ChevronRight size={18} className="text-[#0a1628]/60 ml-auto flex-shrink-0" />
-                  </Link>
-                </motion.div>
-
-                {/* Main Navigation */}
-                <nav className="px-3 pt-4 pb-2">
-                  <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Browse</p>
-
-                  {[
-                    { to: '/', icon: Home, label: 'Home', color: '#6366f1' },
-                    { to: '/popular-books', icon: TrendingUp, label: 'Popular Books', color: '#10b981' },
-                    { to: '/new-arrivals', icon: Sparkles, label: 'New Arrivals', color: '#f59e0b' },
-                    { to: '/bestsellers', icon: Trophy, label: 'Best Sellers', color: '#ef4444' },
-                    { to: '/clearance', icon: Tag, label: 'Clearance', color: '#8b5cf6' },
-                  ].map((item, idx) => (
-                    <motion.div
-                      key={item.to}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.08 + idx * 0.05 }}
-                    >
-                      <Link
-                        to={item.to}
-                        onClick={toggleMobileMenu}
-                        className={`flex items-center gap-3 px-3 py-3 rounded-xl mb-1 transition-colors ${
-                          isActive(item.to) ? 'bg-red-50 text-red-600' : 'hover:bg-gray-50 text-gray-700'
-                        }`}
-                      >
-                        <div
-                          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: `${item.color}18` }}
-                        >
-                          <item.icon size={16} style={{ color: item.color }} />
-                        </div>
-                        <span className="font-semibold text-sm">{item.label}</span>
-                        {isActive(item.to) && <ChevronRight size={14} className="ml-auto text-red-400" />}
-                      </Link>
-                    </motion.div>
-                  ))}
-
-                  {/* Shop by Category Accordion */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.33 }}
-                  >
-                    <button
-                      onClick={() => setIsMobileCategoriesOpen(!isMobileCategoriesOpen)}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl mb-1 w-full hover:bg-gray-50 text-gray-700 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-orange-50">
-                        <Grid3X3 size={16} className="text-orange-500" />
+                {/* Search results */}
+                {searchQuery.trim() && (
+                  <div className="mt-2 bg-white rounded-2xl border border-gray-100 overflow-hidden max-h-64 overflow-y-auto"
+                    style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.10)' }}>
+                    {isLoading && (
+                      <div className="p-4 flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-gray-200 border-t-[#0a1628] rounded-full animate-spin" />
+                        <span className="text-sm text-gray-400">Searching…</span>
                       </div>
-                      <span className="font-semibold text-sm">Shop by Category</span>
-                      <motion.div
-                        animate={{ rotate: isMobileCategoriesOpen ? 90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="ml-auto"
-                      >
-                        <ChevronRight size={14} className="text-gray-400" />
-                      </motion.div>
-                    </button>
-
-                    <AnimatePresence>
-                      {isMobileCategoriesOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.22 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="pl-5 pb-2 flex flex-col gap-0.5">
-                            {categories.map((cat, i) => (
-                              <motion.div
-                                key={cat.name}
-                                initial={{ opacity: 0, x: -8 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.04 }}
-                              >
-                                <Link
-                                  to={`/category?category=${encodeURIComponent(cat.name)}`}
-                                  onClick={toggleMobileMenu}
-                                  className="flex items-center gap-2 py-2.5 px-3 rounded-lg text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                >
-                                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" />
-                                  {cat.name}
-                                </Link>
-                              </motion.div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                </nav>
-
-                {/* Free Shipping Promo Card */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="mx-4 mt-2 mb-4 rounded-2xl bg-emerald-50 border border-emerald-100 p-4 flex items-center gap-3"
-                >
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Truck size={18} className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-emerald-800 font-bold text-sm">Free Delivery</p>
-                    <p className="text-emerald-600 text-xs">On orders of 4+ books. Always.</p>
-                  </div>
-                </motion.div>
-
-                {/* Account Section */}
-                {user && (
-                  <nav className="px-3 pb-2">
-                    <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">My Account</p>
-                    {[
-                      { to: '/settings', icon: Settings, label: 'Account Settings', color: '#6b7280' },
-                      { to: '/wishlist', icon: HeartIcon, label: 'Wishlist', color: '#ec4899' },
-                      { to: '/orders', icon: Package, label: 'My Orders', color: '#3b82f6' },
-                    ].map((item, idx) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        onClick={toggleMobileMenu}
-                        className="flex items-center gap-3 px-3 py-3 rounded-xl mb-1 hover:bg-gray-50 text-gray-700 transition-colors"
-                      >
-                        <div
-                          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: `${item.color}18` }}
-                        >
-                          <item.icon size={16} style={{ color: item.color }} />
-                        </div>
-                        <span className="font-semibold text-sm">{item.label}</span>
-                      </Link>
+                    )}
+                    {error && <p className="p-4 text-center text-red-500 text-sm">{error}</p>}
+                    {!isLoading && !error && searchResults.length === 0 && (
+                      <p className="p-4 text-center text-gray-400 text-sm">No results for "{searchQuery}"</p>
+                    )}
+                    {searchResults.map((book) => (
+                      <SearchResultCard key={book.id} id={book.id} imageUrl={book.imageUrl}
+                        title={book.title} author={book.author}
+                        price={`£${book.price.toFixed(2)}`} rating={book.rating}
+                        onSelect={() => { clearSearch(); setMobileSearchOpen(false); }} />
                     ))}
-                    <button
-                      onClick={() => { logout?.(); toggleMobileMenu(); }}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl mb-1 hover:bg-red-50 text-red-500 transition-colors w-full"
-                    >
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-50">
-                        <LogOut size={16} className="text-red-500" />
-                      </div>
-                      <span className="font-semibold text-sm">Sign Out</span>
-                    </button>
-                  </nav>
+                  </div>
                 )}
-
-                {/* Help */}
-                <nav className="px-3 pb-4">
-                  <Link
-                    to="/help"
-                    onClick={toggleMobileMenu}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50">
-                      <MessageCircle size={16} className="text-blue-500" />
-                    </div>
-                    <span className="font-semibold text-sm">Contact Us</span>
-                  </Link>
-                </nav>
-              </div>
-
-              {/* Footer Strip */}
-              <div className="border-t border-gray-100 px-5 py-4 bg-gray-50">
-                <a
-                  href="mailto:customercare@britbooks.co.uk"
-                  className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-3"
-                >
-                  <Mail size={13} className="text-red-500" />
-                  customercare@britbooks.co.uk
-                </a>
-                <div className="flex gap-4">
-                  {[
-                    { icon: Instagram, href: '#', color: '#e1306c' },
-                    { icon: Twitter, href: '#', color: '#1da1f2' },
-                    { icon: Facebook, href: '#', color: '#1877f2' },
-                  ].map(({ icon: Icon, href, color }, i) => (
-                    <motion.a
-                      key={i}
-                      href={href}
-                      whileTap={{ scale: 0.88 }}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-white border border-gray-200 shadow-sm"
-                    >
-                      <Icon size={15} style={{ color }} />
-                    </motion.a>
-                  ))}
-                </div>
               </div>
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Top Bar */}
-      <div className="bg-indigo-900 text-white px-4 py-1">
+        {/* ── POPOVER MENU — pops from the menu button (top-right origin) ── */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <>
+              {/* Tap-away backdrop */}
+              <motion.div
+                key="pop-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                className="fixed inset-0 z-40"
+                onClick={toggleMobileMenu}
+              />
+
+              {/* Popover card — scales from top-right (menu button corner) */}
+              <motion.div
+                key="pop-menu"
+                initial={{ opacity: 0, scale: 0.72, y: -8 }}
+                animate={{ opacity: 1, scale: 1,    y: 0  }}
+                exit={{   opacity: 0, scale: 0.72, y: -8  }}
+                transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+                style={{
+                  transformOrigin: 'top right',
+                  boxShadow: '0 20px 60px rgba(10,22,40,0.28), 0 4px 16px rgba(10,22,40,0.12)',
+                }}
+                className="fixed top-[58px] left-3 right-3 z-50 bg-white rounded-3xl overflow-hidden"
+              >
+                {/* Scrollable inner */}
+                <div className="overflow-y-auto" style={{ maxHeight: '82vh' }}>
+
+                  {/* User strip */}
+                  <div className="bg-[#0a1628] px-4 py-4 flex items-center gap-3">
+                    {user ? (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-[#c9a84c] flex items-center justify-center flex-shrink-0">
+                          <span className="text-[#0a1628] font-black text-sm">
+                            {user.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-bold text-sm truncate">{user.fullName}</p>
+                          <p className="text-[#c9a84c] text-xs truncate">{user.email}</p>
+                        </div>
+                        <button
+                          onClick={() => { logout?.(); toggleMobileMenu(); }}
+                          className="flex items-center gap-1.5 bg-white/10 text-white text-xs font-bold px-3 py-1.5 rounded-xl"
+                        >
+                          <LogOut size={11} /> Sign out
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex gap-2 w-full">
+                        <Link to="/login" onClick={toggleMobileMenu}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-[#c9a84c] text-black font-black text-sm py-2.5 rounded-xl">
+                          <LogIn size={14} /> Sign In
+                        </Link>
+                        <Link to="/signup" onClick={toggleMobileMenu}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 text-green font-bold text-sm py-2.5 rounded-xl border border-white/20">
+                          <UserPlus size={14} /> Register
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Flash sale banner */}
+                  <div className="p-3">
+                    <Link to="/clearance" onClick={toggleMobileMenu}
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                      style={{ background: 'linear-gradient(135deg,#c9a84c,#e8c96a)' }}>
+                      <div className="w-8 h-8 bg-black/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Zap size={16} className="text-black" fill="currentColor" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-black font-black text-xs">Flash Sale — Up to 60% off</p>
+                        <p className="text-black/60 text-[10px] font-medium mt-0.5">Clearance titles. No codes needed.</p>
+                      </div>
+                      <ChevronRight size={14} className="text-black/40 flex-shrink-0" />
+                    </Link>
+                  </div>
+
+                  {/* Quick nav — 3-column icon grid */}
+                  <div className="px-3 pb-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Quick Access</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { to: '/',              icon: Home,          label: 'Home',         bg: '#eef2ff', color: '#6366f1' },
+                        { to: '/popular-books', icon: TrendingUp,    label: 'Popular',      bg: '#ecfdf5', color: '#10b981' },
+                        { to: '/new-arrivals',  icon: Sparkles,      label: 'New In',       bg: '#fffbeb', color: '#f59e0b' },
+                        { to: '/bestsellers',   icon: Trophy,        label: 'Best Sellers', bg: '#fef2f2', color: '#ef4444' },
+                        { to: '/clearance',     icon: Tag,           label: 'Clearance',    bg: '#f5f3ff', color: '#8b5cf6' },
+                        { to: '/category',      icon: Grid3X3,       label: 'Categories',   bg: '#fff7ed', color: '#f97316' },
+                        { to: '/wishlist',      icon: HeartIcon,     label: 'Wishlist',     bg: '#fdf2f8', color: '#ec4899' },
+                        { to: '/checkout',      icon: Package,       label: 'Basket',       bg: '#f0fdf4', color: '#22c55e' },
+                        { to: '/help',          icon: MessageCircle, label: 'Support',      bg: '#f0f9ff', color: '#0ea5e9' },
+                      ].map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={toggleMobileMenu}
+                          className="flex flex-col items-center gap-1.5 py-3 rounded-2xl active:opacity-70 transition-opacity"
+                          style={{ background: item.bg }}
+                        >
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                            style={{ background: `${item.color}22` }}>
+                            <item.icon size={15} style={{ color: item.color }} />
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-700 text-center leading-tight">{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shop by Category list */}
+                  <div className="px-3 pt-3 pb-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Shop by Category</p>
+                    <div className="bg-gray-50 rounded-2xl overflow-hidden divide-y divide-gray-100">
+                      {categories.slice(0, 7).map((cat) => (
+                        <Link
+                          key={cat.name}
+                          to={`/category?category=${encodeURIComponent(cat.name)}`}
+                          onClick={toggleMobileMenu}
+                          className="flex items-center justify-between px-4 py-3 active:bg-gray-100 transition-colors"
+                        >
+                          <span className="text-xs font-semibold text-gray-700">{cat.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-gray-400">{cat.count}</span>
+                            <ChevronRight size={12} className="text-gray-300" />
+                          </div>
+                        </Link>
+                      ))}
+                      {categories.length > 7 && (
+                        <Link to="/category" onClick={toggleMobileMenu}
+                          className="flex items-center justify-center gap-1 px-4 py-3 text-xs font-bold text-[#c9a84c]">
+                          View all <ChevronRight size={12} />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-4 py-3 flex items-center justify-between border-t border-gray-100 mt-2">
+                    <a href="mailto:customercare@britbooks.co.uk"
+                      className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
+                      <Mail size={11} /> customercare@britbooks.co.uk
+                    </a>
+                    <div className="flex gap-1.5">
+                      {[
+                        { icon: Instagram, color: '#e1306c' },
+                        { icon: Twitter,   color: '#1da1f2' },
+                        { icon: Facebook,  color: '#1877f2' },
+                      ].map(({ icon: Icon, color }, i) => (
+                        <div key={i} className="w-7 h-7 rounded-xl bg-gray-100 flex items-center justify-center">
+                          <Icon size={13} style={{ color }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Top Bar — desktop only */}
+      <div className="hidden sm:block bg-indigo-900 text-white px-4 py-1">
         <div className="container mx-auto flex justify-between items-center text-xs">
           <span>{user ? `Welcome back, ${user.fullName}!` : 'Sign in to explore more!'}</span>
           <nav className="flex space-x-4 md:space-x-6 items-center">
@@ -677,7 +578,7 @@ const TopBar = () => {
       </div>
 
       {/* DESKTOP MIDDLE BAR */}
-      <div className="bg-white px-1 py-1">
+      <div className="hidden sm:block bg-white px-1 py-1">
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center relative">
           <div className="hidden sm:block absolute top-0 left-0 h-36 sm:h-40 z-10">
             <Link to="/" className="block w-auto h-full">
@@ -717,8 +618,8 @@ const TopBar = () => {
         </div>
       </div>
 
-      {/* Navigation & Modern Mega Modal */}
-      <div className="bg-white border-t border-gray-200 px-4">
+      {/* Navigation & Modern Mega Modal — desktop only */}
+      <div className="hidden sm:block bg-white border-t border-gray-200 px-4">
         <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
 
           {/* Keep this spacer so logo doesn't overlap nav */}
