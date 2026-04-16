@@ -1178,7 +1178,7 @@ const Homepage = () => {
           <MobileBookCarousel
             title="Popular Books"
             fetchParams={shelfFetchParams.popularBooks}
-            seeAllLink="/popular"
+            seeAllLink="/popular-books"
             accentColor="#6366f1"
           />
 
