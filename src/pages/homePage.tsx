@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import Footer from '../components/footer';
 import TopBar from '../components/Topbar';
-import { fetchBooks, fetchCategories, Book } from '../data/books';
+import { fetchBooks, fetchCategories, Book, CategoryNode } from '../data/books';
 import { useRecentlyViewed } from '../context/viewManager';
 import BookCard from "../components/BookCard";
 
@@ -539,6 +539,48 @@ const MobileBookCarousel: React.FC<MobileCarouselProps> = ({ title, fetchParams,
   );
 };
 
+// --- Static shelf fetch params (outside component to keep stable references) ---
+const shelfFetchParams = {
+  newArrivals: {
+    shelf: "newArrivals",
+    label: "New Arrivals",
+    sort: "createdAt",
+    order: "desc",
+    filters: { stock: { $gt: 0 } },
+  },
+  popularBooks: {
+    shelf: "popularBooks",
+    label: "Popular Books",
+    sort: "rating",
+    order: "desc",
+    filters: {},
+  },
+  bestSellers: {
+    shelf: "bestSellers",
+    label: "Best Sellers",
+    sort: "salesCount",
+    order: "desc",
+    filters: { stock: { $gt: 0 } },
+  },
+  childrensBooks: {
+    shelf: "childrensBooks",
+    label: "Children's Books",
+    sort: "createdAt",
+    order: "desc",
+    filters: { category: "Children's Books" },
+  },
+  clearanceItems: {
+    shelf: "clearanceItems",
+    label: "Clearance Items",
+    sort: "discount.value",
+    order: "desc",
+    filters: {
+      "discount.isActive": true,
+      "discount.value": { $gte: 10 },
+    },
+  },
+};
+
 // --- Main Homepage Component ---
 
 const Homepage = () => {
@@ -870,52 +912,6 @@ const Homepage = () => {
         </div>
       </div>
     );
-  };
-  const shelfFetchParams = {
-    newArrivals: {
-      shelf: "newArrivals",
-      label: "New Arrivals",
-      sort: "createdAt",
-      order: "desc",
-      filters: { stock: { $gt: 0 } },
-    },
-  
-    popularBooks: {
-      shelf: "popularBooks",
-      label: "Popular Books",
-      sort: "rating",
-      order: "desc",
-      filters: {},
-    },
-  
-    bestSellers: {
-      shelf: "bestSellers",
-      label: "Best Sellers",
-      sort: "salesCount",
-      order: "desc",
-      filters: { stock: { $gt: 0 } },
-    },
-  
-    childrensBooks: {
-      shelf: "childrensBooks",
-      label: "Children's Books",
-      sort: "createdAt",
-      order: "desc",
-      filters: { category: "Children's Books" },
-    },
-  
-    clearanceItems: {
-      shelf: "clearanceItems",
-      label: "Clearance Items",
-      sort: "discount.value",
-      order: "desc",
-      filters: {
-        "discount.isActive": true,
-        "discount.value": { $gte: 10 },
-      },
-    },
-  
-   
   };
   
   return (
