@@ -1,20 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import axios from "axios";
+import { motion, AnimatePresence } from "framer-motion";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import {
-  Heart,
-  Facebook,
-  Twitter,
-  Instagram,
-  ChevronLeft,
-  ChevronRight,
-  ShoppingCart,
-  Eye,
-  ShoppingBag,
+  Heart, Facebook, Twitter, Instagram,
+  ChevronLeft, ChevronRight, ShoppingCart,
+  ShoppingBag, Star, Package, BookOpen,
+  Share2, Check, Minus, Plus, X,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useCart } from "../context/cartContext";
@@ -24,604 +20,656 @@ import { useRecentlyViewed } from "../context/viewManager";
 import BookCard from "./BookCard";
 import { useWishlist } from "../context/wishlistContext";
 
+const FALLBACK = "https://placehold.co/300x450?text=Book+Cover";
 
+/* ─────────────────────────────────────────────────────────────────
+   STAR RATING
+───────────────────────────────────────────────────────────────── */
+const Stars = ({ rating = 0, size = 14 }: { rating: number; size?: number }) => (
+  <div className="flex items-center gap-0.5">
+    {[...Array(5)].map((_, i) => (
+      <svg key={i} width={size} height={size} viewBox="0 0 24 24"
+        fill={i < Math.round(rating) ? "currentColor" : "none"}
+        stroke={i < Math.round(rating) ? "#facc15" : "#d1d5db"}
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        className={i < Math.round(rating) ? "text-yellow-400" : "text-gray-300"}>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ))}
+  </div>
+);
 
-
-// --- Star Rating Component ---
-const StarRating = ({ rating = 0 }: { rating: number }) => {
-  const rounded = Math.round(rating);
-
-  return (
-    <div className="flex items-center gap-0.5">
-      {[...Array(5)].map((_, i) => (
-        <svg
-          key={i}
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill={i < rounded ? "currentColor" : "none"}
-          stroke={i < rounded ? "#facc15" : "#d1d5db"}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={i < rounded ? "text-yellow-400" : "text-gray-300"}
-        >
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-        </svg>
-      ))}
-    </div>
-  );
-};
-
-// --- Book Card Component ---
-interface BookCardProps {
-  id: string;
-  img: string;
-  title: string;
-  author: string;
-  price: string;
-}
-
-
-
-// --- BookShelf Component ---
-const BookShelf = ({
-  title,
-  fetchParams,
-  currentBookId,
-}: {
-  title: string;
-  fetchParams: any;
-  currentBookId: string;
+/* ─────────────────────────────────────────────────────────────────
+   BOOK SHELF (horizontal scroll on mobile, grid on desktop)
+───────────────────────────────────────────────────────────────── */
+const BookShelf = ({ title, fetchParams, currentBookId }: {
+  title: string; fetchParams: any; currentBookId: string;
 }) => {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const booksPerPage = 5;
-  const maxPages = 20;
+  const [books, setBooks]   = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage]     = useState(1);
+  const perPage = 5;
 
   useEffect(() => {
-    const fetchShelfBooks = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { listings: fetchedBooks } = await fetchBooks({
-          page: 1,
-          limit: 10,
-          ...fetchParams,
-        });
+    setLoading(true);
+    fetchBooks({ page: 1, limit: 10, ...fetchParams })
+      .then(({ listings }) => {
+        setBooks((Array.isArray(listings) ? listings : []).filter(b => b?.id && b.id !== currentBookId));
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [fetchParams, currentBookId]);
 
-        const filteredBooks = Array.isArray(fetchedBooks)
-          ? fetchedBooks.filter((b) => b?.id && b.id !== currentBookId)
-          : [];
+  const totalPages = Math.ceil(books.length / perPage);
+  const visible    = books.slice((page - 1) * perPage, page * perPage);
 
-        setBooks(filteredBooks);
-        setIsLoading(false);
-      } catch (err) {
-        setError(`Failed to load ${title.toLowerCase()}. Please try again.`);
-        setIsLoading(false);
-        console.error(`Failed to fetch ${title}:`, err);
-      }
-    };
-    fetchShelfBooks();
-  }, [fetchParams, title, currentBookId]);
+  if (loading) return (
+    <section className="py-5">
+      <p className="text-sm font-black text-[#0a1628] mb-3">{title}</p>
+      {/* Mobile skeleton strip */}
+      <div className="flex gap-3 overflow-hidden sm:hidden">
+        {Array(4).fill(0).map((_, i) => (
+          <div key={i} className="flex-shrink-0 w-28 animate-pulse space-y-2">
+            <div className="aspect-[2/3] bg-gray-200 rounded-2xl" />
+            <div className="h-2.5 bg-gray-200 rounded w-3/4" />
+            <div className="h-2 bg-gray-200 rounded w-1/2" />
+          </div>
+        ))}
+      </div>
+      {/* Desktop skeleton */}
+      <div className="hidden sm:grid grid-cols-5 gap-4">
+        {Array(5).fill(0).map((_, i) => (
+          <div key={i} className="animate-pulse space-y-2">
+            <div className="aspect-[2/3] bg-gray-200 rounded-xl" />
+            <div className="h-3 bg-gray-200 rounded w-3/4" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
-  const totalPages = Math.min(Math.ceil(books.length / booksPerPage), maxPages);
-  const startIndex = (currentPage - 1) * booksPerPage;
-  const paginatedBooks = books.slice(startIndex, startIndex + booksPerPage);
-
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-  };
-
-  if (isLoading) {
-    return (
-      <section className="py-6">
-        <h2 className="text-xl font-bold text-blue-800 mb-4">{title}</h2>
-        <p className="text-gray-500 text-center">Loading {title.toLowerCase()}...</p>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="py-6">
-        <h2 className="text-xl font-bold text-blue-800 mb-4">{title}</h2>
-        <p className="text-red-500 text-center">{error}</p>
-      </section>
-    );
-  }
+  if (!books.length) return null;
 
   return (
-    <section className="py-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-blue-800">{title}</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePreviousPage}
-            disabled={currentPage === 1}
-            className="px-2 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            <ChevronLeft size={16} />
+    <section className="py-5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-black text-[#0a1628] uppercase tracking-wider">{title}</p>
+        <div className="hidden sm:flex items-center gap-1">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+            className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-gray-100 disabled:opacity-30">
+            <ChevronLeft size={14} />
           </button>
-          <span className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className="px-2 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            <ChevronRight size={16} />
+          <span className="text-xs text-gray-400 px-1">{page}/{totalPages}</span>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-gray-100 disabled:opacity-30">
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-  {paginatedBooks.map((book) => (
-    <BookCard
-      key={book.id}
-      id={book.id}
-      img={book.imageUrl}
-      title={book.title}
-      author={book.author}
-      price={`£${book.price}`}
-    />
-  ))}
-</div>
+      {/* Mobile: horizontal scroll */}
+      <div className="sm:hidden -mx-4 px-4 overflow-x-auto flex gap-3 pb-2"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+        {books.map(book => (
+          <div key={book.id} className="flex-shrink-0 w-28">
+            <BookCard
+              id={book.id}
+              img={book.imageUrl}
+              title={book.title}
+              author={book.author}
+              price={`£${typeof book.price === "number" ? book.price.toFixed(2) : book.price}`}
+            />
+          </div>
+        ))}
+      </div>
 
-      {paginatedBooks.length === 0 && (
-        <p className="text-center text-gray-500 py-4">
-          No {title.toLowerCase()} available.
-        </p>
-      )}
+      {/* Desktop: grid */}
+      <div className="hidden sm:grid grid-cols-3 md:grid-cols-5 gap-4">
+        {visible.map(book => (
+          <BookCard
+            key={book.id}
+            id={book.id}
+            img={book.imageUrl}
+            title={book.title}
+            author={book.author}
+            price={`£${typeof book.price === "number" ? book.price.toFixed(2) : book.price}`}
+          />
+        ))}
+      </div>
     </section>
   );
 };
 
-// --- Main Component ---
+/* ─────────────────────────────────────────────────────────────────
+   MOBILE LOADING SKELETON
+───────────────────────────────────────────────────────────────── */
+const MobileSkeleton = () => (
+  <div className="sm:hidden animate-pulse">
+    {/* Hero */}
+    <div className="h-72 bg-gray-200" />
+    <div className="px-4 pt-5 space-y-3">
+      <div className="h-6 bg-gray-200 rounded w-4/5" />
+      <div className="h-4 bg-gray-200 rounded w-2/5" />
+      <div className="flex gap-2 mt-2">
+        <div className="h-6 bg-gray-200 rounded-full w-20" />
+        <div className="h-6 bg-gray-200 rounded-full w-16" />
+      </div>
+      <div className="h-8 bg-gray-200 rounded w-1/3 mt-2" />
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────────────────
+   MAIN COMPONENT
+───────────────────────────────────────────────────────────────── */
 const BrowseCategoryDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { id }        = useParams<{ id: string }>();
+  const navigate      = useNavigate();
+  const location      = useLocation();
   const { addToCart } = useCart();
-  const [book, setBook] = useState<Book | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { addToRecentlyViewed } = useRecentlyViewed();
+
+  const [book, setBook]         = useState<Book | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "info" | "reviews">("details");
-  const { addToRecentlyViewed } = useRecentlyViewed();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const [imgErr, setImgErr]     = useState(false);
+  const [added, setAdded]       = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
-
-const inWishlist = book ? isInWishlist(book.id) : false;
-
-const handleWishlistToggle = () => {
-  if (!book) return;
-
-  if (inWishlist) {
-    removeFromWishlist(book.id);
-  } else {
-    addToWishlist({
-      id: book.id,
-      img: book.imageUrl,
-      title: book.title,
-      author: book.author,
-      price: `£${book.price.toFixed(2)}`
-    });
-  }
-};
-
-
-
- 
-
-
+  const inWishlist = book ? isInWishlist(book.id) : false;
   const previousCategory = (location.state as { category?: string })?.category || "Browse";
-  const FALLBACK_IMAGE = "https://placehold.co/300x450?text=Book+Cover";
 
+  /* fetch book */
   useEffect(() => {
-    const findBookById = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get(
-          `https://britbooks-api-production-8ebd.up.railway.app/api/market/${id}`
-        );
-
-        if (!response.data.success || !response.data.listing) {
-          throw new Error("Book not found");
-        }
-
-        const data = response.data.listing;
-        const raw = data; 
-
-        const placeholderImage = generatePlaceholderImage({
-          title: data.title || "book",
-          isbn: data.isbn || data.title || "unknown",
-          category: data.category || "default",
+    setLoading(true);
+    axios.get(`https://britbooks-api-production-8ebd.up.railway.app/api/market/${id}`)
+      .then(({ data }) => {
+        if (!data.success || !data.listing) throw new Error("not found");
+        const d = data.listing;
+        const placeholder = generatePlaceholderImage({ title: d.title, isbn: d.isbn || d.title, category: d.category });
+        let title = (d.title || "Untitled").trim().replace(/\s*\(\d+\)$/, "");
+        setBook({
+          id: String(d._id || d.id),
+          title,
+          author: d.author || "Unknown Author",
+          price: d.price || 0,
+          imageUrl: d.coverImageUrl || placeholder,
+          category: d.category || "General",
+          condition: d.condition || "Good",
+          description: typeof d.notes === "string" ? d.notes.trim() : "",
+          stock: d.stock ?? 1,
+          rating: d.rating || 4.5,
+          isbn: d.isbn || "",
+          pages: d.pages || 300,
+          releaseDate: d.listedAt || "",
         });
-        const originalTitle = raw.title?.trim() || "Untitled";
-
-        let cleanedTitle = originalTitle;
-        const skuMatch = originalTitle.match(/\((\d+)\)$/);
-        if (skuMatch) {
-          cleanedTitle = originalTitle.replace(/\s*\(\d+\)$/, '').trim();
-        }
-
-        const foundBook: Book = {
-          id: String(data._id || data.id),
-          title: cleanedTitle || "Untitled",
-          author: data.author || "Unknown Author",
-          price: data.price || 0,
-          imageUrl: data.coverImageUrl || placeholderImage,
-          category: data.category || "General",
-          condition: data.condition || "Good",
-          description: typeof data.notes === "string" ? data.notes.trim() : "",
-          stock: data.stock ?? 1,
-          rating: data.rating || 4.5,
-          isbn: data.isbn || "",
-          pages: data.pages || 300,
-          releaseDate: data.listedAt || "",
-        };
-
-        setBook(foundBook);
-        setIsLoading(false);
-      } catch (err) {
-        setError("Failed to load book details.");
-        setIsLoading(false);
-        console.error("Failed to fetch book:", err);
-        toast.error("Book not found");
-      }
-    };
-
-    findBookById();
+      })
+      .catch(() => { setError("Failed to load book details."); toast.error("Book not found"); })
+      .finally(() => setLoading(false));
   }, [id]);
 
-
+  /* recently viewed */
   useEffect(() => {
-    if (book) {
-      addToRecentlyViewed({
-        id: book.id,
-        img: book.imageUrl || generatePlaceholderImage(book),
-        title: book.title,
-        author: book.author,
-        price: `£${book.price.toFixed(2)}`,
-      });
-    }
+    if (book) addToRecentlyViewed({ id: book.id, img: book.imageUrl || generatePlaceholderImage(book), title: book.title, author: book.author, price: `£${book.price.toFixed(2)}` });
   }, [book]);
-  
 
   const handleAddToCart = () => {
-    if (book) {
-      addToCart({
-        id: book.id,
-        img: book.imageUrl || "https://via.placeholder.com/150",
-        title: book.title,
-        author: book.author,
-        price: `£${book.price.toFixed(2)}`,
-        quantity: quantity, 
-      });
-  
-      toast.success(`${quantity} x ${book.title} added to your basket!`);
-    }
+    if (!book) return;
+    addToCart({ id: book.id, img: book.imageUrl || FALLBACK, title: book.title, author: book.author, price: `£${book.price.toFixed(2)}`, quantity });
+    toast.success(`${quantity} × ${book.title} added!`);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-gray-50 min-h-screen">
-        <Toaster position="top-right" />
-        <TopBar />
-        
-        <main className="container mx-auto px-4 sm:px-8 py-8">
-          {/* Animated Skeleton Wrapper */}
-          <div className="animate-pulse flex flex-col md:flex-row gap-8">
-            
-            {/* Book Cover Skeleton */}
-            <div className="w-full md:w-1/3 aspect-[2/3] bg-gray-200 rounded-lg shadow-sm"></div>
-            
-            {/* Content Skeleton */}
-            <div className="flex-1 space-y-6 py-2">
-              <div className="h-8 bg-gray-200 rounded w-3/4"></div> {/* Title */}
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div> {/* Author */}
-              
-              <div className="space-y-3">
-                <div className="h-3 bg-gray-100 rounded"></div>
-                <div className="h-3 bg-gray-100 rounded"></div>
-                <div className="h-3 bg-gray-100 rounded w-5/6"></div>
-              </div>
-  
-              <div className="flex gap-4 pt-4">
-                <div className="h-10 bg-gray-200 rounded w-32"></div>
-                <div className="h-10 bg-gray-200 rounded w-32"></div>
-              </div>
-            </div>
-  
-          </div>
-        </main>
-  
-        <Footer />
-      </div>
-    );
-  }
+  const handleWishlist = () => {
+    if (!book) return;
+    inWishlist ? removeFromWishlist(book.id) : addToWishlist({ id: book.id, img: book.imageUrl, title: book.title, author: book.author, price: `£${book.price.toFixed(2)}` });
+  };
 
-  if (error || !book) {
-    return (
-      <div className="bg-gray-50 min-h-screen">
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-        <TopBar />
-        <div className="container mx-auto px-4 sm:px-8 py-8 text-center">
-          <p className="text-red-500 text-lg">{error || "Book not found. It may not be available."}</p>
-          <button
-            onClick={() => navigate("/category")}
-            className="text-blue-600 hover:underline mt-4"
-          >
-            Back to Browse
-          </button>
+  /* ── LOADING ── */
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
+      <TopBar />
+      <MobileSkeleton />
+      {/* Desktop skeleton */}
+      <div className="hidden sm:block container mx-auto px-4 sm:px-8 py-8 animate-pulse">
+        <div className="flex gap-8">
+          <div className="w-1/3 aspect-[2/3] bg-gray-200 rounded-xl" />
+          <div className="flex-1 space-y-4 pt-2">
+            <div className="h-8 bg-gray-200 rounded w-3/4" />
+            <div className="h-4 bg-gray-200 rounded w-1/4" />
+            <div className="h-3 bg-gray-200 rounded" />
+            <div className="h-3 bg-gray-200 rounded w-5/6" />
+            <div className="flex gap-3 pt-4">
+              <div className="h-12 bg-gray-200 rounded-xl w-36" />
+              <div className="h-12 bg-gray-200 rounded-xl w-36" />
+            </div>
+          </div>
         </div>
-        <Footer />
       </div>
-    );
-  }
+      <Footer />
+    </div>
+  );
+
+  /* ── ERROR ── */
+  if (error || !book) return (
+    <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
+      <TopBar />
+      <div className="flex flex-col items-center justify-center py-28 px-4 text-center">
+        <div className="w-16 h-16 rounded-3xl bg-white border border-gray-200 flex items-center justify-center mb-4 shadow-sm">
+          <BookOpen className="w-7 h-7 text-gray-300" />
+        </div>
+        <p className="text-gray-800 font-black text-lg mb-1">Book not found</p>
+        <p className="text-gray-400 text-sm mb-6">{error}</p>
+        <button onClick={() => navigate("/category")}
+          className="bg-[#0a1628] text-white font-bold px-6 py-3 rounded-2xl text-sm">
+          Back to Browse
+        </button>
+      </div>
+      <Footer />
+    </div>
+  );
+
+  const cover = imgErr ? FALLBACK : book.imageUrl;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-[#f7f4ef]">
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <nav aria-label="Breadcrumb" className="flex items-center justify-end text-sm font-medium">
-            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <li>
-                <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
-                  <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                  </svg>
-                  Home
-                </Link>
-              </li>
-              <li>
-                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                </svg>
-              </li>
-              <li>
-                <Link
-                  to={`/category?category=${encodeURIComponent(book.category || "Books")}`}
-                  className="text-gray-700 hover:text-blue-600 capitalize font-medium transition"
-                >
-                  {book.category || "Books"}
-                </Link>
-              </li>
-              <li>
-                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                </svg>
-              </li>
-              <li className="text-gray-900 font-semibold truncate max-w-[200px] sm:max-w-md lg:max-w-none">
-                {book.title}
-              </li>
-            </ol>
-          </nav>
+
+      {/* ══════════════════════════════════════════════════════
+          MOBILE LAYOUT
+      ══════════════════════════════════════════════════════ */}
+      <div className="sm:hidden">
+
+        {/* ── HERO ── */}
+        <div className="relative overflow-hidden" style={{ minHeight: 340 }}>
+          {/* Blurred bg */}
+          <div className="absolute inset-0 scale-110">
+            <img src={cover} alt="" className="w-full h-full object-cover" onError={() => setImgErr(true)} />
+            <div className="absolute inset-0 bg-[#0a1628]/75 backdrop-blur-xl" />
+          </div>
+
+          {/* Top nav */}
+          <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-9 h-9 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm flex items-center justify-center"
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+            <span className="text-xs font-bold text-white/50 uppercase tracking-widest truncate mx-3 max-w-[160px]">
+              {book.category}
+            </span>
+            <button
+              onClick={handleWishlist}
+              className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all"
+              style={{ background: inWishlist ? "#c9a84c" : "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
+            >
+              <Heart size={17} className={inWishlist ? "fill-[#0a1628] text-[#0a1628]" : "text-white"} />
+            </button>
+          </div>
+
+          {/* Cover */}
+          <div className="relative z-10 flex justify-center pt-4 pb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="relative"
+            >
+              <div className="w-36 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/10" style={{ aspectRatio: "2/3" }}>
+                <img
+                  src={cover}
+                  alt={book.title}
+                  className="w-full h-full object-cover"
+                  onError={() => setImgErr(true)}
+                  loading="lazy"
+                />
+              </div>
+              {/* Condition badge */}
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#c9a84c] text-[#0a1628] text-[9px] font-black px-3 py-1 rounded-full shadow-md">
+                {book.condition}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* ── MAIN INFO CARD ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 -mt-5 mx-3 bg-white rounded-[24px] shadow-xl border border-gray-100 px-5 pt-6 pb-5"
+        >
+          {/* Stock */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+              book.stock > 0 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
+            }`}>
+              {book.stock > 0 ? `In Stock` : "Out of Stock"}
+            </span>
+            {book.isbn && (
+              <span className="text-[10px] text-gray-400 font-medium">ISBN {book.isbn}</span>
+            )}
+          </div>
+
+          {/* Title + author */}
+          <h1 className="text-xl font-black text-gray-900 leading-tight tracking-tight mb-1 line-clamp-3">
+            {book.title}
+          </h1>
+          <p className="text-sm text-gray-400 font-medium mb-3">by {book.author}</p>
+
+          {/* Rating */}
+          <div className="flex items-center gap-2 mb-4">
+            <Stars rating={book.rating} size={15} />
+            <span className="text-xs font-bold text-gray-500">{book.rating?.toFixed(1)}</span>
+            <span className="text-xs text-gray-400">({book.reviews || 5} reviews)</span>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-end gap-3 mb-5">
+            <span className="text-3xl font-black text-[#0a1628]">£{book.price.toFixed(2)}</span>
+          </div>
+
+          {/* Qty stepper */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Qty</span>
+            <div className="flex items-center gap-0 bg-gray-100 rounded-2xl p-1">
+              <motion.button whileTap={{ scale: 0.85 }}
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center disabled:opacity-30">
+                <Minus size={14} className="text-gray-700" />
+              </motion.button>
+              <span className="w-10 text-center text-sm font-black text-gray-800">{quantity}</span>
+              <motion.button whileTap={{ scale: 0.85 }}
+                onClick={() => setQuantity(q => Math.min(book.stock, q + 1))}
+                disabled={quantity >= book.stock}
+                className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center disabled:opacity-30">
+                <Plus size={14} className="text-gray-700" />
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Share */}
+          <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+            <span className="text-xs text-gray-400 font-semibold">Share</span>
+            {[
+              { icon: <Facebook size={14} />, href: "#" },
+              { icon: <Twitter size={14} />, href: "#" },
+              { icon: <Instagram size={14} />, href: "#" },
+            ].map((s, i) => (
+              <a key={i} href={s.href}
+                className="w-8 h-8 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
+                {s.icon}
+              </a>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── TABS ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mx-3 mt-4 bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden"
+        >
+          {/* Tab pills */}
+          <div className="flex gap-1 p-1.5 bg-gray-50 border-b border-gray-100">
+            {(["details", "info", "reviews"] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all ${
+                  activeTab === tab
+                    ? "bg-white text-[#0a1628] shadow-sm"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                {tab === "reviews" ? `Reviews (${book.reviews || 5})` : tab === "info" ? "Info" : tab}
+              </button>
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="px-5 py-4 text-sm text-gray-600 leading-relaxed"
+            >
+              {activeTab === "details" && (
+                <p>{book.description || "No description available for this book."}</p>
+              )}
+              {activeTab === "info" && (
+                <div className="space-y-3">
+                  {[
+                    { label: "ISBN", value: book.isbn || "N/A" },
+                    { label: "Pages", value: book.pages || "N/A" },
+                    { label: "Category", value: book.category || "N/A" },
+                    { label: "Condition", value: book.condition || "N/A" },
+                    { label: "Listed", value: book.releaseDate ? new Date(book.releaseDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "N/A" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <span className="text-xs font-black text-gray-400 uppercase tracking-wider">{label}</span>
+                      <span className="text-sm font-semibold text-gray-700 text-right max-w-[60%] truncate">{String(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {activeTab === "reviews" && (
+                <div className="text-center py-6">
+                  <Stars rating={book.rating} size={20} />
+                  <p className="font-black text-gray-800 text-lg mt-2">{book.rating?.toFixed(1)} / 5</p>
+                  <p className="text-gray-400 text-xs mt-1">Based on {book.reviews || 5} reviews</p>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+
+        {/* ── RELATED SHELVES ── */}
+        <div className="mx-3 mt-4 pb-32 space-y-2">
+          <BookShelf
+            title="You may also like"
+            fetchParams={{ category: book.category, sort: "rating", order: "desc", limit: 10 }}
+            currentBookId={id!}
+          />
+          <BookShelf
+            title="More in {book.category}"
+            fetchParams={{ category: book.category, sort: "listedAt", order: "desc", limit: 10 }}
+            currentBookId={id!}
+          />
+        </div>
+
+        {/* ── STICKY BOTTOM BAR ── */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-3 bg-white border-t border-gray-100"
+          style={{ boxShadow: "0 -8px 32px rgba(10,22,40,0.10)" }}>
+          <div className="flex items-center gap-3">
+            {/* Wishlist */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={handleWishlist}
+              className="w-13 h-13 w-12 h-12 flex-shrink-0 rounded-2xl border-2 flex items-center justify-center transition-all"
+              style={{
+                borderColor: inWishlist ? "#c9a84c" : "#e5e7eb",
+                background: inWishlist ? "#c9a84c" : "white",
+              }}
+            >
+              <Heart
+                size={18}
+                className={inWishlist ? "fill-[#0a1628] text-[#0a1628]" : "text-gray-400"}
+              />
+            </motion.button>
+
+            {/* Add to basket */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleAddToCart}
+              disabled={book.stock === 0}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all disabled:opacity-40"
+              style={{ background: added ? "#16a34a" : "#0a1628", color: "white" }}
+            >
+              <AnimatePresence mode="wait">
+                {added ? (
+                  <motion.span key="added" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-2">
+                    <Check size={17} /> Added to basket
+                  </motion.span>
+                ) : (
+                  <motion.span key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-2">
+                    <ShoppingBag size={17} />
+                    {book.stock === 0 ? "Out of Stock" : `Add to Basket · £${(book.price * quantity).toFixed(2)}`}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          </div>
         </div>
       </div>
 
-      <main className="container mx-auto px-4 sm:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="relative">
-            {book.imageUrl === FALLBACK_IMAGE ? (
-              <div className="w-full h-80 bg-gray-200 border-2 border-dashed rounded-lg flex items-center justify-center text-gray-500 text-center p-4">
-                <div>
-                  <div className="text-4xl font-bold mb-2">No Cover</div>
-                  <div className="text-sm">Book Cover Unavailable</div>
-                </div>
-              </div>
-            ) : (
-              <img
-                src={book.imageUrl}
-                alt={`Cover of ${book.title}`}
-                className="w-full h-80 object-contain rounded-lg shadow-sm"
-                onError={(e) => (e.currentTarget.src = FALLBACK_IMAGE)}
-                loading="lazy"
-              />
-            )}
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{book.title}</h1>
-            <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
-
-            <div className="flex items-center mb-3 text-sm">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill={i < Math.round(book.rating || 0) ? "currentColor" : "none"}
-                    stroke={i < Math.round(book.rating || 0) ? "#facc15" : "#d1d5db"}
-                    strokeWidth="2"
-                    className={i < Math.round(book.rating || 0) ? "text-yellow-400" : "text-gray-300"}
-                  >
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                ))}
-              </div>
-              <a href="#reviews" className="ml-2 text-gray-500 hover:text-red-600 underline">
-                {book.rating ? `${book.rating.toFixed(1)} (${book.reviews || 5} Reviews)` : "No Reviews"}
-              </a>
-              <a href="#add-review" className="ml-2 text-gray-500 hover:text-red-600 underline">
-                Add Your Review
-              </a>
-            </div>
-
-            <p className="text-xl font-bold text-gray-900 mb-3">
-              £{book.price.toFixed(2)}
-            </p>
-
-            <div className="text-sm mb-3">
-              <span className="text-green-600 font-semibold">
-                {book.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}
-              </span>
-              <span className="text-gray-500 ml-2">
-                ISBN: {book.isbn || `BBW0${book.id}`}
-              </span>
-            </div>
-
-            {book.description ? (
-  <p className="text-gray-600 leading-relaxed mb-3">
-    {book.description.slice(0, 150)}
-    {book.description.length > 150 && "..."}
-  </p>
-) : (
-  <p className="text-gray-400 italic mb-3">
-    No description available for this book.
-  </p>
-)}
-
-            <div className="mb-3">
-              <span className="font-semibold">Condition: </span>
-              <span className="text-gray-700">{book.condition}</span>
-            </div>
-
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center">
-                <span className="mr-2 font-semibold text-gray-700">Qty:</span>
-                <div className="flex items-center border rounded">
-                  <button
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="px-2 py-1 text-base hover:bg-gray-100"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="text"
-                    value={quantity}
-                    readOnly
-                    className="w-10 text-center border-l border-r focus:outline-none py-1"
-                  />
-                  <button
-                    onClick={() => setQuantity((q) => Math.min(book.stock, q + 1))}
-                    className="px-2 py-1 text-base hover:bg-gray-100"
-                    disabled={quantity >= book.stock}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={handleAddToCart}
-                className="bg-red-600 text-white font-bold px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center gap-1 disabled:opacity-50"
-                disabled={book.stock === 0}
-              >
-                <ShoppingCart size={16} />
-                ADD TO BASKET
-              </button>
-            </div>
-
-            <div className="flex items-center gap-6 mb-3">
-              <button
-                 onClick={handleWishlistToggle}
-               className="flex items-center text-gray-600 hover:text-red-600">
-              
-                <Heart size={18} className="mr-1" /> Add to Wish List
-              </button>
-              <div className="flex items-center text-sm text-gray-600">
-                <span className="font-semibold mr-2">Share</span>
-                <div className="flex gap-2">
-                  <a href="#" className="p-1 rounded-full border hover:bg-gray-100">
-                    <Facebook size={14} />
-                  </a>
-                  <a href="#" className="p-1 rounded-full border hover:bg-gray-100">
-                    <Twitter size={14} />
-                  </a>
-                  <a href="#" className="p-1 rounded-full border hover:bg-gray-100">
-                    <Instagram size={14} />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 border rounded-md">
-          <div className="border-b bg-gray-50 rounded-t-md">
-            <nav className="flex space-x-1 p-2">
-              <button
-                onClick={() => setActiveTab("details")}
-                className={`px-4 py-2 text-sm font-semibold rounded-md ${
-                  activeTab === "details" ? "bg-white shadow" : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Details
-              </button>
-              <button
-                onClick={() => setActiveTab("info")}
-                className={`px-4 py-2 text-sm font-semibold rounded-md ${
-                  activeTab === "info" ? "bg-white shadow" : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Additional Information
-              </button>
-              <button
-                onClick={() => setActiveTab("reviews")}
-                className={`px-4 py-2 text-sm font-semibold rounded-md ${
-                  activeTab === "reviews" ? "bg-white shadow" : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Reviews ({book.rating ? book.reviews || 5 : 0})
-              </button>
+      {/* ══════════════════════════════════════════════════════
+          DESKTOP LAYOUT (unchanged)
+      ══════════════════════════════════════════════════════ */}
+      <div className="hidden sm:block">
+        {/* Breadcrumb */}
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <nav className="flex items-center justify-end gap-2 text-sm font-medium">
+              <Link to="/" className="flex items-center text-gray-500 hover:text-blue-600 transition">
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+                Home
+              </Link>
+              <ChevronRight size={14} className="text-gray-300" />
+              <Link to={`/category?category=${encodeURIComponent(book.category)}`}
+                className="text-gray-500 hover:text-blue-600 capitalize transition">
+                {book.category}
+              </Link>
+              <ChevronRight size={14} className="text-gray-300" />
+              <span className="text-gray-900 font-semibold truncate max-w-xs">{book.title}</span>
             </nav>
           </div>
-
-          <div className="p-4 text-gray-600 leading-relaxed">
-            {activeTab === "details" && <p>{book.description || "No description available."}</p>}
-            {activeTab === "info" && (
-              <ul className="space-y-2">
-                <li><span className="font-semibold">ISBN:</span> {book.isbn || "N/A"}</li>
-                <li><span className="font-semibold">Pages:</span> {book.pages || "N/A"}</li>
-                <li><span className="font-semibold">Release Date:</span> {book.releaseDate || "N/A"}</li>
-                <li><span className="font-semibold">Category:</span> {book.category || "N/A"}</li>
-              </ul>
-            )}
-            {activeTab === "reviews" && (
-              <p>{book.rating ? "Customer reviews would be listed here." : "No reviews available."}</p>
-            )}
-          </div>
         </div>
 
-        <BookShelf
-  title="You may also like"
-  fetchParams={{
-    category: book.category,
-    sort: "rating",
-    order: "desc",
-    limit: 100,
-  }}
-  currentBookId={id!}
-/>
+        <main className="container mx-auto px-4 sm:px-8 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative">
+              {cover === FALLBACK ? (
+                <div className="w-full h-80 bg-gray-200 border-2 border-dashed rounded-lg flex items-center justify-center text-gray-500 text-center p-4">
+                  <div>
+                    <div className="text-4xl font-bold mb-2">No Cover</div>
+                    <div className="text-sm">Book Cover Unavailable</div>
+                  </div>
+                </div>
+              ) : (
+                <img src={cover} alt={book.title}
+                  className="w-full h-80 object-contain rounded-lg shadow-sm"
+                  onError={() => setImgErr(true)} loading="lazy" />
+              )}
+            </div>
 
-<BookShelf
-  title="Related Products"
-  fetchParams={{
-    category: book.category || "General", // Moved to top-level per your fetchBooks logic
-    sort: "listedAt",
-    order: "desc",
-    limit: 100,
-    filters: {} // Keep filters empty unless you're adding specific sub-filters like price
-  }}
-  currentBookId={id!}
-/>
-      </main>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">{book.title}</h1>
+              <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
+              <div className="flex items-center mb-3 text-sm gap-2">
+                <Stars rating={book.rating} />
+                <a href="#reviews" className="text-gray-500 hover:text-red-600 underline">
+                  {book.rating ? `${book.rating.toFixed(1)} (${book.reviews || 5} Reviews)` : "No Reviews"}
+                </a>
+              </div>
+              <p className="text-xl font-bold text-gray-900 mb-3">£{book.price.toFixed(2)}</p>
+              <div className="text-sm mb-3">
+                <span className={`font-semibold ${book.stock > 0 ? "text-green-600" : "text-red-500"}`}>
+                  {book.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}
+                </span>
+                <span className="text-gray-500 ml-2">ISBN: {book.isbn || `BBW0${book.id}`}</span>
+              </div>
+              {book.description ? (
+                <p className="text-gray-600 leading-relaxed mb-3">{book.description.slice(0, 150)}{book.description.length > 150 && "..."}</p>
+              ) : (
+                <p className="text-gray-400 italic mb-3">No description available.</p>
+              )}
+              <div className="mb-3">
+                <span className="font-semibold">Condition: </span>
+                <span className="text-gray-700">{book.condition}</span>
+              </div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center">
+                  <span className="mr-2 font-semibold text-gray-700">Qty:</span>
+                  <div className="flex items-center border rounded">
+                    <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-2 py-1 text-base hover:bg-gray-100">-</button>
+                    <input type="text" value={quantity} readOnly className="w-10 text-center border-l border-r focus:outline-none py-1" />
+                    <button onClick={() => setQuantity(q => Math.min(book.stock, q + 1))} className="px-2 py-1 text-base hover:bg-gray-100" disabled={quantity >= book.stock}>+</button>
+                  </div>
+                </div>
+                <button onClick={handleAddToCart} disabled={book.stock === 0}
+                  className="bg-red-600 text-white font-bold px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center gap-1 disabled:opacity-50">
+                  <ShoppingCart size={16} /> ADD TO BASKET
+                </button>
+              </div>
+              <div className="flex items-center gap-6 mb-3">
+                <button onClick={handleWishlist} className="flex items-center text-gray-600 hover:text-red-600">
+                  <Heart size={18} className="mr-1" /> Add to Wish List
+                </button>
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="font-semibold mr-2">Share</span>
+                  <div className="flex gap-2">
+                    <a href="#" className="p-1 rounded-full border hover:bg-gray-100"><Facebook size={14} /></a>
+                    <a href="#" className="p-1 rounded-full border hover:bg-gray-100"><Twitter size={14} /></a>
+                    <a href="#" className="p-1 rounded-full border hover:bg-gray-100"><Instagram size={14} /></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="mt-8 border rounded-md">
+            <div className="border-b bg-gray-50 rounded-t-md">
+              <nav className="flex space-x-1 p-2">
+                {(["details", "info", "reviews"] as const).map(tab => (
+                  <button key={tab} onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 text-sm font-semibold rounded-md ${activeTab === tab ? "bg-white shadow" : "text-gray-600 hover:bg-gray-200"}`}>
+                    {tab === "details" ? "Details" : tab === "info" ? "Additional Information" : `Reviews (${book.reviews || 5})`}
+                  </button>
+                ))}
+              </nav>
+            </div>
+            <div className="p-4 text-gray-600 leading-relaxed">
+              {activeTab === "details" && <p>{book.description || "No description available."}</p>}
+              {activeTab === "info" && (
+                <ul className="space-y-2">
+                  <li><span className="font-semibold">ISBN:</span> {book.isbn || "N/A"}</li>
+                  <li><span className="font-semibold">Pages:</span> {book.pages || "N/A"}</li>
+                  <li><span className="font-semibold">Release Date:</span> {book.releaseDate || "N/A"}</li>
+                  <li><span className="font-semibold">Category:</span> {book.category || "N/A"}</li>
+                </ul>
+              )}
+              {activeTab === "reviews" && (
+                <p>{book.rating ? "Customer reviews would be listed here." : "No reviews available."}</p>
+              )}
+            </div>
+          </div>
+
+          <BookShelf title="You may also like"
+            fetchParams={{ category: book.category, sort: "rating", order: "desc", limit: 100 }}
+            currentBookId={id!} />
+          <BookShelf title="Related Products"
+            fetchParams={{ category: book.category || "General", sort: "listedAt", order: "desc", limit: 100, filters: {} }}
+            currentBookId={id!} />
+        </main>
+      </div>
 
       <Footer />
     </div>
