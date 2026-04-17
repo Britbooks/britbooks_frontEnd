@@ -754,7 +754,7 @@ const ReviewOrder = ({
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  const subtotal = cartItems.reduce((sum: number, item: any) => sum + Number(item.price.replace("£", "")) * item.quantity, 0);
+  const subtotal = cartItems.reduce((sum: number, item: any) => sum + (typeof item.price === "string" ? Number(item.price.replace("£", "")) : Number(item.price)) * item.quantity, 0);
   const shipping = 5.0;
   const total = subtotal + shipping;
 
@@ -788,7 +788,7 @@ const ReviewOrder = ({
       const items = cartItems.map((item: any) => ({
         title: item.title,
         quantity: item.quantity,
-        price: parseFloat(item.price.replace("£", "")),
+        price: typeof item.price === "string" ? parseFloat(item.price.replace("£", "")) : Number(item.price),
       }));
   
       const response = await axios.post(
@@ -968,7 +968,7 @@ const ReviewOrder = ({
                   <p className="text-sm font-bold text-gray-800 truncate">{item.title}</p>
                   <p className="text-xs text-gray-400">Qty {item.quantity}</p>
                 </div>
-                <p className="text-sm font-black text-gray-800 flex-shrink-0">£{(Number(item.price.replace("£", "")) * item.quantity).toFixed(2)}</p>
+                <p className="text-sm font-black text-gray-800 flex-shrink-0">£{((typeof item.price === "string" ? Number(item.price.replace("£", "")) : Number(item.price)) * item.quantity).toFixed(2)}</p>
               </div>
             ))}
           </div>
