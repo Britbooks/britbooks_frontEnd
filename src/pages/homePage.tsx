@@ -990,7 +990,7 @@ const Homepage = () => {
         <div className="sm:hidden" style={{ backgroundColor: '#f0ebe1', minHeight: '100vh' }}>
 
           {/* ── Animated Hero Carousel ── */}
-          <div className="relative overflow-hidden mx-4 mt-4 rounded-3xl shadow-xl" style={{ height: 240 }}>
+          <div className="relative overflow-hidden mx-4 mt-26 rounded-3xl shadow-xl" style={{ height: 240 }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={heroIndex}
