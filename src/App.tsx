@@ -28,6 +28,10 @@ import PopularBooksPage from './pages/PopularBooks';
 import ClearancePage from './pages/ClearancePage';
 import ReturnPolicyPage from './pages/returnPolicy';
 import PrivacyPolicyPage from './pages/PrivacyPolicy';
+import CookiesPolicyPage from './pages/CookiesPolicy';
+import InvoicesPage from './pages/Invoices';
+import CreditSlipsPage from './pages/CreditSlips';
+import NotFoundPage from './pages/NotFound';
 
 import { AuthProvider } from './context/authContext'; 
 import { CartProvider } from './context/cartContext';
@@ -49,6 +53,7 @@ const App: React.FC = () => {
       <CartProvider>
         <RecentlyViewedProvider>
           <WishlistProvider>
+            
             <ScrollToTop />
             <Routes>
               <Route path="/" element={<Homepage />} />
@@ -80,7 +85,10 @@ const App: React.FC = () => {
               <Route path="/clearance" element={<ClearancePage />} />
               <Route path="/return-policy" element={<ReturnPolicyPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="*" element={<div>Page not found</div>} />
+              <Route path="/cookies" element={<CookiesPolicyPage />} />
+              <Route path="/invoices" element={<InvoicesPage />} />
+              <Route path="/credits" element={<CreditSlipsPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </WishlistProvider>
         </RecentlyViewedProvider>
