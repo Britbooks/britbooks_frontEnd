@@ -226,7 +226,7 @@ const SignupPage = () => {
 
         {/* Back link */}
         <div className="relative z-10 p-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-xs font-semibold transition-colors">
+          <Link to="/" className="inline-flex items-center gap-2 text-white hover:text-white/70 text-xs font-semibold transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> Back to BritBooks
           </Link>
         </div>
@@ -240,7 +240,7 @@ const SignupPage = () => {
           <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight mb-4">
             Join 2 million<br />book lovers.
           </h1>
-          <p className="text-white/50 text-base leading-relaxed mb-12 max-w-xs">
+          <p className="text-white text-base leading-relaxed mb-12 max-w-xs">
             Create your free account and explore hundreds of thousands of books at amazing prices.
           </p>
 
@@ -256,7 +256,7 @@ const SignupPage = () => {
                 <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(201,168,76,0.15)" }}>
                   <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "#c9a84c" }} />
                 </div>
-                <span className="text-white/60 text-sm">{benefit}</span>
+                <span className="text-white text-sm">{benefit}</span>
               </div>
             ))}
           </div>
@@ -273,16 +273,16 @@ const SignupPage = () => {
             </div>
             <div>
               <div className="flex gap-0.5 mb-0.5">
-                {[...Array(5)].map((_, i) => <Star key={i} className="w-2.5 h-2.5 fill-[#c9a84c] text-[#c9a84c]" />)}
+                {[...Array(5)].map((_, i) => <Star key={i} className="w-2.5 h-2.5 fill-[#c9a84c] text-white" />)}
               </div>
-              <p className="text-white/50 text-[10px]">Loved by 2M+ readers worldwide</p>
+              <p className="text-white text-[10px]">Loved by 2M+ readers worldwide</p>
             </div>
           </div>
         </div>
 
         <div className="relative z-10 p-8 flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-white/30" />
-          <span className="text-[11px] text-white/30">Your data is always safe with us</span>
+          <ShieldCheck className="w-3.5 h-3.5 text-white" />
+          <span className="text-[11px] text-white">Your data is always safe with us</span>
         </div>
       </div>
 
@@ -410,7 +410,7 @@ const SignupPage = () => {
               </motion.button>
               <motion.button whileTap={{ scale: 0.97 }} type="button"
                 onClick={() => toast("Facebook sign-up coming soon")}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1877f2] hover:bg-[#166de0] text-sm font-bold text-white transition-colors">
+                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors">
                 <FacebookIcon /> Facebook
               </motion.button>
             </div>

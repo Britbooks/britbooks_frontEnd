@@ -214,8 +214,8 @@ const LoginPage = () => {
 
         {/* Bottom */}
         <div className="relative z-10 p-8 flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-white/30" />
-          <span className="text-[11px] text-white/30">Secured with 256-bit SSL encryption</span>
+          <ShieldCheck className="w-3.5 h-3.5 text-white" />
+          <span className="text-[11px] text-white">Secured with 256-bit SSL encryption</span>
         </div>
       </div>
 
