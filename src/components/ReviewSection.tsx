@@ -56,19 +56,31 @@ const StarRow = ({
   </div>
 );
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const formatDate = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
 
 const getDisplayName = (r: Review) => {
-  const u = r.userId;
-  if (!u) return "Anonymous";
-  if (u.firstName || u.lastName) return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
-  if (u.name) return u.name;
-  if (u.email) return u.email.split("@")[0];
+  const u = r.user;
+  if (!u) return "Customer";
+  // Populated object: { name, firstName, lastName, email, _id }
+  if (typeof u === "object") {
+    if (u.firstName || u.lastName) return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
+    if (u.name) return u.name;
+    if (u.email) return u.email.split("@")[0];
+  }
+  // String ID: just show "Customer" — we don't have the name
   return "Customer";
 };
 
-const getInitial = (r: Review) => getDisplayName(r).charAt(0).toUpperCase() || "C";
+const getInitial = (r: Review) => {
+  const name = getDisplayName(r);
+  return name !== "Customer" ? name.charAt(0).toUpperCase() : "C";
+};
 
 /* ── Breakdown bar ─────────────────────────────────────────────── */
 const BreakdownBar = ({ summary }: { summary: ReviewSummary }) => {
@@ -110,7 +122,8 @@ const ReviewCard = ({
   currentUserId: string | null;
   onDelete: (id: string) => void;
 }) => {
-  const isOwn = currentUserId && review.userId?._id === currentUserId;
+  const reviewUserId = typeof review.user === "object" ? review.user._id : review.user;
+  const isOwn = !!(currentUserId && reviewUserId && reviewUserId === currentUserId);
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -218,7 +231,7 @@ const SubmitForm = ({
         <button
           type="submit"
           disabled={submitting || rating === 0}
-          className="flex items-center gap-2 bg-[#0a1628] text-white text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 hover:bg-[#1a2d4a] transition-colors"
+          className="flex items-center gap-2 bg-[#0a1628] text-black text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 hover:bg-[#1a2d4a] transition-colors"
         >
           <Send size={13} />
           {submitting ? "Submitting…" : "Post Review"}

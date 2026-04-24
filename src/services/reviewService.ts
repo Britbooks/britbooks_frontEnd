@@ -4,12 +4,15 @@ const BASE = "https://britbooks-api-production-8ebd.up.railway.app/api/reviews";
 
 export interface Review {
   _id: string;
-  listingId: string;
-  userId: { _id: string; name?: string; firstName?: string; lastName?: string; email?: string };
+  /** String ID when not populated, object when populated by the list endpoint */
+  user: string | { _id: string; name?: string; firstName?: string; lastName?: string; email?: string };
+  listing: string;
   rating: number;
-  comment: string;
-  approved: boolean;
+  comment?: string;
+  isApproved: boolean;
+  isVerifiedPurchase?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ReviewSummary {
@@ -73,7 +76,8 @@ export async function submitReview(
     },
     { headers: { Authorization: `Bearer ${token}` } }
   );
-  return data.review ?? data;
+  // Response shape: { success, data: { ...review }, moderation }
+  return data.data ?? data.review ?? data;
 }
 
 /** DELETE /api/reviews/:id  (requires auth token) */
