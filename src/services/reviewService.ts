@@ -80,6 +80,25 @@ export async function submitReview(
   return data.data ?? data.review ?? data;
 }
 
+/** GET /api/reviews/user/:userId  (requires auth token) */
+export async function getUserReviews(
+  userId: string,
+  token: string,
+  page = 1,
+  limit = 10
+): Promise<ReviewsResponse> {
+  const { data } = await axios.get(`${BASE}/user/${userId}`, {
+    params: { page, limit },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return {
+    reviews: data.reviews ?? data.data ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    pages: data.pages ?? 0,
+  };
+}
+
 /** DELETE /api/reviews/:id  (requires auth token) */
 export async function deleteReview(reviewId: string, token: string): Promise<void> {
   await axios.delete(`${BASE}/${reviewId}`, {

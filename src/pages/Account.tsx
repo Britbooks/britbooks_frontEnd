@@ -7,18 +7,177 @@ import axios from "axios";
 import {
   User, Lock, Bell, LogOut, Camera, ShieldCheck,
   Mail, Phone, Eye, EyeOff, Trash2, Activity,
-  Check, AlertCircle, ChevronRight, Loader2,
+  Check, AlertCircle, ChevronRight, Loader2, Star, BookOpen,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { JwtPayload } from "../types/auth";
 import SEOHead from '../components/SEOHead';
+import { getUserReviews, deleteReview, Review } from '../services/reviewService';
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "https://britbooks-api-production-8ebd.up.railway.app";
 
-type Tab = "profile" | "security" | "notifications";
+type Tab = "profile" | "security" | "notifications" | "reviews";
+
+/* ── My Reviews Tab ─────────────────────────────────────────────── */
+const StarDisplay = ({ rating }: { rating: number }) => (
+  <div className="flex items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map((n) => (
+      <Star
+        key={n}
+        size={13}
+        className={n <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200 fill-gray-200"}
+      />
+    ))}
+  </div>
+);
+
+const MyReviewsTab: React.FC<{ userId: string | null; token: string | null }> = ({ userId, token }) => {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const load = async (p: number) => {
+    if (!userId || !token) return;
+    setLoading(true);
+    try {
+      const res = await getUserReviews(userId, token, p, 8);
+      setReviews(res.reviews);
+      setPage(res.page);
+      setPages(res.pages);
+      setTotal(res.total);
+    } catch {
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(1); }, [userId, token]);
+
+  const handleDelete = async (reviewId: string) => {
+    if (!token) return;
+    setDeletingId(reviewId);
+    try {
+      await deleteReview(reviewId, token);
+      setReviews((prev) => prev.filter((r) => r._id !== reviewId));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch {
+      // silently ignore — toast shown by service
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const formatDate = (iso?: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  if (loading) return (
+    <div className="space-y-3 py-2">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="animate-pulse bg-white rounded-2xl p-4 border border-gray-100 space-y-2">
+          <div className="h-3 w-1/3 bg-gray-200 rounded" />
+          <div className="h-3 w-full bg-gray-200 rounded" />
+          <div className="h-3 w-2/3 bg-gray-200 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (reviews.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <BookOpen className="w-6 h-6 text-gray-300" />
+      </div>
+      <p className="text-sm font-semibold text-gray-500 mb-1">No reviews yet</p>
+      <p className="text-xs text-gray-400 mb-4">Start reading and share your thoughts!</p>
+      <Link to="/explore" className="text-xs font-bold text-[#0a1628] underline hover:no-underline">Browse books</Link>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-400 font-semibold pb-1">{total} review{total !== 1 ? "s" : ""}</p>
+
+      {reviews.map((review) => {
+        const listingId = typeof review.listing === "object" ? (review.listing as any)._id : review.listing;
+        const bookTitle = typeof review.listing === "object" ? (review.listing as any).title : null;
+
+        return (
+          <div key={review._id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2 hover:border-gray-200 transition-colors">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                {bookTitle ? (
+                  <Link
+                    to={`/browse/${listingId}`}
+                    className="text-sm font-bold text-[#0a1628] hover:underline truncate block"
+                  >
+                    {bookTitle}
+                  </Link>
+                ) : (
+                  <Link
+                    to={`/browse/${listingId}`}
+                    className="text-sm font-bold text-[#0a1628] hover:underline"
+                  >
+                    View book →
+                  </Link>
+                )}
+                <div className="flex items-center gap-2 mt-1">
+                  <StarDisplay rating={review.rating} />
+                  <span className="text-[11px] text-gray-400">{formatDate(review.createdAt)}</span>
+                  {review.isVerifiedPurchase && (
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">Verified</span>
+                  )}
+                  {!review.isApproved && (
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Pending</span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => handleDelete(review._id)}
+                disabled={deletingId === review._id}
+                className="p-1.5 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 flex-shrink-0"
+                title="Delete review"
+              >
+                {deletingId === review._id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+              </button>
+            </div>
+            {review.comment && (
+              <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
+            )}
+          </div>
+        );
+      })}
+
+      {pages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button onClick={() => load(page - 1)} disabled={page === 1}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+            Previous
+          </button>
+          <span className="text-xs text-gray-400">{page} / {pages}</span>
+          <button onClick={() => load(page + 1)} disabled={page === pages}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+            Next
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AccountSettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
@@ -100,6 +259,7 @@ const AccountSettingsPage: React.FC = () => {
     { id: "profile",       label: "Profile",       icon: User,        desc: "Name, email, phone"     },
     { id: "security",      label: "Security",      icon: Lock,        desc: "Password, 2FA"          },
     { id: "notifications", label: "Notifications", icon: Bell,        desc: "Email preferences"      },
+    { id: "reviews",       label: "My Reviews",    icon: Star,        desc: "Your book reviews"      },
   ];
 
   /* ── Skeleton ── */
@@ -440,6 +600,11 @@ const AccountSettingsPage: React.FC = () => {
 
                 <SaveBar saving={saving} />
               </>
+            )}
+
+            {/* ══ MY REVIEWS TAB ══════════════════════════ */}
+            {activeTab === "reviews" && (
+              <MyReviewsTab userId={auth.userId} token={auth.token} />
             )}
           </form>
         </div>
