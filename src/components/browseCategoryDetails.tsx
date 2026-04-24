@@ -25,6 +25,13 @@ import { useWishlist } from "../context/wishlistContext";
 
 const FALLBACK = "https://placehold.co/300x450?text=Book+Cover";
 
+/** Strip HTML tags and decode entities from DB text fields */
+const stripHtml = (html: string): string => {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return (doc.body.textContent ?? "").trim();
+};
+
 /* ─────────────────────────────────────────────────────────────────
    STAR RATING
 ───────────────────────────────────────────────────────────────── */
@@ -204,7 +211,7 @@ const BrowseCategoryDetail = () => {
           imageUrl: d.coverImageUrl || placeholder,
           category: d.category || "General",
           condition: d.condition || "Good",
-          description: typeof d.notes === "string" ? d.notes.trim() : "",
+          description: stripHtml(typeof d.notes === "string" ? d.notes : (d.description ?? "")),
           stock: d.stock ?? 1,
           rating: d.rating || 4.5,
           isbn: d.isbn || "",
