@@ -8,7 +8,8 @@ export interface Review {
   user: string | { _id: string; fullName?: string; name?: string; firstName?: string; lastName?: string; email?: string };
   listing: string;
   rating: number;
-  comment?: string;
+  title?: string;
+  body?: string;
   isApproved: boolean;
   isVerifiedPurchase?: boolean;
   createdAt: string;
@@ -69,7 +70,7 @@ export async function submitReview(
     {
       listingId,
       rating,
-      comment,
+      body: comment,
       // Send userId in body as fallback in case the middleware sets
       // req.user = { userId } (not { _id }) and the controller needs it
       ...(userId && { user: userId }),

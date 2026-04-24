@@ -163,8 +163,8 @@ const ReviewCard = ({
           )}
         </div>
       </div>
-      {review.comment?.trim() ? (
-        <p className="text-sm text-gray-600 leading-relaxed pl-10">{review.comment.trim()}</p>
+      {review.body?.trim() ? (
+        <p className="text-sm text-gray-600 leading-relaxed pl-10">{review.body.trim()}</p>
       ) : (
         <p className="text-sm italic text-gray-300 pl-10">No comment left</p>
       )}
@@ -186,19 +186,19 @@ const SubmitForm = ({
 }) => {
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
-  const [comment, setComment] = useState("");
+  const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) { toast.error("Please select a star rating"); return; }
-    if (comment.trim().length < 3) { toast.error("Please write a short review"); return; }
+    if (body.trim().length < 3) { toast.error("Please write a short review"); return; }
     setSubmitting(true);
     try {
-      const newReview = await submitReview(listingId, rating, comment.trim(), token, userId);
+      const newReview = await submitReview(listingId, rating, body.trim(), token, userId);
       toast.success("Review submitted!");
       setRating(0);
-      setComment("");
+      setBody("");
       onSuccess(newReview);
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Failed to submit review");
@@ -222,15 +222,15 @@ const SubmitForm = ({
         <span className="text-xs text-gray-400">{rating > 0 ? ["", "Poor", "Fair", "Good", "Very Good", "Excellent"][rating] : "Tap to rate"}</span>
       </div>
       <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
         placeholder="Share your thoughts about this book…"
         rows={3}
-        maxLength={1000}
+        maxLength={2000}
         className="w-full text-sm rounded-xl border border-gray-200 px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[#0a1628]/20 focus:border-[#0a1628] placeholder:text-gray-300"
       />
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-gray-300">{comment.length}/1000</span>
+        <span className="text-[11px] text-gray-300">{body.length}/2000</span>
         <button
           type="submit"
           disabled={submitting || rating === 0}
