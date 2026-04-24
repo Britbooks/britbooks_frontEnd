@@ -298,13 +298,13 @@ const BestsellersPage: React.FC = () => {
           page: currentPage,
           limit: BOOKS_PER_PAGE,
           shelf: "bestSellers",
-          sort: "rating",
+          sort: "purchases",
           order: "desc",
           ...(selectedCategory && { category: selectedCategory }),
         };
         const response = await fetchBooks(reqBody);
         setBooks(Array.isArray(response?.listings) ? response.listings : []);
-        setTotalBooks(response?.total || 48);
+        setTotalBooks(response?.meta?.count || 0);
       } catch (err) {
         console.error(err);
       } finally {
@@ -317,7 +317,7 @@ const BestsellersPage: React.FC = () => {
   useEffect(() => {
     const fetchRecentTop = async () => {
       try {
-        const response = await fetchBooks({ page: 1, limit: 5, shelf: "bestSellers", sort: "sales", order: "desc" });
+        const response = await fetchBooks({ page: 1, limit: 5, shelf: "bestSellers", sort: "purchases", order: "desc" });
         if (Array.isArray(response?.listings)) setRecentBestsellers(response.listings);
       } catch (err) {
         console.error("Failed to fetch recent bestsellers", err);
