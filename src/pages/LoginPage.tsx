@@ -333,7 +333,7 @@ const LoginPage = () => {
                 whileTap={{ scale: 0.97 }}
                 type="button"
                 onClick={() => toast("Facebook login coming soon")}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1877f2] hover:bg-[#166de0] text-sm font-bold text-white transition-colors"
+                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors"
               >
                 <FacebookIcon /> Facebook
               </motion.button>
