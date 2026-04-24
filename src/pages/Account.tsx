@@ -155,9 +155,9 @@ const MyReviewsTab: React.FC<{ userId: string | null; token: string | null }> = 
                 )}
               </button>
             </div>
-            {review.comment && (
-              <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
-            )}
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {review.comment?.trim() || <span className="italic text-gray-300">No comment written</span>}
+            </p>
           </div>
         );
       })}
