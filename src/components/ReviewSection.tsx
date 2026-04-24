@@ -162,9 +162,9 @@ const ReviewCard = ({
           )}
         </div>
       </div>
-      {review.comment && (
-        <p className="text-sm text-gray-600 leading-relaxed pl-10">{review.comment}</p>
-      )}
+      <p className="text-sm text-gray-600 leading-relaxed pl-10">
+        {review.comment?.trim() || <span className="italic text-gray-300">No comment written</span>}
+      </p>
     </motion.div>
   );
 };
