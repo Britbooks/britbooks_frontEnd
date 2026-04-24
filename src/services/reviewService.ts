@@ -58,11 +58,19 @@ export async function submitReview(
   listingId: string,
   rating: number,
   comment: string,
-  token: string
+  token: string,
+  userId?: string | null
 ): Promise<Review> {
   const { data } = await axios.post(
     BASE,
-    { listingId, rating, comment },
+    {
+      listingId,
+      rating,
+      comment,
+      // Send userId in body as fallback in case the middleware sets
+      // req.user = { userId } (not { _id }) and the controller needs it
+      ...(userId && { user: userId }),
+    },
     { headers: { Authorization: `Bearer ${token}` } }
   );
   return data.review ?? data;

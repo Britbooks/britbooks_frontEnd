@@ -160,10 +160,12 @@ const ReviewCard = ({
 const SubmitForm = ({
   listingId,
   token,
+  userId,
   onSuccess,
 }: {
   listingId: string;
   token: string;
+  userId?: string | null;
   onSuccess: (r: Review) => void;
 }) => {
   const [rating, setRating] = useState(0);
@@ -177,7 +179,7 @@ const SubmitForm = ({
     if (comment.trim().length < 3) { toast.error("Please write a short review"); return; }
     setSubmitting(true);
     try {
-      const newReview = await submitReview(listingId, rating, comment.trim(), token);
+      const newReview = await submitReview(listingId, rating, comment.trim(), token, userId);
       toast.success("Review submitted!");
       setRating(0);
       setComment("");
@@ -325,7 +327,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ listingId, variant = "des
 
       {/* ── Submit form ── */}
       {auth.token ? (
-        <SubmitForm listingId={listingId} token={auth.token} onSuccess={handleNewReview} />
+        <SubmitForm listingId={listingId} token={auth.token} userId={auth.userId} onSuccess={handleNewReview} />
       ) : (
         <div className="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3">
           <LogIn size={16} className="text-gray-400 flex-shrink-0" />
