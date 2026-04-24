@@ -5,7 +5,7 @@ const BASE = "https://britbooks-api-production-8ebd.up.railway.app/api/reviews";
 export interface Review {
   _id: string;
   /** String ID when not populated, object when populated by the list endpoint */
-  user: string | { _id: string; name?: string; firstName?: string; lastName?: string; email?: string };
+  user: string | { _id: string; fullName?: string; name?: string; firstName?: string; lastName?: string; email?: string };
   listing: string;
   rating: number;
   comment?: string;

@@ -67,8 +67,9 @@ const formatDate = (iso?: string) => {
 const getDisplayName = (r: Review) => {
   const u = r.user;
   if (!u) return "Customer";
-  // Populated object: { name, firstName, lastName, email, _id }
+  // Populated object: { fullName, name, firstName, lastName, email, _id }
   if (typeof u === "object") {
+    if (u.fullName) return u.fullName;
     if (u.firstName || u.lastName) return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
     if (u.name) return u.name;
     if (u.email) return u.email.split("@")[0];
@@ -162,9 +163,11 @@ const ReviewCard = ({
           )}
         </div>
       </div>
-      <p className="text-sm text-gray-600 leading-relaxed pl-10">
-        {review.comment?.trim() || <span className="italic text-gray-300">No comment written</span>}
-      </p>
+      {review.comment?.trim() ? (
+        <p className="text-sm text-gray-600 leading-relaxed pl-10">{review.comment.trim()}</p>
+      ) : (
+        <p className="text-sm italic text-gray-300 pl-10">No comment left</p>
+      )}
     </motion.div>
   );
 };
