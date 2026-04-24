@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import SEOHead, { buildBookSchema, buildBreadcrumbSchema } from "./SEOHead";
+import ReviewSection from "./ReviewSection";
+import { getListingReviewSummary } from "../services/reviewService";
 import {
   Heart, Facebook, Twitter, Instagram,
   ChevronLeft, ChevronRight, ShoppingCart,
@@ -179,6 +181,8 @@ const BrowseCategoryDetail = () => {
   const [imgErr, setImgErr]     = useState(false);
   const [added, setAdded]       = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [avgRating, setAvgRating]     = useState(0);
 
   const inWishlist = book ? isInWishlist(book.id) : false;
   const previousCategory = (location.state as { category?: string })?.category || "Browse";
@@ -216,6 +220,14 @@ const BrowseCategoryDetail = () => {
   useEffect(() => {
     if (book) addToRecentlyViewed({ id: book.id, img: book.imageUrl || generatePlaceholderImage(book), title: book.title, author: book.author, price: `£${book.price.toFixed(2)}` });
   }, [book]);
+
+  /* review summary — load alongside book, update header rating */
+  useEffect(() => {
+    if (!id) return;
+    getListingReviewSummary(id)
+      .then((s) => { setAvgRating(s.averageRating); setReviewCount(s.reviewCount); })
+      .catch(() => {});
+  }, [id]);
 
   const handleAddToCart = () => {
     if (!book) return;
@@ -401,9 +413,9 @@ const BrowseCategoryDetail = () => {
 
           {/* Rating */}
           <div className="flex items-center gap-2 mb-4">
-            <Stars rating={book.rating ?? 0} size={15} />
-            <span className="text-xs font-bold text-gray-500">{book.rating?.toFixed(1)}</span>
-            <span className="text-xs text-gray-400">({book.reviews || 5} reviews)</span>
+            <Stars rating={avgRating} size={15} />
+            <span className="text-xs font-bold text-gray-500">{avgRating > 0 ? avgRating.toFixed(1) : "No rating"}</span>
+            <span className="text-xs text-gray-400">{reviewCount > 0 ? `(${reviewCount} review${reviewCount !== 1 ? "s" : ""})` : ""}</span>
           </div>
 
           {/* Price */}
@@ -466,7 +478,7 @@ const BrowseCategoryDetail = () => {
                     : "text-gray-400 hover:text-gray-600"
                 }`}
               >
-                {tab === "reviews" ? `Reviews (${book.reviews || 5})` : tab === "info" ? "Info" : tab}
+                {tab === "reviews" ? `Reviews${reviewCount > 0 ? ` (${reviewCount})` : ""}` : tab === "info" ? "Info" : tab}
               </button>
             ))}
           </div>
@@ -500,10 +512,8 @@ const BrowseCategoryDetail = () => {
                 </div>
               )}
               {activeTab === "reviews" && (
-                <div className="text-center py-6">
-                  <Stars rating={book.rating ?? 0} size={20} />
-                  <p className="font-black text-gray-800 text-lg mt-2">{book.rating?.toFixed(1)} / 5</p>
-                  <p className="text-gray-400 text-xs mt-1">Based on {book.reviews || 5} reviews</p>
+                <div className="py-2">
+                  <ReviewSection listingId={id!} variant="mobile" />
                 </div>
               )}
             </motion.div>
@@ -514,11 +524,11 @@ const BrowseCategoryDetail = () => {
         <div className="mx-3 mt-4 pb-32 space-y-2">
           <BookShelf
             title="You may also like"
-            fetchParams={{ category: book.category, sort: "rating", order: "desc", limit: 10 }}
+            fetchParams={{ category: book.category, sort: "purchases", order: "desc", limit: 10 }}
             currentBookId={id!}
           />
           <BookShelf
-            title="More in {book.category}"
+            title={`More in ${book.category}`}
             fetchParams={{ category: book.category, sort: "listedAt", order: "desc", limit: 10 }}
             currentBookId={id!}
           />
@@ -617,10 +627,10 @@ const BrowseCategoryDetail = () => {
               <h1 className="text-2xl font-bold text-gray-800 mb-2">{book.title}</h1>
               <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
               <div className="flex items-center mb-3 text-sm gap-2">
-                <Stars rating={book.rating ?? 0} />
-                <a href="#reviews" className="text-gray-500 hover:text-red-600 underline">
-                  {book.rating ? `${book.rating.toFixed(1)} (${book.reviews || 5} Reviews)` : "No Reviews"}
-                </a>
+                <Stars rating={avgRating} />
+                <button onClick={() => setActiveTab("reviews")} className="text-gray-500 hover:text-[#0a1628] underline">
+                  {avgRating > 0 ? `${avgRating.toFixed(1)} · ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
+                </button>
               </div>
               <p className="text-xl font-bold text-gray-900 mb-3">£{book.price.toFixed(2)}</p>
               <div className="text-sm mb-3">
@@ -675,7 +685,7 @@ const BrowseCategoryDetail = () => {
                 {(["details", "info", "reviews"] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
                     className={`px-4 py-2 text-sm font-semibold rounded-md ${activeTab === tab ? "bg-white shadow" : "text-gray-600 hover:bg-gray-200"}`}>
-                    {tab === "details" ? "Details" : tab === "info" ? "Additional Information" : `Reviews (${book.reviews || 5})`}
+                    {tab === "details" ? "Details" : tab === "info" ? "Additional Information" : `Reviews${reviewCount > 0 ? ` (${reviewCount})` : ""}`}
                   </button>
                 ))}
               </nav>
@@ -691,16 +701,16 @@ const BrowseCategoryDetail = () => {
                 </ul>
               )}
               {activeTab === "reviews" && (
-                <p>{book.rating ? "Customer reviews would be listed here." : "No reviews available."}</p>
+                <ReviewSection listingId={id!} variant="desktop" />
               )}
             </div>
           </div>
 
           <BookShelf title="You may also like"
-            fetchParams={{ category: book.category, sort: "rating", order: "desc", limit: 100 }}
+            fetchParams={{ category: book.category, sort: "purchases", order: "desc", limit: 10 }}
             currentBookId={id!} />
           <BookShelf title="Related Products"
-            fetchParams={{ category: book.category || "General", sort: "listedAt", order: "desc", limit: 100, filters: {} }}
+            fetchParams={{ category: book.category || "General", sort: "listedAt", order: "desc", limit: 10 }}
             currentBookId={id!} />
         </main>
       </div>

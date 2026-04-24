@@ -49,13 +49,22 @@ const useBookPulse = (initialLimit: number) => {
     const load = async () => {
       setIsLoading(true);
       try {
+        // Map UI sort labels to valid backend DB fields (listedAt, price, purchases, views)
+        // "rating" doesn't exist in the DB — purchases is the closest proxy for popularity
+        const SORT_MAP: Record<string, { sort: string; order: string }> = {
+          rating:       { sort: "purchases", order: "desc" },
+          priceLowHigh: { sort: "price",     order: "asc"  },
+          priceHighLow: { sort: "price",     order: "desc" },
+        };
+        const { sort, order } = SORT_MAP[sortBy] ?? { sort: "purchases", order: "desc" };
+
         const result = await fetchBooks({
           page: currentPage,
           limit: initialLimit,
           category: selectedCategory,
           search: debouncedSearch,
-          sort: sortBy.includes("price") ? "price" : sortBy,
-          order: sortBy === "priceHighLow" ? "desc" : "asc"
+          sort,
+          order,
         });
         setBooks(result.listings || result.books || []);
         setTotalBooks(result.meta?.count || result.total || 0);

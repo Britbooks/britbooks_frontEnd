@@ -541,44 +541,33 @@ const MobileBookCarousel: React.FC<MobileCarouselProps> = ({ title, fetchParams,
 };
 
 // --- Static shelf fetch params (outside component to keep stable references) ---
+// NOTE: sort/order are overridden by the backend for all shelf queries:
+//   newArrivals    → { listedAt: -1, _id: -1 }
+//   popularBooks   → { purchases: -1, views: -1, listedAt: 1 }
+//   bestSellers    → Order aggregate sorted by totalSold (ignores sort param entirely)
+//   childrensBooks → { listedAt: -1 }
+//   clearanceItems → { discount.value: -1 }
+// Valid sort fields for non-shelf queries: listedAt, price, purchases, views, stock
 const shelfFetchParams = {
   newArrivals: {
     shelf: "newArrivals",
     label: "New Arrivals",
-    sort: "createdAt",
-    order: "desc",
-    filters: { stock: { $gt: 0 } },
   },
   popularBooks: {
     shelf: "popularBooks",
     label: "Popular Books",
-    sort: "rating",
-    order: "desc",
-    filters: {},
   },
   bestSellers: {
     shelf: "bestSellers",
     label: "Best Sellers",
-    sort: "salesCount",
-    order: "desc",
-    filters: { stock: { $gt: 0 } },
   },
   childrensBooks: {
     shelf: "childrensBooks",
     label: "Children's Books",
-    sort: "createdAt",
-    order: "desc",
-    filters: { category: "Children's Books" },
   },
   clearanceItems: {
     shelf: "clearanceItems",
     label: "Clearance Items",
-    sort: "discount.value",
-    order: "desc",
-    filters: {
-      "discount.isActive": true,
-      "discount.value": { $gte: 10 },
-    },
   },
 };
 

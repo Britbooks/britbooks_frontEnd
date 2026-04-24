@@ -449,7 +449,7 @@ const NewArrivalsPage: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetchBooks({ page, category, search, limit: 12, sort: "createdAt", order: "desc" })
+    fetchBooks({ page, category, search, limit: 12, shelf: "newArrivals", sort: "listedAt", order: "desc" })
       .then(r => setBooks(r.listings || r.books || []))
       .catch(console.error)
       .finally(() => setLoading(false));

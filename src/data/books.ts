@@ -2,6 +2,41 @@ import axios from "axios";
 import { MD5 } from "crypto-js";
 import toast from "react-hot-toast";
 
+// ── Shared types ─────────────────────────────────────────────────────────────
+export interface Book {
+  id: string;
+  _id?: string;
+  title: string;
+  author: string;
+  price: number;
+  discountedPrice?: number | null;
+  imageUrl: string;
+  category: string;
+  subcategory?: string;
+  condition?: string;
+  description?: string;
+  stock: number;
+  views?: number;
+  purchases?: number;
+  listedAt?: Date | null;
+  updatedAt?: Date | null;
+  isbn?: string;
+  rating?: number;
+  reviews?: number;
+  pages?: number;
+  releaseDate?: string | Date | null;
+  totalSold?: number;
+  revenue?: number;
+}
+
+export interface CategoryNode {
+  _id: string;
+  name: string;
+  slug: string;
+  count: number;
+  children: Omit<CategoryNode, "children">[];
+}
+
 // ── Placeholder images ───────────────────────────────────────────────────
 export const generatePlaceholderImage = (book) => {
   const input = book.isbn || book.title || `book-${Date.now()}`;
@@ -35,12 +70,20 @@ function fastCacheKey(body: any): string {
     body.subcategory  ?? "",
     body.search       ?? "",
     body.sort         ?? "",
+    body.order        ?? "",
     String(body.page  ?? 1),
     String(body.limit ?? 20),
+    JSON.stringify(body.filters ?? {}),
   ].join("|");
 }
 
 // ── Shelf definitions ────────────────────────────────────────────────────
+// Backend overrides sort for every shelf:
+//   newArrivals    → listedAt:-1, _id:-1          (stock > 0 required)
+//   popularBooks   → purchases:-1, views:-1, listedAt:1
+//   bestSellers    → Order aggregate by totalSold  (sort param ignored; limited fields returned)
+//   childrensBooks → listedAt:-1                   (filters by category/tags)
+//   clearanceItems → discount.value:-1             (discount.isActive=true, discount.value≥10)
 export const SHELVES = [
   { key: "newArrivals",     label: "New Arrivals"     },
   { key: "popularBooks",    label: "Popular Books"    },
@@ -50,19 +93,28 @@ export const SHELVES = [
   { key: "recentlyViewed",  label: "Recently Viewed"  },
 ] as const;
 
-// ── Fetch Books ──────────────────────────────────────────────────────────
+// Valid sort fields for non-shelf queries (actual MongoDB field names):
+// "listedAt" | "price" | "purchases" | "views" | "stock"
+// Do NOT use: "rating", "createdAt", "salesCount", "totalSold", "discountPercentage"
+export const VALID_SORT_FIELDS = ["listedAt", "price", "purchases", "views", "stock"] as const;
+
 // ── Fetch Books ──────────────────────────────────────────────────────────
 export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
-  const effectiveBody = {
+  const effectiveBody: any = {
     page: reqBody.page ?? 1,
     limit: reqBody.limit ?? 20,
     shelf: reqBody.shelf ?? null,
     category: reqBody.category ?? null,
     subcategory: reqBody.subcategory ?? null,
-    filters: reqBody.filters ?? {},
     includeArchived: reqBody.includeArchived ?? false,
     sort: reqBody.sort ?? "listedAt",
     order: reqBody.order ?? "desc",
+    // Optional filters
+    ...(reqBody.condition  && { condition:  reqBody.condition  }),
+    ...(reqBody.priceMin   !== undefined && { priceMin: reqBody.priceMin }),
+    ...(reqBody.priceMax   !== undefined && { priceMax: reqBody.priceMax }),
+    ...(reqBody.skipCount  && { skipCount:  reqBody.skipCount  }),
+    ...(reqBody.search     && { search:     reqBody.search     }),
   };
 
   const cacheKey = fastCacheKey(effectiveBody);
@@ -70,7 +122,7 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
 
   let cacheMs = CACHE_DURATIONS.default;
   if (["popularBooks", "bestSellers"].includes(effectiveBody.shelf ?? "")) cacheMs = CACHE_DURATIONS.popular;
-  else if (!effectiveBody.shelf?.includes("viewed")) cacheMs = CACHE_DURATIONS.static;
+  else if (["childrensBooks", "clearanceItems", "newArrivals"].includes(effectiveBody.shelf ?? "")) cacheMs = CACHE_DURATIONS.static;
 
   if (cached && Date.now() - cached.timestamp < cacheMs) return cached.response;
 
@@ -120,10 +172,6 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
 
       return baseListing;
     });
-
-    // Fix meta.count for bestSellers
-    const metaCount =
-    response.data.meta?.count ?? listings.length;
 
     const totalCount = response.data.meta?.count ?? listings.length;
 
