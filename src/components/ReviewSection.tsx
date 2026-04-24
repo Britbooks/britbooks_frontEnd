@@ -163,11 +163,16 @@ const ReviewCard = ({
           )}
         </div>
       </div>
-      {review.body?.trim() ? (
-        <p className="text-sm text-gray-600 leading-relaxed pl-10">{review.body.trim()}</p>
-      ) : (
-        <p className="text-sm italic text-gray-300 pl-10">No comment left</p>
-      )}
+      <div className="pl-10 space-y-0.5">
+        {review.title?.trim() && (
+          <p className="text-sm font-semibold text-gray-700">{review.title.trim()}</p>
+        )}
+        {review.body?.trim() ? (
+          <p className="text-sm text-gray-600 leading-relaxed">{review.body.trim()}</p>
+        ) : (
+          <p className="text-sm italic text-gray-300">No comment left</p>
+        )}
+      </div>
     </motion.div>
   );
 };
@@ -186,18 +191,21 @@ const SubmitForm = ({
 }) => {
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
+  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) { toast.error("Please select a star rating"); return; }
+    if (title.trim().length < 2) { toast.error("Please add a short title"); return; }
     if (body.trim().length < 3) { toast.error("Please write a short review"); return; }
     setSubmitting(true);
     try {
-      const newReview = await submitReview(listingId, rating, body.trim(), token, userId);
+      const newReview = await submitReview(listingId, rating, title.trim(), body.trim(), token, userId);
       toast.success("Review submitted!");
       setRating(0);
+      setTitle("");
       setBody("");
       onSuccess(newReview);
     } catch (err: any) {
@@ -221,6 +229,13 @@ const SubmitForm = ({
         />
         <span className="text-xs text-gray-400">{rating > 0 ? ["", "Poor", "Fair", "Good", "Very Good", "Excellent"][rating] : "Tap to rate"}</span>
       </div>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Review title (e.g. Great book!)"
+        maxLength={120}
+        className="w-full text-sm rounded-xl border border-gray-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0a1628]/20 focus:border-[#0a1628] placeholder:text-gray-300"
+      />
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}

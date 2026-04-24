@@ -61,7 +61,8 @@ export async function getListingReviewSummary(listingId: string): Promise<Review
 export async function submitReview(
   listingId: string,
   rating: number,
-  comment: string,
+  title: string,
+  body: string,
   token: string,
   userId?: string | null
 ): Promise<Review> {
@@ -70,7 +71,8 @@ export async function submitReview(
     {
       listingId,
       rating,
-      body: comment,
+      title,
+      body,
       // Send userId in body as fallback in case the middleware sets
       // req.user = { userId } (not { _id }) and the controller needs it
       ...(userId && { user: userId }),
