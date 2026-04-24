@@ -196,9 +196,15 @@ const AccountSettingsPage: React.FC = () => {
   const [status, setStatus]       = useState<{ ok: boolean; msg: string } | null>(null);
   const [modal, setModal]         = useState<null | "logout" | "delete">(null);
 
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [strength, setStrength]       = useState(0);
+
+  const [securityPwd, setSecurityPwd]     = useState({ current: "", next: "", confirm: "" });
+  const [changingPwd, setChangingPwd]     = useState(false);
+  const [securityStatus, setSecurityStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const context = useContext(AuthContext);
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
@@ -235,7 +241,42 @@ const AccountSettingsPage: React.FC = () => {
     return s;
   };
 
-  useEffect(() => { setStrength(calcStrength(password.next)); }, [password.next]);
+  useEffect(() => { setStrength(calcStrength(securityPwd.next)); }, [securityPwd.next]);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityStatus(null);
+    if (!securityPwd.current) { setSecurityStatus({ ok: false, msg: "Please enter your current password." }); return; }
+    if (securityPwd.next.length < 8) { setSecurityStatus({ ok: false, msg: "New password must be at least 8 characters." }); return; }
+    if (securityPwd.next !== securityPwd.confirm) { setSecurityStatus({ ok: false, msg: "Passwords do not match." }); return; }
+    setChangingPwd(true);
+    try {
+      await axios.post(
+        `${API_URL}/api/auth/change-password`,
+        { currentPassword: securityPwd.current, newPassword: securityPwd.next },
+        { headers: { Authorization: `Bearer ${auth.token}` } }
+      );
+      setSecurityStatus({ ok: true, msg: "Password changed successfully." });
+      setSecurityPwd({ current: "", next: "", confirm: "" });
+    } catch (err: any) {
+      setSecurityStatus({ ok: false, msg: err.response?.data?.message || "Failed to change password." });
+    } finally {
+      setChangingPwd(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!userData?.email) return;
+    setForgotLoading(true);
+    try {
+      await axios.post(`${API_URL}/api/auth/forgot-password`, { email: userData.email });
+      setSecurityStatus({ ok: true, msg: `Reset link sent to ${userData.email}` });
+    } catch (err: any) {
+      setSecurityStatus({ ok: false, msg: err.response?.data?.message || "Failed to send reset email." });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -503,63 +544,104 @@ const AccountSettingsPage: React.FC = () => {
                   </div>
                 </Section>
 
-                {/* Password */}
-                <Section title="Change password" desc="Use a strong password with 8+ characters, numbers and symbols.">
-                  <div className="space-y-4">
-                    <Field label="New password" icon={Lock}>
-                      <div className="relative">
-                        <input
-                          type={showPass ? "text" : "password"}
-                          value={password.next}
-                          onChange={e => setPassword({ ...password, next: e.target.value })}
-                          className="w-full px-4 py-3 pr-12 text-sm text-gray-800 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-red-400 focus:ring-3 focus:ring-red-50 transition-all placeholder:text-gray-300"
-                          placeholder="New password"
-                        />
-                        <button type="button" onClick={() => setShowPass(!showPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
-                          {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                {/* Change password — own form so it doesn't trigger the outer profile save */}
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <Section title="Change password" desc="Use a strong password with 8+ characters, numbers and symbols.">
+                    {securityStatus && (
+                      <div className={`flex items-center gap-3 px-4 py-3 mb-4 rounded-xl border text-sm font-medium ${
+                        securityStatus.ok
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-red-50 border-red-200 text-red-700'
+                      }`}>
+                        {securityStatus.ok ? <Check className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                        {securityStatus.msg}
                       </div>
-                      {password.next && (
-                        <div className="mt-2.5 space-y-1.5">
-                          <div className="flex gap-1">
-                            {[1,2,3,4].map(i => (
-                              <div key={i} className={`flex-1 h-1 rounded-full transition-all ${i <= strength ? strengthColor[strength] : 'bg-gray-200'}`} />
-                            ))}
-                          </div>
-                          <p className={`text-xs font-semibold ${strength >= 3 ? 'text-emerald-600' : strength === 2 ? 'text-yellow-600' : 'text-red-500'}`}>
-                            {strengthLabel[strength]}
-                          </p>
+                    )}
+                    <div className="space-y-4">
+                      <Field label="Current password" icon={Lock}>
+                        <div className="relative">
+                          <input
+                            type={showCurrent ? "text" : "password"}
+                            value={securityPwd.current}
+                            onChange={e => setSecurityPwd(p => ({ ...p, current: e.target.value }))}
+                            className="w-full px-4 py-3 pr-12 text-sm text-gray-800 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-red-400 focus:ring-3 focus:ring-red-50 transition-all placeholder:text-gray-300"
+                            placeholder="Your current password"
+                          />
+                          <button type="button" onClick={() => setShowCurrent(!showCurrent)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
+                            {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
                         </div>
-                      )}
-                    </Field>
-
-                    <Field label="Confirm password" icon={Lock}>
-                      <div className="relative">
-                        <input
-                          type={showConfirm ? "text" : "password"}
-                          value={password.confirm}
-                          onChange={e => setPassword({ ...password, confirm: e.target.value })}
-                          className={`w-full px-4 py-3 pr-12 text-sm text-gray-800 bg-white border rounded-xl focus:outline-none focus:ring-3 transition-all placeholder:text-gray-300 ${
-                            password.confirm && password.confirm !== password.next
-                              ? 'border-red-300 focus:border-red-400 focus:ring-red-50'
-                              : 'border-gray-200 focus:border-red-400 focus:ring-red-50'
-                          }`}
-                          placeholder="Confirm new password"
-                        />
-                        <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
-                          {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          disabled={forgotLoading}
+                          className="text-[11px] text-red-500 hover:underline font-semibold mt-1 disabled:opacity-50"
+                        >
+                          {forgotLoading ? "Sending…" : "Forgot your password?"}
                         </button>
-                      </div>
-                      {password.confirm && password.confirm !== password.next && (
-                        <p className="text-xs text-red-500 mt-1.5 font-medium">Passwords do not match</p>
-                      )}
-                    </Field>
-                  </div>
-                </Section>
+                      </Field>
 
-                <SaveBar saving={saving} />
+                      <Field label="New password" icon={Lock}>
+                        <div className="relative">
+                          <input
+                            type={showPass ? "text" : "password"}
+                            value={securityPwd.next}
+                            onChange={e => setSecurityPwd(p => ({ ...p, next: e.target.value }))}
+                            className="w-full px-4 py-3 pr-12 text-sm text-gray-800 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-red-400 focus:ring-3 focus:ring-red-50 transition-all placeholder:text-gray-300"
+                            placeholder="New password"
+                          />
+                          <button type="button" onClick={() => setShowPass(!showPass)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
+                            {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {securityPwd.next && (
+                          <div className="mt-2.5 space-y-1.5">
+                            <div className="flex gap-1">
+                              {[1,2,3,4].map(i => (
+                                <div key={i} className={`flex-1 h-1 rounded-full transition-all ${i <= strength ? strengthColor[strength] : 'bg-gray-200'}`} />
+                              ))}
+                            </div>
+                            <p className={`text-xs font-semibold ${strength >= 3 ? 'text-emerald-600' : strength === 2 ? 'text-yellow-600' : 'text-red-500'}`}>
+                              {strengthLabel[strength]}
+                            </p>
+                          </div>
+                        )}
+                      </Field>
+
+                      <Field label="Confirm new password" icon={Lock}>
+                        <div className="relative">
+                          <input
+                            type={showConfirm ? "text" : "password"}
+                            value={securityPwd.confirm}
+                            onChange={e => setSecurityPwd(p => ({ ...p, confirm: e.target.value }))}
+                            className={`w-full px-4 py-3 pr-12 text-sm text-gray-800 bg-white border rounded-xl focus:outline-none focus:ring-3 transition-all placeholder:text-gray-300 ${
+                              securityPwd.confirm && securityPwd.confirm !== securityPwd.next
+                                ? 'border-red-300 focus:border-red-400 focus:ring-red-50'
+                                : 'border-gray-200 focus:border-red-400 focus:ring-red-50'
+                            }`}
+                            placeholder="Confirm new password"
+                          />
+                          <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
+                            {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {securityPwd.confirm && securityPwd.confirm !== securityPwd.next && (
+                          <p className="text-xs text-red-500 mt-1.5 font-medium">Passwords do not match</p>
+                        )}
+                      </Field>
+                    </div>
+                  </Section>
+
+                  <div className="flex items-center justify-end">
+                    <button type="submit" disabled={changingPwd}
+                      className="inline-flex items-center gap-2 bg-gray-900 hover:bg-red-600 active:scale-[0.98] text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all shadow-md disabled:opacity-60">
+                      {changingPwd ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</> : 'Update password'}
+                    </button>
+                  </div>
+                </form>
               </>
             )}
 
