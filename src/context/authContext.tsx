@@ -77,13 +77,14 @@ interface AuthContextType {
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
+ 
 const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api/auth";
 const API_USERS_URL = "https://britbooks-api-production-8ebd.up.railway.app/api/users";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [auth, setAuth] = useState<AuthState>({
     user: null,
+    userId: null,
     token: null,
     loading: false,
     error: null,
@@ -115,6 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               email: response.data.email,
               role: response.data.role,
             },
+            userId: response.data._id,
             token: storedToken,
             loading: false,
             error: null,
@@ -127,6 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           localStorage.removeItem('authUser');
           setAuth({
             user: null,
+            userId: null,
             token: null,
             loading: false,
             error: 'Invalid or expired token. Please log in again.',
@@ -302,6 +305,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('authUser');
     setAuth({
       user: null,
+      userId: null,
       token: null,
       loading: false,
       error: null,
