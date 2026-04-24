@@ -104,10 +104,13 @@ const MyReviewsTab: React.FC<{ userId: string | null; token: string | null }> = 
     </div>
   );
 
+  const displayTotal = total > 0 ? total : reviews.length;
+
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-400 font-semibold pb-1">{total} review{total !== 1 ? "s" : ""}</p>
+      <p className="text-xs text-gray-400 font-semibold pb-1">{displayTotal} review{displayTotal !== 1 ? "s" : ""}</p>
 
+      <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin", scrollbarColor: "#e5e7eb transparent" }}>
       {reviews.map((review) => {
         const listingId = typeof review.listing === "object" ? (review.listing as any)._id : review.listing;
         const bookTitle = typeof review.listing === "object" ? (review.listing as any).title : null;
@@ -166,6 +169,7 @@ const MyReviewsTab: React.FC<{ userId: string | null; token: string | null }> = 
           </div>
         );
       })}
+      </div>
 
       {pages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">

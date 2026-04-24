@@ -94,12 +94,11 @@ export async function getUserReviews(
     params: { page, limit },
     headers: { Authorization: `Bearer ${token}` },
   });
-  return {
-    reviews: data.reviews ?? data.data ?? [],
-    total: data.total ?? 0,
-    page: data.page ?? 1,
-    pages: data.pages ?? 0,
-  };
+  const reviews = data.reviews ?? data.data ?? [];
+  const total = data.total ?? data.count ?? data.meta?.count ?? reviews.length;
+  const pg = data.page ?? 1;
+  const pages = data.pages ?? data.totalPages ?? (Math.ceil(total / limit) || 1);
+  return { reviews, total, page: pg, pages };
 }
 
 /** DELETE /api/reviews/:id  (requires auth token) */
