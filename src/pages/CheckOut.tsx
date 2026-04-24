@@ -29,7 +29,9 @@ import { Elements, CardElement, useStripe, useElements } from "@stripe/react-str
 import { Addresses } from "./Addresses";
 import toast, { Toaster } from "react-hot-toast";
 import { fetchBooks } from "../data/books";
+import type { CartItem } from "../context/cartContext";
 import BookCard from "../components/BookCard";
+import SEOHead from '../components/SEOHead';
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -486,7 +488,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
         </div>
         {cartItems.length > 0 && (
           <div className="mt-16">
-            <BookShelf title="You may also like" fetchParams={{ filters: { genre: cartItems[0]?.genre || "Fiction" }, sort: "rating", order: "desc" }} currentBookId={cartItems[0]?.id} />
+            <BookShelf title="You may also like" fetchParams={{ filters: { genre: "Fiction" }, sort: "rating", order: "desc" }} currentBookId={cartItems[0]?.id} />
           </div>
         )}
       </div>
@@ -589,7 +591,7 @@ const PaymentForm = ({
       const { token, error: stripeError } = await stripe.createToken(cardElement!);
 
       if (stripeError) {
-        setError(stripeError.message);
+        setError(stripeError.message ?? null);
         setLoading(false);
         return;
       }
@@ -795,7 +797,7 @@ const ReviewOrder = ({
         `${API_BASE_URL}/payments/create-payment`,
         {
           userId,
-          email: auth.user.email,
+          email: auth.user?.email,
           orderId: newOrderId,
           shippingAddress: paymentData.shippingAddress,
           items,
@@ -823,7 +825,7 @@ const ReviewOrder = ({
       // Handle Stripe or successful payment as before
       if (requiresAction) {
         const stripe = await stripePromise;
-        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret);
+        const { error: confirmError, paymentIntent } = await stripe!.confirmCardPayment(clientSecret);
   
         if (confirmError) {
           setError(confirmError.message || "Payment failed.");
@@ -1077,6 +1079,7 @@ const CheckoutFlow = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans flex-col">
+      <SEOHead title="Checkout" description="Complete your BritBooks order securely." canonical="/checkout" noindex={true} />
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <style>{`
         @keyframes fadeInUp {

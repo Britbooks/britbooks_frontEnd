@@ -5,6 +5,7 @@ import { Menu, X, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 
 import TopBar from '../components/Topbar';
 import Footer from '../components/footer';
+import SEOHead from '../components/SEOHead';
 
 // --- SVG ICONS ---
 const SearchIcon = (props) => (
@@ -126,6 +127,11 @@ const ShippingReturnsPage: React.FC = () => {
 
   return (
     <div className="bg-gray-50 font-sans min-h-screen flex flex-col">
+      <SEOHead
+        title="Shipping & Returns"
+        description="Learn about BritBooks shipping options, delivery times, and our hassle-free 30-day returns policy for all book orders."
+        canonical="/shipping-returns"
+      />
       {/* Global Styles */}
       <style>{`
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px);} to { opacity: 1; transform: translateY(0);} }
@@ -151,11 +157,11 @@ const ShippingReturnsPage: React.FC = () => {
                 <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}>
                   <TruckIcon className="h-8 w-8 text-red-600" />
                 </motion.div>
-                <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-pink-500">
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-pink-500">
                   Shipping & Returns
                 </h1>
               </div>
-              <p className="mt-4 text-lg md:text-xl max-w-3xl mx-auto text-gray-200">
+              <p className="mt-4 text-base sm:text-lg md:text-xl max-w-3xl mx-auto text-gray-200">
                 Learn about our shipping options and return policies to ensure a seamless shopping experience with BritBooks.
               </p>
             </motion.div>

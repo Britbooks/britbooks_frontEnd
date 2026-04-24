@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import SEOHead from "../components/SEOHead";
 import {
   ChevronLeft, ChevronRight, TrendingUp, X, Flame,
   BookOpen, Star, Crown, Truck, Sparkles, ArrowRight
@@ -389,6 +390,11 @@ const BestsellersPage: React.FC = () => {
 
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: "#f5f0e8" }}>
+      <SEOHead
+        title="Bestselling Books"
+        description="Shop the bestselling books at BritBooks. The most popular titles chosen by thousands of readers — all at unbeatable prices with fast UK delivery."
+        canonical="/bestsellers"
+      />
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

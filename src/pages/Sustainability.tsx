@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/footer';
 import { Menu, X } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 
 const LeafIcon = (props) => (
@@ -144,6 +145,11 @@ const SustainabilityPage = () => {
 
   return (
     <div className="bg-white font-sans">
+      <SEOHead
+        title="Sustainability"
+        description="BritBooks is committed to sustainable reading. Learn how buying second-hand books reduces waste and supports a greener planet."
+        canonical="/sustainability"
+      />
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -159,8 +165,8 @@ const SustainabilityPage = () => {
         <img src="https://images.unsplash.com/photo-1530538987395-032d1800fdd4?q=80&w=2070&auto=format&fit=crop" alt="A book resting on a mossy log in a forest" className="w-full h-full object-cover"/>
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
           <div className="text-center text-white p-4 animate-on-scroll">
-            <h1 className="text-4xl md:text-6xl font-bold">Give Books a New Chapter</h1>
-            <p className="mt-4 text-lg md:text-xl max-w-2xl mx-auto">Join us in our mission to make reading sustainable. Every book you buy or sell helps the planet.</p>
+            <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold">Give Books a New Chapter</h1>
+            <p className="mt-4 text-sm sm:text-lg md:text-xl max-w-2xl mx-auto">Join us in our mission to make reading sustainable. Every book you buy or sell helps the planet.</p>
           </div>
         </div>
       </header>

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/footer';
 import { Menu, X } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 // --- SVG ICONS ---
 const DownloadIcon = (props) => (
@@ -138,6 +139,11 @@ const PressPage = () => {
 
   return (
     <div className="bg-white font-sans">
+      <SEOHead
+        title="Press & Media"
+        description="BritBooks press room — media resources, press releases, brand assets, and contact information for journalists and media partners."
+        canonical="/press"
+      />
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -152,8 +158,8 @@ const PressPage = () => {
       <header className="bg-gray-50 py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 text-center">
           <div className="animate-on-scroll">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-800">Press & Media</h1>
-            <p className="mt-4 text-lg md:text-xl max-w-3xl mx-auto text-gray-600">Welcome to the BritBooks press room. Here you'll find the latest news, announcements, and resources about our mission to change the world, one book at a time.</p>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-800">Press & Media</h1>
+            <p className="mt-4 text-base sm:text-lg md:text-xl max-w-3xl mx-auto text-gray-600">Welcome to the BritBooks press room. Here you'll find the latest news, announcements, and resources about our mission to change the world, one book at a time.</p>
           </div>
         </div>
       </header>

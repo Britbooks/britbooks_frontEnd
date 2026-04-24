@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  ArrowRight, BookOpen, Globe, ShieldCheck, Zap, 
-  BarChart3, ShoppingBag, Leaf, Search, Truck 
+import {
+  ArrowRight, BookOpen, Globe, ShieldCheck, Zap,
+  BarChart3, ShoppingBag, Leaf, Search, Truck
 } from 'lucide-react';
 import Footer from '../components/footer';
 import Topbar from '../components/Topbar';
+import SEOHead from '../components/SEOHead';
 
 const AboutUs = () => {
   useEffect(() => {
@@ -46,6 +47,11 @@ const AboutUs = () => {
 
   return (
     <>
+      <SEOHead
+        title="About Us"
+        description="Learn about BritBooks — our mission to make quality books affordable and sustainable for everyone in the UK. Discover our story and values."
+        canonical="/about"
+      />
       <style>{`
         .reveal {
           opacity: 0;
@@ -93,7 +99,7 @@ const AboutUs = () => {
                 <span className="inline-block text-red-600 font-bold tracking-widest uppercase text-sm mb-5">
                   Since 2014 • Sustainable Literacy
                 </span>
-                <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 text-balance">
+                <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight mb-6 text-balance">
                   Reviving Stories,<br />
                   <span className="text-red-600">Preserving</span> Our Planet
                 </h1>
@@ -112,12 +118,17 @@ const AboutUs = () => {
               </div>
               
               <div className="relative reveal" style={{ transitionDelay: '0.2s' }}>
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700">
+                <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl md:rotate-2 md:hover:rotate-0 transition-transform duration-700">
                   <img
                     src="https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=2074&auto=format&fit=crop"
                     alt="Stack of beautiful vintage books"
-                    className="w-full h-[480px] md:h-[560px] object-cover"
+                    className="w-full h-52 sm:h-80 md:h-[560px] object-cover"
                   />
+                </div>
+                {/* Mobile inline stat */}
+                <div className="mt-4 flex items-center gap-3 md:hidden">
+                  <p className="text-3xl font-black text-red-600">2M+</p>
+                  <p className="text-gray-500 text-sm font-medium">Books saved from landfill</p>
                 </div>
                 <div className="absolute -bottom-12 -left-8 glass-card p-8 rounded-3xl shadow-xl hidden md:block animate-float">
                   <p className="text-5xl font-black text-red-600">2M+</p>
@@ -148,31 +159,64 @@ const AboutUs = () => {
                 </div>
               </div>
 
-              <div className="bg-gray-900 p-10 md:p-12 rounded-3xl shadow-2xl reveal" style={{ transitionDelay: '0.15s' }}>
+              <div className="bg-gray-900 p-5 sm:p-10 md:p-12 rounded-2xl sm:rounded-3xl shadow-2xl reveal" style={{ transitionDelay: '0.15s' }}>
                 <h3 className="text-white text-2xl font-bold mb-12 flex items-center gap-3">
                   <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
                   Books Saved per Year (Millions)
                 </h3>
                 
                 <div 
-                  className="flex items-end justify-between h-72 md:h-80 gap-5 md:gap-8"
-                  role="img"
-                  aria-label="Bar chart showing yearly books saved growth"
-                >
-                  {impactStats.map((item) => (
-                    <div key={item.year} className="flex flex-col items-center flex-1 group relative">
-                      <div 
-                        className="w-full bg-gradient-to-t from-red-600 to-red-400 rounded-t-2xl graph-bar relative"
-                        style={{ height: item.height }}
-                      >
-                        <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-sm font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          {item.saved}
-                        </span>
-                      </div>
-                      <span className="text-gray-400 text-sm font-medium mt-4">{item.year}</span>
-                    </div>
-                  ))}
-                </div>
+  className="relative flex items-end justify-between h-72 md:h-80 gap-5 md:gap-8"
+  role="img"
+  aria-label="Trend curve showing yearly books saved growth"
+>
+  {/* SVG Trend Curve */}
+  <svg
+    className="absolute inset-0 w-full h-full pointer-events-none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <linearGradient id="gradientLine" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#f43f5e" />
+        <stop offset="100%" stopColor="#f87171" />
+      </linearGradient>
+    </defs>
+    
+    <path
+      d={(() => {
+        const width = 700;   // SVG width in %
+        const height = 100;  // SVG height in %
+        const points = impactStats.map((item, i) => ({
+          x: (i / (impactStats.length - 1)) * width,
+          y: height - (parseFloat(item.saved) * 20), // scale factor (adjust)
+        }));
+
+        // Smooth cubic bezier path
+        let d = `M ${points[0].x},${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+          const cpX = (points[i-1].x + points[i].x) / 2;
+          d += ` C ${cpX},${points[i-1].y} ${cpX},${points[i].y} ${points[i].x},${points[i].y}`;
+        }
+        return d;
+      })()}
+      fill="none"
+      stroke="url(#gradientLine)"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+  </svg>
+
+  {/* Points and year labels */}
+  {impactStats.map((item, i) => (
+    <div key={item.year} className="flex flex-col items-center flex-1 group relative">
+      <div className="relative w-3 h-3 bg-red-500 rounded-full -mb-1"></div>
+      <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-sm font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        {item.saved}
+      </span>
+      <span className="text-gray-400 text-sm font-medium mt-4">{item.year}</span>
+    </div>
+  ))}
+</div>
               </div>
             </div>
           </section>
@@ -195,7 +239,7 @@ const AboutUs = () => {
               ].map((step, i) => (
                 <div 
                   key={i} 
-                  className="p-8 rounded-3xl bg-white border border-gray-100 hover:border-red-200 transition-all text-center shadow-sm group reveal"
+                  className="p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-white border border-gray-100 hover:border-red-200 transition-all text-center shadow-sm group reveal"
                   style={{ transitionDelay: `${i * 0.1}s` }}
                 >
                   <div className="w-14 h-14 mx-auto bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-red-600 group-hover:text-white transition-colors">
@@ -227,10 +271,10 @@ const AboutUs = () => {
           </section>
 
           {/* ── Values + Big Image ───────────────────────── */}
-          <section className="py-24 bg-black text-white rounded-[2.5rem] mx-4 md:mx-8 mb-24 overflow-hidden relative">
-            <div className="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+          <section className="py-12 md:py-24 bg-black text-white rounded-2xl md:rounded-[2.5rem] mx-3 md:mx-8 mb-12 md:mb-24 overflow-hidden relative">
+            <div className="container mx-auto px-5 md:px-6 grid md:grid-cols-2 gap-10 md:gap-16 items-center">
               <div className="reveal">
-                <h2 className="text-4xl md:text-6xl font-black mb-10 leading-tight">
+                <h2 className="text-3xl sm:text-4xl md:text-6xl font-black mb-7 md:mb-10 leading-tight">
                   Reading shouldn't cost the Earth.
                 </h2>
                 <div className="space-y-10">
@@ -259,7 +303,7 @@ const AboutUs = () => {
                 <img
                   src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=2070&auto=format&fit=crop"
                   alt="Warm cozy library with wooden shelves full of books"
-                  className="rounded-3xl h-[500px] w-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 shadow-2xl"
+                  className="rounded-2xl md:rounded-3xl h-56 sm:h-80 md:h-[500px] w-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 shadow-2xl"
                 />
               </div>
             </div>
@@ -275,7 +319,7 @@ const AboutUs = () => {
               ].map((t, i) => (
                 <div 
                   key={i} 
-                  className="glass-card p-10 rounded-3xl border border-gray-200 hover:border-red-400 transition-colors reveal"
+                  className="glass-card p-5 sm:p-10 rounded-2xl sm:rounded-3xl border border-gray-200 hover:border-red-400 transition-colors reveal"
                   style={{ transitionDelay: `${i * 0.12}s` }}
                 >
                   <div className="flex gap-1 text-red-600 mb-5 text-2xl">
@@ -291,16 +335,16 @@ const AboutUs = () => {
 
           {/* ── Final CTA ─────────────────────────────────── */}
           <section className="container mx-auto px-6 mb-32 reveal">
-            <div className="bg-red-600 rounded-[3rem] p-12 md:p-20 text-center text-white relative overflow-hidden group shadow-2xl">
+            <div className="bg-red-600 rounded-2xl sm:rounded-[3rem] p-7 sm:p-12 md:p-20 text-center text-white relative overflow-hidden group shadow-2xl">
               <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
               <div className="relative z-10">
-                <h2 className="text-4xl md:text-6xl font-black mb-6">Join the Movement</h2>
-                <p className="text-red-100 text-xl md:text-2xl mb-12 max-w-2xl mx-auto">
+                <h2 className="text-3xl sm:text-4xl md:text-6xl font-black mb-4 sm:mb-6">Join the Movement</h2>
+                <p className="text-red-100 text-base sm:text-xl md:text-2xl mb-8 sm:mb-12 max-w-2xl mx-auto">
                   Get 10% off your first order + early access to rare and collectible arrivals.
                 </p>
                 <Link 
                   to="/signup" 
-                  className="bg-white text-black px-12 py-6 rounded-full font-black text-xl hover:bg-black hover:text-white transition-all inline-flex items-center gap-3 shadow-2xl hover:scale-105"
+                  className="bg-white text-black px-7 py-4 sm:px-12 sm:py-6 rounded-full font-black text-base sm:text-xl hover:bg-black hover:text-white transition-all inline-flex items-center gap-3 shadow-2xl hover:scale-105"
                 >
                   Start Reading Sustainably
                 </Link>

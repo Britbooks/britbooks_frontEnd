@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import TopBar from '../components/Topbar';
+import SEOHead from '../components/SEOHead';
 
 // --- SVG ICONS for MainContent ---
 const MoreHorizontalIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -386,6 +387,7 @@ const DashboardPage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans flex-col">
+      <SEOHead title="My Dashboard" description="Manage your BritBooks account." canonical="/dashboard" noindex={true} />
       <TopBar />
       <MainContent />
     </div>

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import Footer from '../components/footer';
 import TopBar from '../components/Topbar';
+import SEOHead, { buildOrganizationSchema } from '../components/SEOHead';
 import { fetchBooks, fetchCategories, Book, CategoryNode } from '../data/books';
 import { useRecentlyViewed } from '../context/viewManager';
 import BookCard from "../components/BookCard";
@@ -916,8 +917,14 @@ const Homepage = () => {
   
   return (
     <>
+      <SEOHead
+        title="Quality Second-Hand Books at Affordable Prices"
+        description="Discover thousands of quality second-hand and new books at BritBooks. Browse bestsellers, new arrivals, and special offers with fast UK delivery."
+        canonical="/"
+        structuredData={buildOrganizationSchema()}
+      />
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-      
+
       <style>{`
         @keyframes fadeInUp {
           from {

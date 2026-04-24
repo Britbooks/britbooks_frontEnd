@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Cookie, Shield, BarChart2, Settings, Globe, Clock, CheckCircle, X, ExternalLink } from "lucide-react";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
+import SEOHead from "../components/SEOHead";
 
 const cookieTypes = [
   {
@@ -101,6 +102,12 @@ export default function CookiesPolicyPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
+      <SEOHead
+        title="Cookies Policy"
+        description="Learn how BritBooks uses cookies to improve your browsing experience. Manage your cookie preferences and learn about our data practices."
+        canonical="/cookies"
+        noindex={false}
+      />
       <TopBar />
 
       {/* ── Hero ── */}

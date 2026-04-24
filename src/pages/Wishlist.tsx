@@ -10,6 +10,7 @@ import { useWishlist } from "../context/wishlistContext";
 import { useCart } from "../context/cartContext";
 import BookCard from "../components/BookCard";
 import toast from "react-hot-toast";
+import SEOHead from '../components/SEOHead';
 
 // ── Main component ────────────────────────────────────────────────────────────
 const MyWishlistPage = () => {
@@ -30,6 +31,7 @@ const MyWishlistPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fafafa] font-sans">
+      <SEOHead title="My Wishlist" description="View your saved books on BritBooks." canonical="/wishlist" noindex={true} />
       <TopBar />
 
       {/* ── MOBILE LAYOUT ─────────────────────────────────────────── */}

@@ -8,6 +8,7 @@ import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { fetchBooks, fetchCategories } from "../data/books";
 import BookCard from "../components/BookCard";
+import SEOHead from "../components/SEOHead";
 import GlobalSearchBar from "../components/GlobalSearchBar";
 
 const priceStr = (p: any) => (typeof p === "number" ? `£${p.toFixed(2)}` : p ?? "");
@@ -481,6 +482,11 @@ const NewArrivalsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f4ef] font-sans">
+      <SEOHead
+        title="New Arrivals"
+        description="Discover the latest books just added to BritBooks. Fresh stock arriving daily — fiction, non-fiction, children's books, and more at great prices."
+        canonical="/new-arrivals"
+      />
       <style>{`.no-sb::-webkit-scrollbar{display:none}.no-sb{-ms-overflow-style:none;scrollbar-width:none}`}</style>
       <TopBar />
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
+import SEOHead from "../components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, ChevronLeft, ChevronRight, Search, Gift,
@@ -128,13 +129,14 @@ const QuizOverlay = ({ isOpen, onClose, onComplete }: any) => {
 };
 
 const ClearancePage = () => {
+  const routerLocation = useLocation();
   const [points, setPoints] = useState(450);
   const [currentPage, setCurrentPage] = useState(1);
   const [showQuiz, setShowQuiz] = useState(false);
   const [books, setBooks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const BOOKS_PER_PAGE = 100;
-  const previousCategory = (location.state as { category?: string })?.category || "Browse";
+  const previousCategory = (routerLocation.state as { category?: string })?.category || "Browse";
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Mobile-specific state
@@ -184,6 +186,11 @@ const ClearancePage = () => {
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen flex flex-col font-sans">
+      <SEOHead
+        title="Clearance Books"
+        description="Huge savings on clearance books at BritBooks. Grab quality second-hand books at the lowest prices — while stocks last!"
+        canonical="/clearance"
+      />
       <Toaster position="bottom-right" />
       <TopBar />
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import GlobalSearchBar from "../components/GlobalSearchBar";
 import { Link, useSearchParams } from "react-router-dom";
+import SEOHead from "../components/SEOHead";
 import {
   ChevronDown,
   ChevronUp,
@@ -240,6 +242,11 @@ export default function BrowsePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
+      <SEOHead
+        title="Browse Books by Category"
+        description="Explore our wide range of book categories at BritBooks. Find fiction, non-fiction, children's books, self-help, and more at great prices."
+        canonical="/category"
+      />
       <TopBar />
       <Toaster position="bottom-right" />
 
@@ -265,14 +272,7 @@ export default function BrowsePage() {
           </div>
 
           {/* Search bar */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-2xl px-3 py-2.5">
-            <Search size={15} className="text-gray-400 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Search titles, authors…"
-              className="flex-1 bg-transparent text-sm font-medium text-gray-800 placeholder-gray-400 outline-none"
-            />
-          </div>
+          <GlobalSearchBar variant="light" placeholder="Search titles, authors…" />
         </div>
 
         {/* ── Category chip rail ── */}
@@ -315,7 +315,7 @@ export default function BrowsePage() {
 
           {/* ── Subcategory chip rail (visible when a category is active) ── */}
           <AnimatePresence>
-            {activeCat?.children?.length > 0 && (
+            {(activeCat?.children?.length ?? 0) > 0 && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -327,7 +327,7 @@ export default function BrowsePage() {
                   className="flex gap-2 px-4 py-2.5 overflow-x-auto"
                   style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
                 >
-                  {activeCat.children.map((sub) => (
+                  {activeCat?.children?.map((sub) => (
                     <motion.button
                       key={sub.name}
                       whileTap={{ scale: 0.92 }}
@@ -455,16 +455,8 @@ export default function BrowsePage() {
                   {selectedSubcategory || selectedCategory || "All Books"}
                 </h1>
               </div>
-              <div className="flex items-center gap-3 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-white/40 w-full md:w-auto md:min-w-[380px] max-w-md">
-                <Search className="ml-3 text-gray-700" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search titles, authors..."
-                  className="flex-1 h-10 outline-none font-medium text-gray-800 bg-transparent placeholder:text-gray-500"
-                />
-                <button className="bg-gray-900 text-white px-6 py-2.5 rounded-xl font-black transition-colors hover:bg-gray-800">
-                  Search
-                </button>
+              <div className="w-full md:w-auto md:min-w-[380px] max-w-md">
+                <GlobalSearchBar variant="light" placeholder="Search titles, authors…" />
               </div>
             </div>
           </div>

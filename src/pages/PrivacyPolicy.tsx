@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, Variants } from "framer-motion";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
+import SEOHead from "../components/SEOHead";
 import {
   Shield, Lock, Eye, FileText, Scale, Mail, Check,
   Info, Globe, UserCheck, AlertCircle, Database, Server, RefreshCcw,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 
 // Animation variants
-const fadeInUp = {
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 35 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
 };
@@ -75,11 +76,31 @@ const PrivacyPolicyPage = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans text-slate-800">
+      <SEOHead
+        title="Privacy Policy"
+        description="Read BritBooks' privacy policy to understand how we collect, use, and protect your personal data in compliance with UK GDPR."
+        canonical="/privacy-policy"
+        noindex={false}
+      />
       <TopBar />
 
       <div className="flex-1 max-w-7xl mx-auto w-full flex flex-col md:flex-row gap-12 p-6 lg:p-12 lg:pt-20">
+        {/* MOBILE SECTION SELECTOR */}
+        <div className="md:hidden mb-2">
+          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Jump to section</label>
+          <select
+            value={activeSection}
+            onChange={e => scrollToSection(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {sections.map(s => (
+              <option key={s.id} value={s.id}>{s.title}</option>
+            ))}
+          </select>
+        </div>
+
         {/* STICKY SIDEBAR NAVIGATION */}
-        <aside className="md:w-72 shrink-0">
+        <aside className="hidden md:block md:w-72 shrink-0">
           <div className="sticky top-28 space-y-6">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -138,11 +159,11 @@ const PrivacyPolicyPage = () => {
             <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest">
               <Shield size={14} /> Trusted Compliance
             </motion.div>
-            <motion.h1 variants={fadeInUp} className="text-5xl lg:text-7xl font-black text-slate-900 tracking-tight leading-[0.9]">
+            <motion.h1 variants={fadeInUp} className="text-4xl sm:text-5xl lg:text-7xl font-black text-slate-900 tracking-tight leading-[0.9]">
               Privacy <br />
               <span className="text-blue-600">is a Right.</span>
             </motion.h1>
-            <motion.p variants={fadeInUp} className="text-xl text-slate-500 max-w-2xl font-medium">
+            <motion.p variants={fadeInUp} className="text-base sm:text-xl text-slate-500 max-w-2xl font-medium">
               At BritBooks, we prioritise your trust. We collect only what’s needed to deliver books and never sell your data. Our policies comply with UK GDPR, Consumer Rights Act 2015, and other regulations for online sales.
             </motion.p>
             <motion.div variants={fadeInUp} className="flex items-center gap-4 text-xs font-bold text-slate-400 border-t pt-6 w-fit">

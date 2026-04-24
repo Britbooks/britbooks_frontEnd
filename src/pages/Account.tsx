@@ -12,6 +12,7 @@ import {
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { JwtPayload } from "../types/auth";
+import SEOHead from '../components/SEOHead';
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -130,6 +131,7 @@ const AccountSettingsPage: React.FC = () => {
   /* ── Main ── */
   return (
     <div className="min-h-screen bg-gray-50 font-sans antialiased">
+      <SEOHead title="Account Settings" description="Manage your BritBooks account settings and preferences." canonical="/settings" noindex={true} />
       <TopBar />
 
       {/* ══════════════════════════════════════════

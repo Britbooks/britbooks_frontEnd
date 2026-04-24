@@ -11,6 +11,7 @@ import axios from "axios";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { useAuth } from "../context/authContext";
+import SEOHead from '../components/SEOHead';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "https://britbooks-api-production-8ebd.up.railway.app";
 const ITEMS_PER_PAGE = 5;
@@ -288,6 +289,7 @@ function InvoiceRow({ inv, isExpanded, onToggle, onDownload, onViewOrder }: any)
 function AuthWall({ navigate }: any) {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+      <SEOHead title="My Invoices" description="View your BritBooks purchase invoices." canonical="/invoices" noindex={true} />
       <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-8">
         <Clock3 className="text-slate-300" size={32} />
       </div>

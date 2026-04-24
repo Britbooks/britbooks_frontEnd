@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import Footer from '../components/footer';
 import { Menu, X } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 // --- ICONS ---
 const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -494,7 +495,7 @@ const FilterSidebar = ({ filters, setFilters }: { filters: any; setFilters: (fil
 
 // --- MAIN EXPLORE PAGE COMPONENT ---
 const ExplorePage = () => {
-  const [filters, setFilters] = useState({ categories: [], price: { min: '', max: '' }, rating: 0 });
+  const [filters, setFilters] = useState<{ categories: string[]; price: { min: string; max: string }; rating: number }>({ categories: [], price: { min: '', max: '' }, rating: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBook, setSelectedBook] = useState<typeof allBooks[0] | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -530,6 +531,11 @@ const ExplorePage = () => {
 
   return (
     <div className="bg-white font-sans">
+      <SEOHead
+        title="Explore Books"
+        description="Browse and search thousands of books across all genres at BritBooks. Find your next read from our huge selection of second-hand and new books."
+        canonical="/explore"
+      />
       <Toaster position="top-right" />
       <style>{`
         .book-image-hover { transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; }

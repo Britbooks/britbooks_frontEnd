@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 import TopBar from '../components/Topbar';
 import Footer from '../components/footer';
+import SEOHead from '../components/SEOHead';
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 const SearchIcon = (props) => (
@@ -47,6 +48,50 @@ const AlertCircleIcon = (props) => <svg {...props} viewBox="0 0 24 24" fill="non
 
 const API_BASE_URL = 'https://britbooks-api-production-8ebd.up.railway.app/api';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface OrderItem {
+  title: string;
+  author?: string;
+  quantity: number;
+  price?: number;
+  priceAtPurchase: number;
+}
+
+interface ShippingAddress {
+  name: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+interface PaymentDetails {
+  method: string;
+  status: string;
+  transactionId?: string;
+  paidAt?: string;
+}
+
+interface TrackingStep {
+  status: string;
+  date: string | null;
+  location: string;
+  completed: boolean;
+}
+
+interface Order {
+  id: string;
+  date: string;
+  total: number;
+  status: string;
+  hasDetails?: boolean;
+  items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  paymentDetails: PaymentDetails;
+  tracking: TrackingStep[];
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const capitalizeStatus = (status) => {
   if (!status) return '';
@@ -58,8 +103,8 @@ const capitalizeStatus = (status) => {
 };
 
 const mapTracking = (fetchedOrder) => {
-  const history = fetchedOrder.history || [];
-  const historyMap = new Map(history.map(h => [h.status, h.updatedAt]));
+  const history: { status: string; updatedAt: string }[] = fetchedOrder.history || [];
+  const historyMap = new Map<string, string>(history.map(h => [h.status, h.updatedAt]));
   const statusOrder = {
     ordered: 0,
     processing: 1,
@@ -82,9 +127,9 @@ const mapTracking = (fetchedOrder) => {
   return trackingSteps.map(step => {
     const stepLevel = statusOrder[step.backend];
     const completed = stepLevel !== undefined && stepLevel <= currentLevel;
-    let date = null;
+    let date: string | null = null;
     if (completed) {
-      date = historyMap.get(step.backend);
+      date = historyMap.get(step.backend) ?? null;
       if (!date && step.backend === 'ordered') date = fetchedOrder.createdAt;
     }
     return {
@@ -100,7 +145,7 @@ const mapTracking = (fetchedOrder) => {
 const ItemDetails = ({ orders }) => {
   const { orderId, itemIndex } = useParams();
   const order = orders.find(o => o.id === orderId);
-  const item = order?.hasDetails && order.items?.[parseInt(itemIndex)];
+  const item = order?.hasDetails && order.items?.[parseInt(itemIndex ?? '0')];
 
   if (!order || !order.hasDetails || !item) {
     return (
@@ -142,9 +187,9 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
   const { id } = useParams();
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !id) return;
@@ -198,8 +243,8 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
         } else {
           setError("Order not found");
         }
-      } catch (err) {
-        if (err.response?.status === 401) {
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
           logout();
           navigate("/login");
         } else {
@@ -418,7 +463,7 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
 const MainContent = ({ setOrders }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [orders, setLocalOrders] = useState([]);
+  const [orders, setLocalOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -448,7 +493,7 @@ const MainContent = ({ setOrders }) => {
 
       setLoading(true);
       try {
-        const decoded = jwtDecode(auth.token);
+        const decoded = jwtDecode<{ userId: string }>(auth.token);
         const userId = decoded.userId;
 
         const params = new URLSearchParams({
@@ -491,8 +536,8 @@ const MainContent = ({ setOrders }) => {
           setTotalPages(res.data.pagination?.pages || 1);
           setTotalOrders(res.data.pagination?.total || 0);
         }
-      } catch (err) {
-        if (err.response?.status === 401) {
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
           logout();
           navigate('/login');
         }
@@ -679,7 +724,7 @@ const MainContent = ({ setOrders }) => {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 const OrdersPage = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const location = useLocation();
   const { id } = useParams();
 
@@ -689,6 +734,7 @@ const OrdersPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
+      <SEOHead title="My Orders" description="View and track your BritBooks orders." canonical="/orders" noindex={true} />
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }

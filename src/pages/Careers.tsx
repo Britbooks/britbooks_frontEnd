@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/footer';
 import { Menu, X } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 // --- SVG ICONS ---
 const BookOpenIcon = (props) => (
@@ -177,6 +178,11 @@ const CareersPage = () => {
 
   return (
     <div className="bg-white font-sans">
+      <SEOHead
+        title="Careers at BritBooks"
+        description="Join the BritBooks team and help make books accessible to everyone. Explore open roles and career opportunities at the UK's favourite book marketplace."
+        canonical="/careers"
+      />
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -192,8 +198,8 @@ const CareersPage = () => {
         <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=2084&auto=format&fit=crop" alt="A diverse team collaborating in a modern office" className="w-full h-full object-cover opacity-30"/>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white p-4 animate-on-scroll">
-            <h1 className="text-4xl md:text-6xl font-bold">Write Your Next Chapter with Us</h1>
-            <p className="mt-4 text-lg md:text-xl max-w-2xl mx-auto">Join a passionate team dedicated to changing the way the world reads.</p>
+            <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold">Write Your Next Chapter with Us</h1>
+            <p className="mt-4 text-sm sm:text-lg md:text-xl max-w-2xl mx-auto">Join a passionate team dedicated to changing the way the world reads.</p>
           </div>
         </div>
       </header>

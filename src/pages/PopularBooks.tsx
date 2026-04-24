@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import GlobalSearchBar from "../components/GlobalSearchBar";
 import { Link, useNavigate } from "react-router-dom";
+import SEOHead from "../components/SEOHead";
 import {
   Star, ChevronLeft, ChevronRight, Search, Flame,
   Book as BookIcon, TrendingUp, Zap, SlidersHorizontal,
@@ -379,6 +380,11 @@ const PopularBooksPage: React.FC = () => {
 
   return (
     <div className="bg-[#FBFBFE] min-h-screen font-sans selection:bg-indigo-100">
+      <SEOHead
+        title="Popular Books"
+        description="Browse the most popular books at BritBooks, loved by readers across the UK. Find top-rated titles at great prices with fast delivery."
+        canonical="/popular-books"
+      />
       <Toaster position="top-center" toastOptions={{ style: { fontSize: 13 } }} />
 
       {/* ═══════════════════════════════════

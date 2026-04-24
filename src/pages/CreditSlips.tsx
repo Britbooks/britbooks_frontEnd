@@ -9,6 +9,7 @@ import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { useAuth } from "../context/authContext";
 import axios from "axios";
+import SEOHead from '../components/SEOHead';
 
 const API = import.meta.env.VITE_API_URL ?? "https://api.britbooks.co.uk";
 
@@ -126,6 +127,7 @@ export default function CreditSlipsPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
+      <SEOHead title="Credit Slips" description="View your BritBooks credit slips and refunds." canonical="/credits" noindex={true} />
       <TopBar />
 
       {/* ── Hero ── */}

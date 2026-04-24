@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Mail, Phone, MapPin, Send, MessageSquare, 
+import {
+  Mail, Phone, MapPin, Send, MessageSquare,
   ArrowRight, Clock, ShieldCheck, Globe2
 } from 'lucide-react';
 import TopBar from '../components/Topbar';
 import Footer from '../components/footer';
+import SEOHead from '../components/SEOHead';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -23,6 +24,11 @@ const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-indigo-600 selection:text-white">
+      <SEOHead
+        title="Contact Us"
+        description="Get in touch with the BritBooks team. We're here to help with any questions about orders, shipping, returns, or general enquiries."
+        canonical="/contact"
+      />
       <TopBar />
 
       <main className="max-w-7xl mx-auto px-6 py-12 md:py-20">
@@ -30,16 +36,16 @@ const ContactPage = () => {
         <header className="mb-16">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="max-w-2xl">
-              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-6">
+              <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-4 sm:mb-6">
                 How can we <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">help?</span>
               </h1>
-              <p className="text-xl text-slate-500 leading-relaxed">
+              <p className="text-base sm:text-xl text-slate-500 leading-relaxed">
                 Whether you're looking for a specific title or need help with a delivery, our London-based team is ready to assist.
               </p>
             </div>
             
             {/* Boutique Status Card */}
-            <div className="hidden md:flex flex-col items-end">
+            <div className="flex md:flex flex-col items-start md:items-end">
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center gap-4">
                 <div className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -59,9 +65,9 @@ const ContactPage = () => {
           
           {/* Left: Communication Hub (Bento Style) */}
           <div className="lg:col-span-4 grid grid-cols-1 gap-4">
-            
+
             {/* Quick Contact Card */}
-            <div className="bg-indigo-600 rounded-[2rem] p-8 text-white group">
+            <div className="bg-indigo-600 rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 text-white group">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-8 opacity-70">Direct Contact</h3>
               <div className="space-y-6">
                 <a href="mailto:customercare@britbooks.co.uk" className="flex items-center gap-4 hover:translate-x-2 transition-transform">
@@ -98,7 +104,7 @@ const ContactPage = () => {
           </div>
 
           {/* Right: The Modern Form */}
-          <div className="lg:col-span-8 bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-14 shadow-2xl shadow-slate-100/50">
+          <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-8 md:p-14 shadow-2xl shadow-slate-100/50">
             <div className="flex items-center gap-2 mb-10">
               <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
               <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Send an Enquiry</h2>
@@ -152,7 +158,7 @@ const ContactPage = () => {
         </div>
 
         {/* --- Bottom: Why Us Section --- */}
-        <section className="mt-32 grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-slate-100 pt-16 text-center md:text-left">
+        <section className="mt-16 md:mt-32 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 border-t border-slate-100 pt-10 md:pt-16 text-center md:text-left">
           <div className="space-y-4">
             <Clock size={32} className="text-indigo-600 mx-auto md:mx-0" />
             <h4 className="font-black text-lg">Fast Response</h4>

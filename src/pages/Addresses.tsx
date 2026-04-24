@@ -19,6 +19,7 @@ import axios, { AxiosError } from 'axios';
 import { useAuth } from '../context/authContext';
 import TopBar from '../components/Topbar';
 import Footer from '../components/footer';
+import SEOHead from '../components/SEOHead';
 
 // --- Interfaces ---
 interface Address {
@@ -335,6 +336,7 @@ const AddressesPage = () => {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans">
+      <SEOHead title="My Addresses" description="Manage your delivery addresses on BritBooks." canonical="/addresses" noindex={true} />
       <TopBar />
       <main className="flex-1 py-10">
         {loading ? (

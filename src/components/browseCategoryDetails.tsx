@@ -6,6 +6,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
+import SEOHead, { buildBookSchema, buildBreadcrumbSchema } from "./SEOHead";
 import {
   Heart, Facebook, Twitter, Instagram,
   ChevronLeft, ChevronRight, ShoppingCart,
@@ -277,8 +278,41 @@ const BrowseCategoryDetail = () => {
 
   const cover = imgErr ? FALLBACK : book.imageUrl;
 
+  const bookDesc = book.description
+    ? book.description.slice(0, 160)
+    : `Buy "${book.title}" by ${book.author} — ${book.condition ?? "Good"} condition, only £${book.price.toFixed(2)}. Fast UK delivery from BritBooks.`;
+
+  const seoStructuredData = [
+    ...buildBookSchema({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      description: book.description,
+      image: book.imageUrl,
+      isbn: book.isbn,
+      price: book.price,
+      condition: book.condition,
+      availability: book.stock > 0 ? "InStock" : "OutOfStock",
+      category: book.category,
+    }),
+    buildBreadcrumbSchema([
+      { name: "Home", url: "/" },
+      { name: "Browse", url: "/category" },
+      ...(book.category ? [{ name: book.category, url: `/category` }] : []),
+      { name: book.title, url: `/browse/${book.id}` },
+    ]),
+  ];
+
   return (
     <div className="min-h-screen bg-[#f7f4ef]">
+      <SEOHead
+        title={`${book.title} by ${book.author}`}
+        description={bookDesc}
+        canonical={`/browse/${book.id}`}
+        image={book.imageUrl}
+        type="book"
+        structuredData={seoStructuredData}
+      />
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <TopBar />
 
@@ -367,7 +401,7 @@ const BrowseCategoryDetail = () => {
 
           {/* Rating */}
           <div className="flex items-center gap-2 mb-4">
-            <Stars rating={book.rating} size={15} />
+            <Stars rating={book.rating ?? 0} size={15} />
             <span className="text-xs font-bold text-gray-500">{book.rating?.toFixed(1)}</span>
             <span className="text-xs text-gray-400">({book.reviews || 5} reviews)</span>
           </div>
@@ -467,7 +501,7 @@ const BrowseCategoryDetail = () => {
               )}
               {activeTab === "reviews" && (
                 <div className="text-center py-6">
-                  <Stars rating={book.rating} size={20} />
+                  <Stars rating={book.rating ?? 0} size={20} />
                   <p className="font-black text-gray-800 text-lg mt-2">{book.rating?.toFixed(1)} / 5</p>
                   <p className="text-gray-400 text-xs mt-1">Based on {book.reviews || 5} reviews</p>
                 </div>
@@ -583,7 +617,7 @@ const BrowseCategoryDetail = () => {
               <h1 className="text-2xl font-bold text-gray-800 mb-2">{book.title}</h1>
               <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
               <div className="flex items-center mb-3 text-sm gap-2">
-                <Stars rating={book.rating} />
+                <Stars rating={book.rating ?? 0} />
                 <a href="#reviews" className="text-gray-500 hover:text-red-600 underline">
                   {book.rating ? `${book.rating.toFixed(1)} (${book.reviews || 5} Reviews)` : "No Reviews"}
                 </a>
@@ -652,7 +686,7 @@ const BrowseCategoryDetail = () => {
                 <ul className="space-y-2">
                   <li><span className="font-semibold">ISBN:</span> {book.isbn || "N/A"}</li>
                   <li><span className="font-semibold">Pages:</span> {book.pages || "N/A"}</li>
-                  <li><span className="font-semibold">Release Date:</span> {book.releaseDate || "N/A"}</li>
+                  <li><span className="font-semibold">Release Date:</span> {book.releaseDate ? String(book.releaseDate).split("T")[0] : "N/A"}</li>
                   <li><span className="font-semibold">Category:</span> {book.category || "N/A"}</li>
                 </ul>
               )}
