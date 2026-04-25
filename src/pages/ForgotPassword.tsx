@@ -107,11 +107,11 @@ const ForgotPassword: React.FC = () => {
           <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight mb-4">
             Reset your<br />password.
           </h1>
-          <p className="text-white/60 text-base leading-relaxed max-w-xs">
+          <p className="text-white text-base leading-relaxed max-w-xs">
             Enter your email and we'll send a verification code to get you back into your account.
           </p>
 
-          <div className="mt-12 space-y-4">
+          <div className="mt-12 text-white space-y-4">
             {[
               { n: "1", label: "Enter your email" },
               { n: "2", label: "Enter the verification code" },
@@ -122,15 +122,15 @@ const ForgotPassword: React.FC = () => {
                   style={{ background: "rgba(201,168,76,0.15)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.3)" }}>
                   {n}
                 </div>
-                <p className="text-sm text-white/70 font-medium">{label}</p>
+                <p className="text-sm text-white font-medium">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative z-10 p-8 flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-white/40" />
-          <span className="text-[11px] text-white/40">Secured with 256-bit SSL encryption</span>
+          <ShieldCheck className="w-3.5 h-3.5 text-white" />
+          <span className="text-[11px] text-white">Secured with 256-bit SSL encryption</span>
         </div>
       </div>
 
