@@ -1,7 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FaFacebookF, FaTwitter, FaPinterestP, FaInstagram } from 'react-icons/fa';
-import { Mail, Phone, MapPin, ArrowRight, ShieldCheck, Truck, RotateCcw, Headphones } from 'lucide-react';
+import { Mail, Phone, MapPin, ArrowRight, ShieldCheck, BookOpen } from 'lucide-react';
+import axios from 'axios';
+
+/* ── New Arrivals Ticker ───────────────────────────────────────── */
+const NewArrivalsTicker = () => {
+  const [titles, setTitles] = useState<string[]>([]);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    axios.post('https://britbooks-api-production-8ebd.up.railway.app/api/market/admin/listings', {
+      shelf: 'newArrivals', page: 1, limit: 20,
+    }).then(({ data }) => {
+      const names: string[] = (data.listings ?? [])
+        .map((b: any) => b.title?.replace(/\s*\(\d+\)$/, '').trim())
+        .filter(Boolean);
+      setTitles(names);
+    }).catch(() => {});
+  }, []);
+
+  if (!titles.length) return null;
+
+  // Duplicate for seamless loop
+  const items = [...titles, ...titles];
+
+  return (
+    <div className="border-b border-gray-800 bg-gray-900/80 overflow-hidden py-3 relative">
+      {/* fade edges */}
+      <div className="absolute left-0 top-0 h-full w-16 bg-gradient-to-r from-gray-900 to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-gray-900 to-transparent z-10 pointer-events-none" />
+
+      <div
+        ref={trackRef}
+        className="flex gap-0 whitespace-nowrap"
+        style={{ animation: 'ticker 40s linear infinite' }}
+      >
+        {items.map((title, i) => (
+          <span key={i} className="inline-flex items-center gap-2 px-6 text-sm text-gray-400">
+            <BookOpen className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <span className="font-medium">{title}</span>
+            <span className="text-gray-700 ml-2">·</span>
+          </span>
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes ticker {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 const Footer = () => {
   const [email, setEmail] = useState('');
@@ -17,33 +69,12 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white font-sans">
 
-      {/* ── Trust bar ── */}
-      <div className="border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { icon: Truck,       label: 'Free UK Delivery',  sub: 'On orders over £25'    },
-              { icon: RotateCcw,   label: 'Easy Returns',      sub: '30-day return policy'  },
-              { icon: ShieldCheck, label: 'Secure Payments',   sub: '256-bit SSL encrypted' },
-              { icon: Headphones,  label: 'Expert Support',    sub: 'Mon–Fri, 9am–5pm'     },
-            ].map(({ icon: Icon, label, sub }) => (
-              <div key={label} className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-900/60 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-red-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{label}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* ── Live new arrivals ticker ── */}
+      <NewArrivalsTicker />
 
       {/* ── Newsletter ── */}
       <div className="bg-blue-900 border-b border-blue-800">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 py-5">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="font-semibold text-sm md:text-base text-center md:text-left">
               SIGN UP FOR NEWSLETTER & GET{' '}
@@ -78,23 +109,21 @@ const Footer = () => {
       </div>
 
       {/* ── Main content ── */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
+      <div className="w-full px-8 md:px-16 xl:px-28 py-20">
+        <div className="flex flex-col lg:flex-row items-start justify-between gap-12 lg:gap-0">
 
-          {/* Brand */}
-          <div className="sm:col-span-2 lg:col-span-1">
+          {/* Brand — extreme left */}
+          <div className="w-full lg:w-60 shrink-0">
             <Link to="/">
               <img src="/logobrit3.png" alt="BritBooks" className="h-20 w-auto object-contain mb-3 -ml-4" />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
               Your trusted destination for quality used books at unbeatable prices. Explore our vast collection and enjoy fast delivery.
             </p>
-            <Link to="/about" className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm mt-2 transition-colors">
+            <Link to="/about" className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm mt-3 transition-colors">
               Learn more <ArrowRight className="w-3 h-3" />
             </Link>
-
-            {/* Socials */}
-            <div className="flex items-center gap-3 mt-5">
+            <div className="flex items-center gap-3 mt-8">
               {[
                 { icon: FaFacebookF,  label: 'Facebook'  },
                 { icon: FaTwitter,    label: 'Twitter'   },
@@ -109,71 +138,72 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Customer Support */}
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-4">Customer Support</h3>
-            <ul className="space-y-2.5">
-              {[
-                { label: 'Get in Touch',       to: '/contact'          },
-                { label: 'FAQs',               to: '/faq'              },
-                { label: 'Shipping & Returns', to: '/shipping-returns' },
-                { label: 'Return Policy',      to: '/return-policy'    },
-                { label: 'Privacy Policy',     to: '/privacy-policy'   },
-                { label: 'Cookies Policy',     to: '/cookies'          },
-              ].map(({ label, to }) => (
-                <li key={label}>
-                  <Link to={to} className="text-sm text-gray-400 hover:text-white transition-colors">{label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Middle three — evenly spread */}
+          <div className="flex flex-col sm:flex-row flex-1 justify-around gap-12 sm:gap-0 px-0 lg:px-16 xl:px-24">
 
-          {/* My Account */}
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-4">My Account</h3>
-            <ul className="space-y-2.5">
-              {[
-                { label: 'Shopping Cart',  to: '/checkout'  },
-                { label: 'Order History',  to: '/orders'    },
-                { label: 'Wishlist',       to: '/wishlist'  },
-                { label: 'My Invoices',    to: '/invoices'  },
-                { label: 'Credit Slips',   to: '/credits'   },
-                { label: 'My Addresses',   to: '/addresses' },
-              ].map(({ label, to }) => (
-                <li key={label}>
-                  <Link to={to} className="text-sm text-gray-400 hover:text-white transition-colors">{label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            {/* Customer Support */}
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-6">Customer Support</h3>
+              <ul className="space-y-4">
+                {[
+                  { label: 'Get in Touch',       to: '/contact'          },
+                  { label: 'FAQs',               to: '/faq'              },
+                  { label: 'Shipping & Returns', to: '/shipping-returns' },
+                  { label: 'Return Policy',      to: '/return-policy'    },
+                  { label: 'Privacy Policy',     to: '/privacy-policy'   },
+                  { label: 'Cookies Policy',     to: '/cookies'          },
+                ].map(({ label, to }) => (
+                  <li key={label}>
+                    <Link to={to} className="text-sm text-gray-400 hover:text-white transition-colors">{label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          {/* Contact */}
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-4">Contact Us</h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-gray-400 leading-relaxed">London, United Kingdom</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-red-500 shrink-0" />
-                <a href="tel:02089046479" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  0208 904 6479
-                </a>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-red-500 shrink-0" />
-                <a href="mailto:hello@britbooks.co.uk" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  hello@britbooks.co.uk
-                </a>
+            {/* My Account */}
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-6">My Account</h3>
+              <ul className="space-y-4">
+                {[
+                  { label: 'Shopping Cart',  to: '/checkout'  },
+                  { label: 'Order History',  to: '/orders'    },
+                  { label: 'Wishlist',       to: '/wishlist'  },
+                  { label: 'My Invoices',    to: '/invoices'  },
+                  { label: 'Credit Slips',   to: '/credits'   },
+                  { label: 'My Addresses',   to: '/addresses' },
+                ].map(({ label, to }) => (
+                  <li key={label}>
+                    <Link to={to} className="text-sm text-gray-400 hover:text-white transition-colors">{label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-6">Contact Us</h3>
+              <div className="space-y-5">
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-gray-400 leading-relaxed">London, United Kingdom</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="w-4 h-4 text-red-500 shrink-0" />
+                  <a href="tel:02089046479" className="text-sm text-gray-400 hover:text-white transition-colors">0208 904 6479</a>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-red-500 shrink-0" />
+                  <a href="mailto:hello@britbooks.co.uk" className="text-sm text-gray-400 hover:text-white transition-colors">customercare@britbooks.co.uk</a>
+                </div>
               </div>
             </div>
+
           </div>
 
-          {/* Explore */}
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-4">Explore</h3>
-            <ul className="space-y-2.5">
+          {/* Explore — extreme right */}
+          <div className="w-full lg:w-40 shrink-0">
+            <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-6">Explore</h3>
+            <ul className="space-y-4">
               {[
                 { label: 'New Arrivals',   to: '/new-arrivals'   },
                 { label: 'Best Sellers',   to: '/bestsellers'    },
@@ -194,7 +224,7 @@ const Footer = () => {
 
       {/* ── Bottom bar ── */}
       <div className="border-t border-gray-800 bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 py-5 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-7 flex flex-col md:flex-row items-center justify-between gap-5">
           <p className="text-gray-500 text-xs text-center md:text-left">
             © {new Date().getFullYear()} BritBooks. All rights reserved. Designed by{' '}
             <a href="https://excelclone.co.uk" target="_blank" rel="noopener noreferrer"
@@ -203,18 +233,35 @@ const Footer = () => {
             </a>
           </p>
 
-          {/* Payment icons */}
+          {/* Payment badges */}
           <div className="flex items-center gap-2">
-            {[
-              { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/1200px-PayPal.svg.png', alt: 'PayPal' },
-              { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png', alt: 'Visa' },
-              { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/200px-Mastercard-logo.svg.png', alt: 'Mastercard' },
-              { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/American_Express_logo.svg/200px-American_Express_logo.svg.png', alt: 'Amex' },
-            ].map(({ src, alt }) => (
-              <div key={alt} className="h-7 px-2.5 bg-white rounded flex items-center justify-center">
-                <img src={src} alt={alt} className="h-4 w-auto object-contain" />
-              </div>
-            ))}
+            {/* PayPal */}
+            <div className="h-7 px-3 bg-white rounded flex items-center justify-center">
+              <svg viewBox="0 0 80 20" className="h-4 w-auto" aria-label="PayPal">
+                <text x="0" y="15" fontFamily="Arial" fontWeight="bold" fontSize="13" fill="#003087">Pay</text>
+                <text x="24" y="15" fontFamily="Arial" fontWeight="bold" fontSize="13" fill="#009cde">Pal</text>
+              </svg>
+            </div>
+            {/* Visa */}
+            <div className="h-7 px-3 bg-white rounded flex items-center justify-center">
+              <svg viewBox="0 0 60 20" className="h-4 w-auto" aria-label="Visa">
+                <text x="0" y="15" fontFamily="Arial" fontWeight="900" fontSize="16" fill="#1a1f71" letterSpacing="-1">VISA</text>
+              </svg>
+            </div>
+            {/* Mastercard */}
+            <div className="h-7 px-2 bg-white rounded flex items-center justify-center gap-1">
+              <svg viewBox="0 0 38 24" className="h-5 w-auto" aria-label="Mastercard">
+                <circle cx="13" cy="12" r="10" fill="#eb001b" />
+                <circle cx="25" cy="12" r="10" fill="#f79e1b" />
+                <path d="M19 5.4a10 10 0 0 1 0 13.2A10 10 0 0 1 19 5.4z" fill="#ff5f00" />
+              </svg>
+            </div>
+            {/* Amex */}
+            <div className="h-7 px-3 bg-[#2557d6] rounded flex items-center justify-center">
+              <svg viewBox="0 0 60 20" className="h-3.5 w-auto" aria-label="American Express">
+                <text x="0" y="14" fontFamily="Arial" fontWeight="bold" fontSize="11" fill="white" letterSpacing="0.5">AMEX</text>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
