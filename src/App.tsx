@@ -32,6 +32,7 @@ import CookiesPolicyPage from './pages/CookiesPolicy';
 import InvoicesPage from './pages/Invoices';
 import CreditSlipsPage from './pages/CreditSlips';
 import NotFoundPage from './pages/NotFound';
+import ForgotPasswordPage from './pages/ForgotPassword';
 
 import { AuthProvider } from './context/authContext'; 
 import { CartProvider } from './context/cartContext';
@@ -88,6 +89,7 @@ const App: React.FC = () => {
               <Route path="/cookies" element={<CookiesPolicyPage />} />
               <Route path="/invoices" element={<InvoicesPage />} />
               <Route path="/credits" element={<CreditSlipsPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </WishlistProvider>

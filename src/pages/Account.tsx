@@ -269,8 +269,8 @@ const AccountSettingsPage: React.FC = () => {
     if (!userData?.email) return;
     setForgotLoading(true);
     try {
-      await axios.post(`${API_URL}/api/auth/forgot-password`, { email: userData.email });
-      setSecurityStatus({ ok: true, msg: `Reset link sent to ${userData.email}` });
+      const { data } = await axios.post(`${API_URL}/api/auth/forgot-password`, { email: userData.email });
+      setSecurityStatus({ ok: true, msg: data.message ?? `Reset code sent to ${userData.email}. Check your inbox.` });
     } catch (err: any) {
       setSecurityStatus({ ok: false, msg: err.response?.data?.message || "Failed to send reset email." });
     } finally {
