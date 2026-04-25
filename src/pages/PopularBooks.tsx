@@ -158,11 +158,10 @@ const SpotlightCard: React.FC<{ book: any; rank: number }> = ({ book, rank }) =>
 
   return (
     <div
-      className={`relative group flex gap-5 bg-white rounded-3xl border border-gray-100 p-5 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden
+      className={`snap-start flex-shrink-0 w-[380px] relative group flex gap-5 bg-white rounded-3xl border border-gray-100 p-5 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden
         ${rank === 1 ? "ring-2 ring-amber-200" : ""}`}
       onClick={() => navigate(`/browse/${book.id || book._id}`)}
     >
-      {/* Subtle bg glow */}
       {rank === 1 && <div className="absolute inset-0 bg-gradient-to-br from-amber-50/60 to-transparent pointer-events-none" />}
 
       {/* Cover */}
@@ -632,7 +631,7 @@ const PopularBooksPage: React.FC = () => {
                 <div className="flex-1 h-px bg-gray-100" />
                 <span className="text-xs text-gray-400 font-medium">Updated daily · Based on reader activity</span>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 no-scrollbar">
                 {state.books.slice(0, 3).map((book, i) => (
                   <SpotlightCard key={book.id || i} book={book} rank={i + 1} />
                 ))}
