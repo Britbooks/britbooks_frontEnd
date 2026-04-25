@@ -572,14 +572,12 @@ const AccountSettingsPage: React.FC = () => {
                             {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleForgotPassword}
-                          disabled={forgotLoading}
-                          className="text-[11px] text-red-500 hover:underline font-semibold mt-1 disabled:opacity-50"
+                        <Link
+                          to="/forgot-password"
+                          className="text-[11px] text-red-500 hover:underline font-semibold mt-1 inline-block"
                         >
-                          {forgotLoading ? "Sending…" : "Forgot your password?"}
-                        </button>
+                          Forgot your password?
+                        </Link>
                       </Field>
 
                       <Field label="New password" icon={Lock}>
