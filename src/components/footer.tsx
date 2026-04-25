@@ -393,9 +393,9 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-7 flex flex-col md:flex-row items-center justify-between gap-5">
           <p className="text-gray-500 text-xs text-center md:text-left">
             © {new Date().getFullYear()} BritBooks. All rights reserved. Designed by{' '}
-            <a href="https://excelclone.co.uk" target="_blank" rel="noopener noreferrer"
+            <a href="https://orizu01.netlify.app" target="_blank" rel="noopener noreferrer"
               className="hover:text-gray-300 transition-colors underline underline-offset-2">
-              excelclone.co.uk
+             Structurezz
             </a>
           </p>
 

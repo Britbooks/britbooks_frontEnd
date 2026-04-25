@@ -517,15 +517,15 @@ const SpecialOffersPage = () => {
                   <Flame size={12} /> FLASH SALE — ENDS IN
                   <Countdown seconds={heroTimer} />
                 </div>
-                <h1 className="text-4xl lg:text-6xl font-black leading-tight mb-4">
-                  Today's<br /><span className="text-[#c9a84c]">Top Deal</span>
+                <h1 className="text-4xl lg:text-6xl font-black text-black leading-tight mb-4">
+                  Today's<br /><span className="text-black">Top Deal</span>
                 </h1>
-                <p className="text-white/60 text-lg mb-2 line-clamp-2">{heroBook.title}</p>
-                <p className="text-white/40 text-sm mb-8">by {heroBook.author}</p>
+                <p className="text-black text-lg mb-2 line-clamp-2">{heroBook.title}</p>
+                <p className="text-black text-sm mb-8">by {heroBook.author}</p>
                 <div className="flex items-baseline gap-4 mb-8 justify-center lg:justify-start">
-                  <span className="text-5xl font-black text-white">£{heroBook.price.toFixed(2)}</span>
-                  <span className="text-2xl text-white/30 line-through">£{fakeWas(heroBook.price).toFixed(2)}</span>
-                  <span className="bg-red-500 text-white text-sm font-black px-3 py-1.5 rounded-full">
+                  <span className="text-5xl font-black text-black">£{heroBook.price.toFixed(2)}</span>
+                  <span className="text-2xl text-black line-through">£{fakeWas(heroBook.price).toFixed(2)}</span>
+                  <span className="bg-red-500 text-black text-sm font-black px-3 py-1.5 rounded-full">
                     SAVE {pct(heroBook.price, fakeWas(heroBook.price))}%
                   </span>
                 </div>

@@ -353,7 +353,7 @@ function FeaturedCard({ book }: { book: any }) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c9a84c] opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#c9a84c]" />
             </span>
-            <span className="text-[11px] font-black text-[#c9a84c] uppercase tracking-[0.22em]">#1 Spotlight This Week</span>
+            <span className="text-[11px] font-black text-white uppercase tracking-[0.22em]">#1 Spotlight This Week</span>
           </motion.div>
 
           <motion.h2 initial={{ opacity: 0, y: 14 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.3 }}
@@ -361,12 +361,12 @@ function FeaturedCard({ book }: { book: any }) {
             {book.title}
           </motion.h2>
           <motion.p initial={{ opacity: 0 }} animate={inView ? { opacity: 1 } : {}} transition={{ delay: 0.36 }}
-            className="text-sm lg:text-base text-white/40 font-medium mb-4">
+            className="text-sm lg:text-base text-white font-medium mb-4">
             by {book.author}
           </motion.p>
           {book.description && (
             <motion.p initial={{ opacity: 0 }} animate={inView ? { opacity: 1 } : {}} transition={{ delay: 0.42 }}
-              className="text-sm text-white/45 leading-relaxed line-clamp-3 mb-6 max-w-xl">
+              className="text-sm text-white leading-relaxed line-clamp-3 mb-6 max-w-xl">
               {book.description}
             </motion.p>
           )}
@@ -375,10 +375,10 @@ function FeaturedCard({ book }: { book: any }) {
             className="flex items-center gap-5 flex-wrap">
             <span className="text-3xl lg:text-4xl font-black text-white">{priceStr(book.price)}</span>
             <a href={`/browse/${book._id || book.id}`}
-              className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4b557] text-[#0a1628] font-black text-sm px-6 py-3 rounded-2xl shadow-lg shadow-[#c9a84c]/20 transition-colors">
+              className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4b557] text-white font-black text-sm px-6 py-3 rounded-2xl shadow-lg shadow-[#c9a84c]/20 transition-colors">
               View book <ArrowRight className="w-4 h-4" />
             </a>
-            <span className="text-xs text-white/25 font-medium hidden lg:block">
+            <span className="text-xs text-white font-medium hidden lg:block">
               Just arrived · Available now
             </span>
           </motion.div>
