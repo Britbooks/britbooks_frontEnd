@@ -13,20 +13,29 @@ import { fetchBooks } from '../data/books';
 import BookCard from '../components/BookCard';
 
 // ─── Countdown timer ────────────────────────────────────────────────────────
-const useCountdown = () => {
-  const [time, setTime] = useState({ h: 5, m: 47, s: 22 });
+const useCountdown = (endDate: Date | null) => {
+  const calc = () => {
+    if (!endDate) return null;
+    const diff = endDate.getTime() - Date.now();
+    if (diff <= 0) return { h: 0, m: 0, s: 0, expired: true };
+    const totalSecs = Math.floor(diff / 1000);
+    return {
+      h: Math.floor(totalSecs / 3600),
+      m: Math.floor((totalSecs % 3600) / 60),
+      s: totalSecs % 60,
+      expired: false,
+    };
+  };
+
+  const [time, setTime] = useState(calc);
+
   useEffect(() => {
-    const t = setInterval(() => {
-      setTime(prev => {
-        let { h, m, s } = prev;
-        if (s > 0) return { h, m, s: s - 1 };
-        if (m > 0) return { h, m: m - 1, s: 59 };
-        if (h > 0) return { h: h - 1, m: 59, s: 59 };
-        return { h: 5, m: 59, s: 59 }; // reset
-      });
-    }, 1000);
+    if (!endDate) return;
+    setTime(calc());
+    const t = setInterval(() => setTime(calc()), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [endDate]);
+
   return time;
 };
 
@@ -72,7 +81,8 @@ const ClearancePage = () => {
   const [sort, setSort] = useState('discount');
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const countdown = useCountdown();
+  const [saleEndDate, setSaleEndDate] = useState<Date | null>(null);
+  const countdown = useCountdown(saleEndDate);
   const BOOKS_PER_PAGE = 100;
   const PAGE_SIZE = 24;
 
@@ -81,14 +91,22 @@ const ClearancePage = () => {
       setIsLoading(true);
       try {
         const res = await fetchBooks({ page: 1, limit: BOOKS_PER_PAGE, shelf: 'clearanceItems' });
-        setBooks((res?.listings || []).map((b: any) => {
+        const mapped = (res?.listings || []).map((b: any) => {
           const salePrice = b.discountedPrice && b.discountedPrice < b.price
             ? b.discountedPrice
             : b.discountPercentage > 0
               ? Math.round(b.price * (1 - b.discountPercentage / 100) * 100) / 100
               : b.price;
           return { ...b, price: salePrice, originalPrice: b.price };
-        }));
+        });
+        setBooks(mapped);
+        // Use the earliest validUntil across all clearance listings as the sale end time
+        const dates = mapped
+          .map((b: any) => b.discountValidUntil)
+          .filter(Boolean) as Date[];
+        if (dates.length) {
+          setSaleEndDate(new Date(Math.min(...dates.map(d => d.getTime()))));
+        }
       } finally {
         setIsLoading(false);
       }
@@ -202,14 +220,24 @@ const ClearancePage = () => {
               <div className="flex items-center justify-center gap-1.5 text-white text-xs font-black uppercase tracking-widest mb-4">
                 <Clock size={12} /> Sale Ends In
               </div>
-              <div className="flex text-white items-center gap-2">
-                <Chip v={countdown.h} label="hrs" />
-                <span className="text-white font-black text-xl">:</span>
-                <Chip v={countdown.m} label="min" />
-                <span className="text-white font-black text-xl">:</span>
-                <Chip v={countdown.s} label="sec" />
-              </div>
-              <p className="text-white text-[10px] mt-4 uppercase tracking-wider">Prices reset when timer hits zero</p>
+              {!countdown ? (
+                <p className="text-white/40 text-sm font-medium">Loading…</p>
+              ) : countdown.expired ? (
+                <p className="text-[#c9a84c] font-black text-sm">Sale has ended</p>
+              ) : (
+                <div className="flex text-white items-center gap-2">
+                  <Chip v={countdown.h} label="hrs" />
+                  <span className="text-white font-black text-xl">:</span>
+                  <Chip v={countdown.m} label="min" />
+                  <span className="text-white font-black text-xl">:</span>
+                  <Chip v={countdown.s} label="sec" />
+                </div>
+              )}
+              {saleEndDate && !countdown?.expired && (
+                <p className="text-white/30 text-[10px] mt-4 uppercase tracking-wider">
+                  Ends {saleEndDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              )}
             </motion.div>
           </div>
         </div>

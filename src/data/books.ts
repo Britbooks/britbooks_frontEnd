@@ -162,6 +162,7 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
         price: rawPrice,
         discountedPrice: resolvedDiscountedPrice,
         discountPercentage: discountPct,
+        discountValidUntil: raw.discount?.validUntil ? new Date(raw.discount.validUntil) : null,
         imageUrl: raw.coverImageUrl?.trim()
           ? raw.coverImageUrl.replace(/^http:\/\//, "https://")
           : generatePlaceholderImage({ title: raw.title, isbn: raw.isbn, category: categoryName }),
