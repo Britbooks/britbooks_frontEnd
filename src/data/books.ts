@@ -10,6 +10,7 @@ export interface Book {
   author: string;
   price: number;
   discountedPrice?: number | null;
+  discountPercentage?: number;
   imageUrl: string;
   category: string;
   subcategory?: string;
@@ -143,12 +144,24 @@ export const fetchBooks = async (reqBody: any = {}, signal?: AbortSignal) => {
       const skuMatch = originalTitle.match(/\((\d+)\)$/);
       if (skuMatch) cleanedTitle = originalTitle.replace(/\s*\(\d+\)$/, '').trim();
 
+      // Compute discounted price from discount.value (percentage) if backend doesn't pre-compute it
+      const rawPrice = Number(raw.price) || 0;
+      const discountPct = raw.discount?.isActive ? Number(raw.discount?.value ?? 0) : 0;
+      const computedDiscountedPrice = discountPct > 0
+        ? Math.round(rawPrice * (1 - discountPct / 100) * 100) / 100
+        : null;
+      // Prefer backend-supplied discountedPrice, fall back to computed
+      const resolvedDiscountedPrice = raw.discount?.isActive
+        ? Number(raw.discountedPrice ?? computedDiscountedPrice ?? rawPrice)
+        : null;
+
       const baseListing: any = {
         id: String(raw._id),
         title: cleanedTitle || "Untitled",
         author: raw.author?.trim() || "Unknown Author",
-        price: Number(raw.price) || 0,
-        discountedPrice: raw.discount?.isActive ? Number(raw.discountedPrice ?? raw.price) : null,
+        price: rawPrice,
+        discountedPrice: resolvedDiscountedPrice,
+        discountPercentage: discountPct,
         imageUrl: raw.coverImageUrl?.trim()
           ? raw.coverImageUrl.replace(/^http:\/\//, "https://")
           : generatePlaceholderImage({ title: raw.title, isbn: raw.isbn, category: categoryName }),
