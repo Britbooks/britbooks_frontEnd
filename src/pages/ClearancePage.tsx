@@ -234,7 +234,7 @@ const ClearancePage = () => {
                 </div>
               )}
               {saleEndDate && !countdown?.expired && (
-                <p className="text-white/30 text-[10px] mt-4 uppercase tracking-wider">
+                <p className="text-white text-[10px] mt-4 uppercase tracking-wider">
                   Ends {saleEndDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               )}
