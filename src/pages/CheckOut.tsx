@@ -38,12 +38,25 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api";
 
 
+interface AppliedCampaign {
+  campaignId: string;
+  title: string;
+  type: string;
+  discountAmount: number;
+  finalTotal: number;
+  isFreeShipping: boolean;
+}
+
 interface ShoppingCartViewProps {
   cartItems: CartItem[];
   updateQuantity: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
   goToNextStep: () => void;
+  appliedCampaign: AppliedCampaign | null;
+  setAppliedCampaign: (c: AppliedCampaign | null) => void;
+  authToken: string | null;
+  userId: string | null;
 }
 
 
@@ -242,8 +255,39 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
   removeFromCart,
   clearCart,
   goToNextStep,
+  appliedCampaign,
+  setAppliedCampaign,
+  authToken,
+  userId,
 }) => {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
+  const applyPromoCode = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/campaigns/validate`,
+        { code: promoCode.trim().toUpperCase(), userId, cartTotal: subtotal },
+        authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {}
+      );
+      if (res.data?.campaignId) {
+        setAppliedCampaign(res.data);
+        setPromoCode('');
+        toast.success(`${res.data.title} applied — £${res.data.discountAmount.toFixed(2)} off!`);
+      } else {
+        setPromoError('Invalid or expired code.');
+      }
+    } catch (err: any) {
+      setPromoError(err.response?.data?.message || 'Invalid or expired code.');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
 
   const handleImageError = (id: string) => {
     setImageErrors((prev) => ({ ...prev, [id]: true }));
@@ -261,8 +305,10 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
     );
     return sum + priceNumber * item.quantity;
   }, 0);
-  const shipping = cartItems.length > 0 ? 5.0 : 0;
-  const total = subtotal + shipping;
+  const discount = appliedCampaign?.discountAmount ?? 0;
+  const effectiveShipping = appliedCampaign?.isFreeShipping ? 0 : cartItems.length > 0 ? 5.0 : 0;
+  const shipping = effectiveShipping;
+  const total = Math.max(subtotal - discount, 0) + shipping;
 
   const freeShippingThreshold = 4;
   const booksInCart = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -395,19 +441,53 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
               <span>Subtotal ({booksInCart} items)</span>
               <span className="font-bold text-gray-800">£{subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm text-gray-500 mb-3">
+            <div className="flex justify-between text-sm text-gray-500 mb-1">
               <span>Shipping</span>
-              <span className={booksNeeded === 0 ? "text-emerald-600 font-bold" : "font-bold text-gray-800"}>
-                {booksNeeded === 0 ? "FREE" : `£${shipping.toFixed(2)}`}
+              <span className={booksNeeded === 0 || appliedCampaign?.isFreeShipping ? "text-emerald-600 font-bold" : "font-bold text-gray-800"}>
+                {booksNeeded === 0 || appliedCampaign?.isFreeShipping ? "FREE" : `£${shipping.toFixed(2)}`}
               </span>
             </div>
+            {appliedCampaign && (
+              <div className="flex justify-between text-sm text-emerald-600 font-bold mb-1">
+                <span className="flex items-center gap-1"><Check size={12} /> {appliedCampaign.title}</span>
+                <span>-£{appliedCampaign.discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+
+            {/* Mobile promo code */}
+            {appliedCampaign ? (
+              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5 mb-2">
+                <span className="text-xs font-bold text-emerald-700">{appliedCampaign.title} applied</span>
+                <button onClick={() => setAppliedCampaign(null)} className="text-xs text-gray-400 font-bold">Remove</button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder="Promo code"
+                  value={promoCode}
+                  onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(null); }}
+                  onKeyDown={e => e.key === 'Enter' && applyPromoCode()}
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#c9a84c]/50"
+                />
+                <button
+                  onClick={applyPromoCode}
+                  disabled={promoLoading || !promoCode.trim()}
+                  className="px-4 py-2 bg-[#0a1628] text-white text-xs font-bold rounded-xl disabled:opacity-40"
+                >
+                  {promoLoading ? '…' : 'Apply'}
+                </button>
+              </div>
+            )}
+            {promoError && <p className="text-red-500 text-xs mb-1 font-medium">{promoError}</p>}
+
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={goToNextStep}
               className="w-full py-4 bg-[#c9a84c] text-black font-black rounded-2xl text-sm flex items-center justify-between px-6"
             >
               <span>Proceed to Checkout</span>
-              <span className="text-black font-black">£{(subtotal + (booksNeeded === 0 ? 0 : shipping)).toFixed(2)}</span>
+              <span className="text-black font-black">£{total.toFixed(2)}</span>
             </motion.button>
           </div>
         )}
@@ -477,11 +557,52 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
               <h3 className="text-xl font-bold mb-5">Order Summary</h3>
               <div className="space-y-3 text-gray-700">
                 <div className="flex justify-between"><span>Subtotal</span><span className="font-medium">£{subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Shipping</span><span className="font-medium">£{shipping.toFixed(2)}</span></div>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span className={`font-medium ${appliedCampaign?.isFreeShipping ? 'text-emerald-600 line-through' : ''}`}>
+                    {appliedCampaign?.isFreeShipping ? 'FREE' : `£${shipping.toFixed(2)}`}
+                  </span>
+                </div>
+                {appliedCampaign && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span className="font-medium flex items-center gap-1"><Check size={13} /> {appliedCampaign.title}</span>
+                    <span className="font-bold">-£{appliedCampaign.discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="border-t pt-4">
                   <div className="flex justify-between text-lg font-bold"><span>TOTAL</span><span className="text-red-600">£{total.toFixed(2)}</span></div>
                 </div>
               </div>
+
+              {/* Promo code */}
+              {appliedCampaign ? (
+                <div className="mt-4 flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                  <span className="text-sm font-bold text-emerald-700 flex items-center gap-1.5"><Check size={14} /> {appliedCampaign.title}</span>
+                  <button onClick={() => setAppliedCampaign(null)} className="text-xs text-gray-400 hover:text-red-500 font-bold">Remove</button>
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Promo code"
+                      value={promoCode}
+                      onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(null); }}
+                      onKeyDown={e => e.key === 'Enter' && applyPromoCode()}
+                      className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#c9a84c]/50"
+                    />
+                    <button
+                      onClick={applyPromoCode}
+                      disabled={promoLoading || !promoCode.trim()}
+                      className="px-4 py-2.5 bg-[#0a1628] text-white text-sm font-bold rounded-xl disabled:opacity-40 hover:bg-[#1a2d4f] transition"
+                    >
+                      {promoLoading ? '…' : 'Apply'}
+                    </button>
+                  </div>
+                  {promoError && <p className="text-red-500 text-xs mt-1.5 font-medium">{promoError}</p>}
+                </div>
+              )}
+
               <button onClick={goToNextStep} disabled={cartItems.length === 0} className="w-full mt-6 py-4 bg-[#c9a84c] text-black font-bold rounded-lg hover:bg-amber-400 transition disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">PROCEED TO CHECKOUT</button>
             </div>
           </div>
@@ -747,6 +868,7 @@ const ReviewOrder = ({
   paymentData,
   setPaymentData,
   setSuccessData,
+  appliedCampaign,
 }: any) => {
   const navigate = useNavigate();
   const { auth, logout } = useAuth();
@@ -757,8 +879,9 @@ const ReviewOrder = ({
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const subtotal = cartItems.reduce((sum: number, item: any) => sum + (typeof item.price === "string" ? Number(item.price.replace("£", "")) : Number(item.price)) * item.quantity, 0);
-  const shipping = 5.0;
-  const total = subtotal + shipping;
+  const discount = appliedCampaign?.discountAmount ?? 0;
+  const shipping = appliedCampaign?.isFreeShipping ? 0 : 5.0;
+  const total = Math.max(subtotal - discount, 0) + shipping;
 
   const handleImageError = (id: string) => {
     setImageErrors((prev) => ({ ...prev, [id]: true }));
@@ -803,6 +926,8 @@ const ReviewOrder = ({
           items,
           subtotal,
           shippingFee: shipping,
+          discountAmount: discount,
+          campaignId: appliedCampaign?.campaignId ?? null,
           total,
           currency: "gbp",
           token: paymentData.token,
@@ -982,8 +1107,17 @@ const ReviewOrder = ({
             <span>Subtotal</span><span className="font-semibold text-gray-800">£{subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm text-gray-500">
-            <span>Shipping</span><span className="font-semibold text-gray-800">£{shipping.toFixed(2)}</span>
+            <span>Shipping</span>
+            <span className={`font-semibold ${appliedCampaign?.isFreeShipping ? 'text-emerald-600' : 'text-gray-800'}`}>
+              {appliedCampaign?.isFreeShipping ? 'FREE' : `£${shipping.toFixed(2)}`}
+            </span>
           </div>
+          {appliedCampaign && (
+            <div className="flex justify-between text-sm text-emerald-600">
+              <span className="font-semibold flex items-center gap-1.5"><Check size={13} /> {appliedCampaign.title}</span>
+              <span className="font-bold">-£{appliedCampaign.discountAmount.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex justify-between pt-2 border-t border-gray-100">
             <span className="font-black text-gray-800">Total</span>
             <span className="font-black text-[#0a1628] text-lg">£{total.toFixed(2)}</span>
@@ -1039,8 +1173,11 @@ const ReviewOrder = ({
 
 const CheckoutFlow = () => {
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { auth } = useAuth();
   const [step, setStep] = useState(1);
   const [paymentData, setPaymentData] = useState<any>(null);
+  const [appliedCampaign, setAppliedCampaign] = useState<AppliedCampaign | null>(null);
+  const userId = auth.token ? (() => { try { return jwtDecode<{ userId: string }>(auth.token!).userId; } catch { return null; } })() : null;
   const [successData, setSuccessData] = useState<{
     orderId: string;
     total: number;
@@ -1108,6 +1245,10 @@ const CheckoutFlow = () => {
               removeFromCart={removeFromCart}
               clearCart={clearCart}
               goToNextStep={() => setStep(2)}
+              appliedCampaign={appliedCampaign}
+              setAppliedCampaign={setAppliedCampaign}
+              authToken={auth.token ?? null}
+              userId={userId}
             />
           )}
 
@@ -1124,6 +1265,7 @@ const CheckoutFlow = () => {
               paymentData={paymentData}
               setPaymentData={setPaymentData}
               setSuccessData={setSuccessData}
+              appliedCampaign={appliedCampaign}
             />
           ) : step === 3 && successData ? (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[9999] p-4">
