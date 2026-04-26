@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
 import axios, { AxiosError } from "axios";
 import { jwtDecode } from 'jwt-decode';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface AuthState {
   user: { userId: string; fullName: string; email: string; role: string } | null;
@@ -90,6 +92,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     error: null,
     isVerified: false,
   });
+  const navigate = useNavigate();
+  // Keep logout stable across renders for the interceptor
+  const logoutRef = useRef<() => void>(() => {});
+
+  // ── Global 401 interceptor ──────────────────────────────────────
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      res => res,
+      (error: AxiosError) => {
+        if (error.response?.status === 401) {
+          const url = (error.config as any)?.url ?? '';
+          // Skip auth endpoints — 401 there is expected (wrong password, bad code, etc.)
+          const isAuthRoute = /\/auth\/(login|register|verify|forgot|reset|change)/i.test(url);
+          if (!isAuthRoute) {
+            logoutRef.current();
+            toast.error('Your session has expired. Please log in again.', { id: 'session-expired' });
+            navigate('/login', { replace: true });
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(id);
+  }, [navigate]);
 
   // Restore auth state from localStorage on mount
   useEffect(() => {
@@ -100,7 +126,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (storedToken && storedUser) {
         try {
           const user = JSON.parse(storedUser);
-          const decoded = jwtDecode<{ userId: string }>(storedToken);
+          const decoded = jwtDecode<{ userId: string; exp?: number }>(storedToken);
+
+          // Proactive expiry check — don't even hit the network
+          if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+            throw new Error('Token expired');
+          }
           
           // Validate token by fetching user data
           setAuth((prev) => ({ ...prev, loading: true }));
@@ -132,9 +163,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             userId: null,
             token: null,
             loading: false,
-            error: 'Invalid or expired token. Please log in again.',
+            error: null,
             isVerified: false,
           });
+          toast.error('Your session has expired. Please log in again.', { id: 'session-expired' });
+          navigate('/login', { replace: true });
         }
       } else {
         setAuth((prev) => ({ ...prev, loading: false }));
@@ -300,7 +333,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
-    console.log("Logging out - resetting auth state");
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
     setAuth({
@@ -312,6 +344,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isVerified: false,
     });
   };
+
+  // Keep ref in sync so the interceptor always calls the current logout
+  logoutRef.current = logout;
 
   return (
     <AuthContext.Provider value={{ auth, registerUser, login, verifyRegistration, verifyLogin, logout }}>

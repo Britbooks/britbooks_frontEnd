@@ -1,18 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, 
-  MapPin, 
-  Pencil, 
-  Trash2, 
-  X, 
-  CheckCircle2, 
-  Phone, 
-  User, 
-  Home,
-  Loader2,
-  AlertCircle
+import {
+  Plus, MapPin, Pencil, Trash2, X, CheckCircle2,
+  Phone, User, Home, Loader2, AlertCircle, Star, Building2
 } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 import axios, { AxiosError } from 'axios';
@@ -21,7 +12,8 @@ import TopBar from '../components/Topbar';
 import Footer from '../components/footer';
 import SEOHead from '../components/SEOHead';
 
-// --- Interfaces ---
+const API_BASE = 'https://britbooks-api-production-8ebd.up.railway.app/api';
+
 interface Address {
   _id: string;
   fullName: string;
@@ -52,17 +44,17 @@ interface AddressesProps {
   selectedAddressId?: string | null;
 }
 
-// --- Component 1: Address Form Modal ---
+// ─── Form Modal ──────────────────────────────────────────────────────────────
 const AddressFormModal: React.FC<AddressFormModalProps> = ({ isOpen, onClose, onSubmit, initialData = {} }) => {
   const [formData, setFormData] = useState({
-    fullName: initialData.fullName || "",
-    phoneNumber: initialData.phoneNumber || "",
-    addressLine1: initialData.addressLine1 || "",
-    addressLine2: initialData.addressLine2 || "",
-    city: initialData.city || "",
-    state: initialData.state || "",
-    postalCode: initialData.postalCode || "",
-    country: initialData.country || "GB",
+    fullName: initialData.fullName || '',
+    phoneNumber: initialData.phoneNumber || '',
+    addressLine1: initialData.addressLine1 || '',
+    addressLine2: initialData.addressLine2 || '',
+    city: initialData.city || '',
+    state: initialData.state || '',
+    postalCode: initialData.postalCode || '',
+    country: initialData.country || 'GB',
     isDefault: initialData.isDefault || false,
   });
   const [errors, setErrors] = useState<any>({});
@@ -71,120 +63,182 @@ const AddressFormModal: React.FC<AddressFormModalProps> = ({ isOpen, onClose, on
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        fullName: initialData.fullName || "",
-        phoneNumber: initialData.phoneNumber || "",
-        addressLine1: initialData.addressLine1 || "",
-        addressLine2: initialData.addressLine2 || "",
-        city: initialData.city || "",
-        state: initialData.state || "",
-        postalCode: initialData.postalCode || "",
-        country: initialData.country || "GB",
+        fullName: initialData.fullName || '',
+        phoneNumber: initialData.phoneNumber || '',
+        addressLine1: initialData.addressLine1 || '',
+        addressLine2: initialData.addressLine2 || '',
+        city: initialData.city || '',
+        state: initialData.state || '',
+        postalCode: initialData.postalCode || '',
+        country: initialData.country || 'GB',
         isDefault: initialData.isDefault || false,
       });
       setErrors({});
     }
-  }, [isOpen, initialData]);
+  }, [isOpen]);
 
-  const validateForm = () => {
-    const newErrors: any = {};
-    if (!formData.fullName.trim()) newErrors.fullName = "Full Name is required";
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = "Phone is required";
-    if (!formData.addressLine1.trim()) newErrors.addressLine1 = "Address is required";
-    if (!formData.city.trim()) newErrors.city = "City is required";
-    if (!formData.postalCode.trim()) newErrors.postalCode = "Postcode is required";
-    return newErrors;
+  const validate = () => {
+    const e: any = {};
+    if (!formData.fullName.trim()) e.fullName = 'Required';
+    if (!formData.phoneNumber.trim()) e.phoneNumber = 'Required';
+    if (!formData.addressLine1.trim()) e.addressLine1 = 'Required';
+    if (!formData.city.trim()) e.city = 'Required';
+    if (!formData.postalCode.trim()) e.postalCode = 'Required';
+    return e;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-    setErrors((prev: any) => ({ ...prev, [name]: "" }));
+    setFormData(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    setErrors((p: any) => ({ ...p, [name]: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
       await onSubmit(formData);
       onClose();
-    } catch (err) {
-      setErrors({ form: "Failed to save address. Please try again." });
+    } catch {
+      setErrors({ form: 'Failed to save address. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
+  const inputCls = (field: string) =>
+    `w-full pl-10 pr-4 py-3 rounded-xl text-sm font-medium text-gray-800 placeholder-gray-400 outline-none transition-all
+    ${errors[field]
+      ? 'bg-red-50 border border-red-300 focus:ring-2 focus:ring-red-200'
+      : 'bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-[#0a1628]/20 focus:bg-white'
+    }`;
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
             className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
           />
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+          <motion.div
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 60, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg flex flex-col max-h-[92vh]"
           >
-            <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-red-600" />
-                {initialData._id ? "Edit Address" : "New Shipping Address"}
-              </h2>
-              <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#0a1628' }}>
+                  <MapPin size={16} className="text-white" />
+                </div>
+                <h2 className="font-black text-gray-900 text-lg">
+                  {(initialData as any)._id ? 'Edit Address' : 'New Address'}
+                </h2>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition">
+                <X size={16} className="text-gray-500" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-              {errors.form && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" /> {errors.form}</div>}
-              
-              <div className="space-y-4">
-                <div className="relative">
-                  <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                  <input name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Full Name" className={`w-full pl-10 p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all ${errors.fullName ? 'border-red-500' : 'border-gray-200'}`} />
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {errors.form && (
+                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  <AlertCircle size={15} /> {errors.form}
                 </div>
-                
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                  <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="Phone Number" className={`w-full pl-10 p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all ${errors.phoneNumber ? 'border-red-500' : 'border-gray-200'}`} />
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Full Name */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Full Name</label>
+                  <div className="relative">
+                    <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Jane Smith" className={inputCls('fullName')} />
+                  </div>
+                  {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                 </div>
 
-                <div className="relative">
-                  <Home className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                  <input name="addressLine1" value={formData.addressLine1} onChange={handleChange} placeholder="Street Address" className={`w-full pl-10 p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all ${errors.addressLine1 ? 'border-red-500' : 'border-gray-200'}`} />
+                {/* Phone */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Phone Number</label>
+                  <div className="relative">
+                    <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+44 7700 900000" className={inputCls('phoneNumber')} />
+                  </div>
+                  {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <input name="city" value={formData.city} onChange={handleChange} placeholder="City" className="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" />
-                  <input name="postalCode" value={formData.postalCode} onChange={handleChange} placeholder="Postcode" className="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" />
+                {/* Address Line 1 */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Street Address</label>
+                  <div className="relative">
+                    <Home size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input name="addressLine1" value={formData.addressLine1} onChange={handleChange} placeholder="123 Book Lane" className={inputCls('addressLine1')} />
+                  </div>
+                  {errors.addressLine1 && <p className="text-red-500 text-xs mt-1">{errors.addressLine1}</p>}
                 </div>
 
-                <div className="flex items-center gap-2 p-2">
-                  <input type="checkbox" name="isDefault" id="isDefault" checked={formData.isDefault} onChange={handleChange} className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500 cursor-pointer" />
-                  <label htmlFor="isDefault" className="text-sm text-gray-600 font-medium cursor-pointer">Set as default address</label>
+                {/* Address Line 2 */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Apt / Floor <span className="normal-case font-normal text-gray-400">(optional)</span></label>
+                  <div className="relative">
+                    <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input name="addressLine2" value={formData.addressLine2} onChange={handleChange} placeholder="Flat 2B" className={inputCls('addressLine2')} />
+                  </div>
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">City</label>
+                  <input name="city" value={formData.city} onChange={handleChange} placeholder="London"
+                    className={`w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-800 placeholder-gray-400 outline-none transition-all ${errors.city ? 'bg-red-50 border border-red-300' : 'bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-[#0a1628]/20 focus:bg-white'}`}
+                  />
+                  {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+                </div>
+
+                {/* Postcode */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Postcode</label>
+                  <input name="postalCode" value={formData.postalCode} onChange={handleChange} placeholder="SW1A 1AA"
+                    className={`w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-800 placeholder-gray-400 outline-none transition-all ${errors.postalCode ? 'bg-red-50 border border-red-300' : 'bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-[#0a1628]/20 focus:bg-white'}`}
+                  />
+                  {errors.postalCode && <p className="text-red-500 text-xs mt-1">{errors.postalCode}</p>}
                 </div>
               </div>
+
+              {/* Set as default */}
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 transition">
+                <div
+                  onClick={() => setFormData(p => ({ ...p, isDefault: !p.isDefault }))}
+                  className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${formData.isDefault ? 'bg-[#0a1628]' : 'bg-gray-200'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.isDefault ? 'left-6' : 'left-1'}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Set as default address</p>
+                  <p className="text-xs text-gray-400">Used automatically at checkout</p>
+                </div>
+              </label>
             </form>
 
-            <div className="p-6 border-t bg-gray-50/50 flex justify-end gap-3">
-              <button type="button" onClick={onClose} className="px-6 py-2.5 font-medium text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
-              <button type="submit" onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition-all flex items-center gap-2 disabled:opacity-70">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Address"}
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+              <button type="button" onClick={onClose}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button onClick={handleSubmit} disabled={loading}
+                className="flex-1 py-3 rounded-xl text-sm font-black text-white transition disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: '#0a1628' }}>
+                {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                {loading ? 'Saving…' : 'Save Address'}
               </button>
             </div>
           </motion.div>
@@ -194,162 +248,234 @@ const AddressFormModal: React.FC<AddressFormModalProps> = ({ isOpen, onClose, on
   );
 };
 
-// --- Component 2: Address List Display ---
-const Addresses: React.FC<AddressesProps> = ({ addresses, setAddresses, authToken, userId, navigate, onSelectAddress, selectedAddressId }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+// ─── Address Card ─────────────────────────────────────────────────────────────
+const AddressCard: React.FC<{
+  address: Address;
+  selected: boolean;
+  onSelect?: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}> = ({ address, selected, onSelect, onEdit, onDelete }) => (
+  <motion.div
+    layout
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, scale: 0.95 }}
+    onClick={onSelect}
+    className={`relative flex flex-col rounded-2xl border-2 p-5 transition-all duration-200 ${
+      onSelect ? 'cursor-pointer' : ''
+    } ${
+      selected
+        ? 'border-[#0a1628] bg-[#0a1628]/[0.03] shadow-md'
+        : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
+    }`}
+  >
+    {/* Selected tick */}
+    {selected && (
+      <div className="absolute top-4 right-4">
+        <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#0a1628' }}>
+          <CheckCircle2 size={14} className="text-white" />
+        </div>
+      </div>
+    )}
+
+    {/* Default badge */}
+    {address.isDefault && (
+      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full mb-3 w-fit"
+        style={{ background: '#c9a84c20', color: '#8a6a20' }}>
+        <Star size={9} fill="currentColor" /> Default
+      </span>
+    )}
+
+    {/* Name */}
+    <p className="font-black text-gray-900 text-base mb-3">{address.fullName}</p>
+
+    {/* Address lines */}
+    <div className="space-y-1.5 text-sm text-gray-500 flex-1">
+      <div className="flex items-start gap-2">
+        <MapPin size={14} className="text-gray-300 mt-0.5 flex-shrink-0" />
+        <div>
+          <p>{address.addressLine1}</p>
+          {address.addressLine2 && <p>{address.addressLine2}</p>}
+          <p>{address.city}, {address.postalCode}</p>
+          <p>{address.country}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Phone size={14} className="text-gray-300 flex-shrink-0" />
+        <p>{address.phoneNumber}</p>
+      </div>
+    </div>
+
+    {/* Actions */}
+    <div className="flex items-center gap-1 mt-4 pt-4 border-t border-gray-100">
+      <button
+        onClick={e => { e.stopPropagation(); onEdit(); }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition"
+      >
+        <Pencil size={12} /> Edit
+      </button>
+      <button
+        onClick={e => { e.stopPropagation(); onDelete(); }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-400 hover:bg-red-50 hover:text-red-600 transition ml-1"
+      >
+        <Trash2 size={12} /> Remove
+      </button>
+    </div>
+  </motion.div>
+);
+
+// ─── Addresses List Component ─────────────────────────────────────────────────
+const Addresses: React.FC<AddressesProps> = ({
+  addresses, setAddresses, authToken, userId, navigate, onSelectAddress, selectedAddressId
+}) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Address | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
-  const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api";
+  const handleAdd = async (formData: any) => {
+    const body = { ...formData, isDefault: formData.isDefault || addresses.length === 0 };
+    const res = await axios.post(`${API_BASE}/users/${userId}/address`, body, { headers: { Authorization: `Bearer ${authToken}` } });
+    const updated = body.isDefault
+      ? addresses.map(a => ({ ...a, isDefault: false })).concat(res.data)
+      : [...addresses, res.data];
+    setAddresses(updated);
+    if (onSelectAddress) onSelectAddress(res.data);
+  };
 
-  const handleAddAddress = async (formData: Address) => {
+  const handleEdit = async (formData: any) => {
+    const res = await axios.put(`${API_BASE}/users/${userId}/address/${editing!._id}`, formData, { headers: { Authorization: `Bearer ${authToken}` } });
+    setAddresses(res.data.addresses);
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
     try {
-      const newAddress = { ...formData, isDefault: formData.isDefault || addresses.length === 0 };
-      const response = await axios.post(`${API_BASE_URL}/users/${userId}/address`, newAddress, { headers: { Authorization: `Bearer ${authToken}` } });
-      const updated = newAddress.isDefault ? addresses.map(a => ({ ...a, isDefault: false })).concat(response.data) : [...addresses, response.data];
-      setAddresses(updated);
-      if (onSelectAddress) onSelectAddress(response.data);
-    } catch (err) {
-      setError("Failed to add address.");
+      const res = await axios.delete(`${API_BASE}/users/${userId}/address/${id}`, { headers: { Authorization: `Bearer ${authToken}` } });
+      setAddresses(res.data.addresses);
+    } catch {
+      setError('Failed to remove address.');
+    } finally {
+      setDeleting(null);
     }
   };
-  const handleEditAddress = async (formData: Address) => {
-    try {
-      const response = await axios.put(
-        `${API_BASE_URL}/users/${userId}/address/${editingAddress!._id}`,
-        formData,
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
-  
-      // Backend returns full updated addresses array
-      setAddresses(response.data.addresses);
-  
-    } catch (err) {
-      setError("Failed to update address.");
-    }
-  };
-  
 
-  const handleRemoveAddress = async (id: string) => {
-    try {
-      const response = await axios.delete(
-        `${API_BASE_URL}/users/${userId}/address/${id}`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
-  
-      // Backend returns updated addresses array
-      setAddresses(response.data.addresses);
-  
-    } catch (err) {
-      setError("Failed to remove address.");
-    }
-  };
-  
+  const openAdd = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (addr: Address) => { setEditing(addr); setModalOpen(true); };
 
   return (
-    <div className="max-w-5xl mx-auto px-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Shipping Addresses</h2>
-          <p className="text-gray-500 mt-1">Manage where your books are delivered.</p>
-        </div>
-        <button
-          onClick={() => { setEditingAddress(null); setIsModalOpen(true); }}
-          className="group flex items-center gap-2 bg-gray-900 text-white py-3 px-6 rounded-2xl hover:bg-red-600 transition-all duration-300 shadow-xl"
-        >
-          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-          <span className="font-bold">Add New Address</span>
-        </button>
-      </div>
-
-      {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-2"><AlertCircle className="w-5 h-5" /> {error}</div>}
-
-      <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AnimatePresence mode="popLayout">
-          {addresses.map((address) => (
-            <motion.div
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              key={address._id}
-              onClick={() => onSelectAddress?.(address)}
-              className={`relative p-6 rounded-3xl border-2 cursor-pointer transition-all duration-300 ${
-                selectedAddressId === address._id ? "border-red-600 bg-red-50/40 ring-4 ring-red-50" : "border-white bg-white shadow-sm hover:shadow-md"
-              }`}
-            >
-              {selectedAddressId === address._id && <div className="absolute top-5 right-5 text-red-600"><CheckCircle2 className="w-6 h-6 fill-red-50" /></div>}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <p className="font-bold text-gray-900 text-lg uppercase tracking-tight">{address.fullName}</p>
-                  {address.isDefault && <span className="bg-red-100 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Default</span>}
-                </div>
-                <div className="text-gray-600 text-sm space-y-1">
-                  <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /> {address.addressLine1}</p>
-                  <p className="ml-6">{address.city}, {address.postalCode}</p>
-                  <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> {address.phoneNumber}</p>
-                </div>
-                <div className="pt-4 border-t border-gray-100 flex justify-between">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingAddress(address); setIsModalOpen(true); }} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-3.5 h-3.5" /> EDIT</button>
-                  <button onClick={(e) => { e.stopPropagation(); handleRemoveAddress(address._id); }} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5" /> REMOVE</button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
-
-      {addresses.length === 0 && (
-        <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100">
-          <MapPin className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-          <p className="text-gray-400 font-medium">No addresses found.</p>
+    <div>
+      {error && (
+        <div className="mb-5 flex items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium">
+          <AlertCircle size={16} /> {error}
+          <button onClick={() => setError(null)} className="ml-auto"><X size={14} /></button>
         </div>
       )}
 
-      <AddressFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={editingAddress ? handleEditAddress : handleAddAddress} initialData={editingAddress || {}} />
+      <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <AnimatePresence mode="popLayout">
+          {addresses.map(addr => (
+            <AddressCard
+              key={addr._id}
+              address={addr}
+              selected={selectedAddressId === addr._id}
+              onSelect={onSelectAddress ? () => onSelectAddress(addr) : undefined}
+              onEdit={() => openEdit(addr)}
+              onDelete={() => handleDelete(addr._id)}
+            />
+          ))}
+
+          {/* Add new card */}
+          <motion.button
+            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={openAdd}
+            className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-gray-200 p-8 text-gray-400 hover:border-[#0a1628] hover:text-[#0a1628] transition-all duration-200 min-h-[180px] group"
+          >
+            <div className="w-12 h-12 rounded-2xl border-2 border-dashed border-current flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Plus size={20} />
+            </div>
+            <span className="text-sm font-bold">Add New Address</span>
+          </motion.button>
+        </AnimatePresence>
+      </motion.div>
+
+      <AddressFormModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={editing ? handleEdit : handleAdd}
+        initialData={editing || {}}
+      />
     </div>
   );
 };
 
-// --- Component 3: Main Page ---
+// ─── Page ─────────────────────────────────────────────────────────────────────
 const AddressesPage = () => {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
-  const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api";
 
   const userId = auth.token ? (jwtDecode(auth.token) as any).userId : null;
 
   useEffect(() => {
-    const fetchAddresses = async () => {
-      if (!auth.token || !userId) { navigate("/login"); return; }
+    const load = async () => {
+      if (!auth.token || !userId) { navigate('/login'); return; }
       try {
-        const res = await axios.get(`${API_BASE_URL}/users/${userId}/address`, { headers: { Authorization: `Bearer ${auth.token}` } });
+        const res = await axios.get(`${API_BASE}/users/${userId}/address`, { headers: { Authorization: `Bearer ${auth.token}` } });
         setAddresses(res.data.addresses || []);
       } catch (err) {
-        if ((err as AxiosError).response?.status === 401) { logout(); navigate("/login"); }
+        if ((err as AxiosError).response?.status === 401) { logout(); navigate('/login'); }
       } finally { setLoading(false); }
     };
-    fetchAddresses();
+    load();
   }, [auth.token, userId]);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans">
-      <SEOHead title="My Addresses" description="Manage your delivery addresses on BritBooks." canonical="/addresses" noindex={true} />
+    <div className="min-h-screen bg-[#f5f5f7] flex flex-col font-sans">
+      <SEOHead title="My Addresses" description="Manage your delivery addresses on BritBooks." canonical="/addresses" noindex />
       <TopBar />
-      <main className="flex-1 py-10">
+
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-8 py-10">
+
+        {/* Page header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: '#0a1628' }}>
+              <MapPin size={18} className="text-white" />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900">Delivery Addresses</h1>
+          </div>
+          <p className="text-gray-400 text-sm ml-13 pl-[52px]">
+            {addresses.length === 0
+              ? 'Add an address to get started'
+              : `${addresses.length} address${addresses.length > 1 ? 'es' : ''} saved`}
+          </p>
+        </div>
+
         {loading ? (
-          <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div>
+          <div className="flex flex-col items-center justify-center py-32 gap-3">
+            <Loader2 size={28} className="animate-spin text-gray-300" />
+            <p className="text-gray-400 text-sm">Loading addresses…</p>
+          </div>
         ) : (
-          <Addresses addresses={addresses} setAddresses={setAddresses} authToken={auth.token} userId={userId} navigate={navigate} />
+          <Addresses
+            addresses={addresses}
+            setAddresses={setAddresses}
+            authToken={auth.token}
+            userId={userId}
+            navigate={navigate}
+          />
         )}
       </main>
+
       <Footer />
     </div>
   );
 };
 
-// --- Exports ---
 export { Addresses, AddressFormModal };
 export default AddressesPage;
