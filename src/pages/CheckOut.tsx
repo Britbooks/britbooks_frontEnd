@@ -603,7 +603,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
                 </div>
               )}
 
-              <button onClick={goToNextStep} disabled={cartItems.length === 0} className="w-full mt-6 py-4 bg-[#c9a84c] text-black font-bold rounded-lg hover:bg-amber-400 transition disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">PROCEED TO CHECKOUT</button>
+              <button onClick={goToNextStep} disabled={cartItems.length === 0} className="w-full mt-6 py-4 bg-red-400 text-black font-bold rounded-lg hover:bg-red-200 transition disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">PROCEED TO CHECKOUT</button>
             </div>
           </div>
         </div>
