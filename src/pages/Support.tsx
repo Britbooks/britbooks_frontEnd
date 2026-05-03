@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDownIcon,
@@ -1094,7 +1095,7 @@ function MobileChatWidget({ userId, token, onClose, newChatTrigger = 0, shared, 
           <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-red-800" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-bold text-white">BritBooks Support</p>
+          <p className="text-sm font-bold text-black">BritBooks Support</p>
           <p className="text-[10px] text-emerald-300 font-semibold">Online now</p>
         </div>
         <button onClick={() => { setView("newticket"); setChatId(null); setMessages([]); setForm({ subject: "", description: "" }); }} className="p-1.5 rounded-lg hover:bg-white/20"><PlusIcon className="w-4 h-4 text-white" /></button>
@@ -1203,10 +1204,8 @@ function FaqItem({ q, a, i }: { q: string; a: string; i: number }) {
 ────────────────────────────────────────────────────────── */
 export default function HelpAndSupportPage() {
   const { auth } = useAuth();
-  const [mobileChat, setMobileChat] = useState(false);
-  const [newChatTrigger, setNewChatTrigger] = useState(0);
+  const navigate = useNavigate();
   const [searchQ, setSearchQ] = useState("");
-
   const chatSectionRef = useRef<HTMLDivElement>(null);
 
   const [chatShared, setChatShared] = useState<SharedChatState>({
@@ -1224,237 +1223,361 @@ export default function HelpAndSupportPage() {
     !searchQ || f.q.toLowerCase().includes(searchQ.toLowerCase()) || f.a.toLowerCase().includes(searchQ.toLowerCase())
   );
 
-  const openNewChat = () => {
-    setNewChatTrigger((n) => n + 1);
-    setMobileChat(true);
-    chatSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Mobile → navigate to dedicated chat page. Desktop → scroll to embedded panel.
+  const openChat = () => {
+    if (window.innerWidth < 640) {
+      navigate("/help/chat");
+    } else {
+      chatSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen flex flex-col bg-white font-sans">
       <Toaster position="top-center" />
       <TopBar />
 
-      {/* HERO */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid lg:grid-cols-2 min-h-[80vh] items-center gap-12 lg:gap-20 py-16">
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="order-2 lg:order-1">
-              <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-8">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-bold text-emerald-700 tracking-wide">Support team available now</span>
-              </div>
-              <h1 className="text-5xl sm:text-6xl lg:text-[64px] font-black text-gray-900 tracking-tight leading-[1.03] mb-6">
-                World-class<br />support for<br />
-                <span className="text-red-600">every customer.</span>
-              </h1>
-              <p className="text-gray-400 text-lg leading-relaxed mb-10 max-w-lg">
-                From first-time buyers to enterprise partners — our dedicated team is here with the answers you need.
-              </p>
-              <div className="relative max-w-lg mb-8">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type="text" placeholder="Search help articles and FAQs" value={searchQ}
-                  onChange={(e) => setSearchQ(e.target.value)}
-                  className="w-full pl-14 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-red-400" />
-                {searchQ && (
-                  <button onClick={() => setSearchQ("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button onClick={openNewChat} className="inline-flex items-center gap-2 px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-2xl transition-all">
-                  <MessageSquare className="w-4 h-4" /> Chat with support
-                </button>
-                <a href="mailto:support@britbooks.co.uk" className="inline-flex items-center gap-2 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-2xl transition-all">
-                  <Mail className="w-4 h-4" /> Email us
-                </a>
-              </div>
-            </motion.div>
+      {/* ═══════════════════════════════════════════════
+          MOBILE LAYOUT  (hidden on sm+)
+      ═══════════════════════════════════════════════ */}
+      <div className="sm:hidden min-h-screen bg-gray-50">
 
-            <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="order-1 lg:order-2 relative hidden lg:block">
-              <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl shadow-gray-300/60 lg:h-[560px]">
-                <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
-                  <source src={VIDEO_SRC} type="video/mp4" />
-                </video>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <button
-                    onClick={() => chatSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-3 rounded-xl"
-                  >
-                    Get help <ArrowRightIcon className="w-4 h-4" />
-                  </button>
-                </div>
+        {/* ── Dark hero header ── */}
+        <div className="bg-[#0a1628] px-4 pt-6 pb-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-900/40 shrink-0">
+              <span className="text-white font-black text-sm">BB</span>
+            </div>
+            <div>
+              <p className="text-black font-black text-base leading-tight">BritBooks Support</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-400 text-xs font-semibold">Online now · replies in minutes</span>
               </div>
-            </motion.div>
+            </div>
+          </div>
+
+          <h1 className="text-black font-black text-2xl leading-snug mb-1.5">
+            Hi, how can we help?
+          </h1>
+          <p className="text-gray-400 text-sm mb-5">Search a topic or start a live chat.</p>
+
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search help topics…"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              className="w-full pl-11 pr-10 py-3.5 bg-white/10 border border-white/15 rounded-2xl text-sm text-white placeholder-gray-400 outline-none focus:bg-white/15"
+            />
+            {searchQ && (
+              <button onClick={() => setSearchQ("")} className="absolute right-4 top-1/2 -translate-y-1/2">
+                <XMarkIcon className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
           </div>
         </div>
-      </section>
 
-      {/* STATS BAR */}
-      <section className="bg-gray-900 border-y border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x lg:divide-gray-700">
+        {/* ── Primary action buttons (float up over header) ── */}
+        <div className="px-4 -mt-5 grid grid-cols-2 gap-3 mb-6">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={openChat}
+            className="bg-red-600 text-white rounded-2xl py-5 flex flex-col items-center gap-2 shadow-xl shadow-red-600/30"
+          >
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-xs font-black tracking-wide">Live Chat</span>
+          </motion.button>
+          <motion.a
+            whileTap={{ scale: 0.96 }}
+            href="mailto:customercare@britbooks.co.uk"
+            className="bg-white text-gray-900 rounded-2xl py-5 flex flex-col items-center gap-2 shadow-sm border border-gray-100"
+          >
+            <Mail className="w-5 h-5" />
+            <span className="text-xs font-black tracking-wide">Email Us</span>
+          </motion.a>
+        </div>
+
+        {/* ── Quick topic chips ── */}
+        <div className="mb-6">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-4">Quick topics</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 px-4" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
             {[
-              { icon: <Zap className="w-5 h-5 text-amber-400" />, stat: "< 2 hours", label: "Average first response" },
-              { icon: <CheckCircle className="w-5 h-5 text-emerald-400" />, stat: "50,000+", label: "Tickets resolved this year" },
-              { icon: <Users className="w-5 h-5 text-blue-400" />, stat: "2M+", label: "Customers supported" },
-              { icon: <Award className="w-5 h-5 text-purple-400" />, stat: "24 / 7", label: "Always available" },
+              { icon: Package,    label: "Track Order", color: "#3b82f6", bg: "#eff6ff" },
+              { icon: RotateCcw,  label: "Returns",     color: "#f97316", bg: "#fff7ed" },
+              { icon: Truck,      label: "Delivery",    color: "#10b981", bg: "#ecfdf5" },
+              { icon: CreditCard, label: "Payment",     color: "#8b5cf6", bg: "#f5f3ff" },
+              { icon: UserCircle, label: "Account",     color: "#64748b", bg: "#f1f5f9" },
+              { icon: BookOpen,   label: "Books",       color: "#f59e0b", bg: "#fffbeb" },
+            ].map((t, i) => (
+              <motion.button
+                key={i}
+                whileTap={{ scale: 0.94 }}
+                onClick={openChat}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl shrink-0 border"
+                style={{ background: t.bg, borderColor: `${t.color}33` }}
+              >
+                <t.icon className="w-4 h-4 shrink-0" style={{ color: t.color }} />
+                <span className="text-xs font-bold text-gray-700 whitespace-nowrap">{t.label}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Stats grid ── */}
+        <div className="px-4 mb-6">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Why BritBooks support?</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { icon: Zap,         stat: "< 2 hrs",  label: "First response",      color: "#f59e0b", bg: "#fffbeb" },
+              { icon: CheckCircle, stat: "50K+",     label: "Resolved this year",  color: "#10b981", bg: "#ecfdf5" },
+              { icon: Users,       stat: "2M+",      label: "Customers helped",    color: "#3b82f6", bg: "#eff6ff" },
+              { icon: Award,       stat: "24 / 7",   label: "Always available",    color: "#8b5cf6", bg: "#f5f3ff" },
             ].map((s, i) => (
-              <motion.div key={i} className="lg:px-10 flex items-start gap-4" initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">{s.icon}</div>
+              <motion.div
+                key={i}
+                className="rounded-2xl p-4 flex items-center gap-3"
+                style={{ background: s.bg }}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+              >
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
+                  <s.icon className="w-4 h-4" style={{ color: s.color }} />
+                </div>
                 <div>
-                  <p className="text-2xl font-black text-white">{s.stat}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 font-medium">{s.label}</p>
+                  <p className="text-lg font-black text-gray-900 leading-none">{s.stat}</p>
+                  <p className="text-[10px] text-gray-500 leading-tight mt-0.5">{s.label}</p>
                 </div>
               </motion.div>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* ── DESKTOP WHATSAPP WEB CHAT (embedded in page, not a modal) ── */}
-      <section ref={chatSectionRef} className="hidden lg:block bg-[#f7f7f9] py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="mb-8">
-            <h2 className="text-2xl font-black text-gray-900">Live Support Chat</h2>
-            <p className="text-gray-400 text-sm mt-1">Chat directly with our support team — select a conversation or start a new one.</p>
+        {/* ── FAQ ── */}
+        <div className="px-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">FAQs</p>
+            {searchQ && (
+              <button onClick={() => setSearchQ("")} className="text-red-500 text-xs font-bold">Clear search</button>
+            )}
           </div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-white"
-            style={{ height: "680px" }}
-          >
-            <DesktopChatPanel
-              userId={auth.user?.userId}
-              token={auth.token ?? undefined}
-              newChatTrigger={newChatTrigger}
-              shared={chatShared}
-              onSharedChange={updateChatShared}
-            />
-          </motion.div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            {filteredFaqs.length > 0 ? (
+              filteredFaqs.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} i={i} />)
+            ) : (
+              <div className="py-10 text-center px-4">
+                <p className="text-gray-400 text-sm">No FAQs match your search.</p>
+                <button onClick={openChat} className="text-red-600 mt-2 text-sm font-bold">Ask us directly →</button>
+              </div>
+            )}
+          </div>
         </div>
-      </section>
 
-      {/* FAQ + CONTACT */}
-      <section className="bg-[#f7f7f9] pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex gap-10 items-start">
-            <div className="flex-1 min-w-0 space-y-8">
-              <div>
-                <h2 className="text-2xl font-black text-gray-900">Get in touch</h2>
-                <p className="text-gray-400 text-sm mt-1">Choose the channel that works best for you.</p>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-5">
-                <motion.div className="bg-white rounded-3xl border border-gray-100 p-7 flex flex-col gap-5 hover:shadow-lg transition-all" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}>
-                  <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center"><MessageSquare className="w-6 h-6" /></div>
-                    <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] font-bold text-emerald-700">Live now</span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-black text-gray-900 text-lg mb-1.5">Live Chat</p>
-                    <p className="text-gray-400 text-sm">Connect instantly with our support specialists.</p>
-                  </div>
-                  <button
-                    onClick={() => chatSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
-                    className="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold lg:block hidden"
-                  >
-                    Start a conversation
-                  </button>
-                  <button onClick={openNewChat} className="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold lg:hidden">
-                    Start a conversation
-                  </button>
-                </motion.div>
+        {/* ── Email card ── */}
+        <div className="px-4 pb-32">
+          <div className="bg-gray-900 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+              <Mail className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm">Prefer email?</p>
+              <p className="text-gray-400 text-xs truncate">customercare@britbooks.co.uk</p>
+            </div>
+            <a
+              href="mailto:customercare@britbooks.co.uk"
+              className="bg-white text-gray-900 text-xs font-bold px-4 py-2.5 rounded-xl shrink-0 active:opacity-80"
+            >
+              Email
+            </a>
+          </div>
+        </div>
 
-                <motion.div className="bg-white rounded-3xl border border-gray-100 p-7 flex flex-col gap-5 hover:shadow-lg transition-all" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                  <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center"><Mail className="w-6 h-6" /></div>
-                    <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700">Replies in 24h</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-black text-gray-900 text-lg mb-1.5">Email Support</p>
-                    <p className="text-gray-400 text-sm">Send a detailed message to our team.</p>
-                  </div>
-                  <a href="mailto:support@britbooks.co.uk" className="block text-center w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold">Send an email</a>
-                </motion.div>
-              </div>
+      </div>
 
-              {/* FAQ */}
-              <div className="flex items-center gap-4">
-                <div className="flex-1 h-px bg-gray-200" />
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Frequently asked questions</p>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
+      {/* ═══════════════════════════════════════════════
+          DESKTOP LAYOUT  (hidden below sm)
+      ═══════════════════════════════════════════════ */}
+      <div className="hidden sm:flex sm:flex-col sm:flex-1">
 
-              {searchQ && (
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-500">Showing results for <span className="font-bold">"{searchQ}"</span></p>
-                  <button onClick={() => setSearchQ("")} className="text-red-500 text-xs font-bold">Clear</button>
+        {/* HERO */}
+        <section className="bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid lg:grid-cols-2 items-center gap-20 min-h-[80vh] py-16">
+              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+                <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-8">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-emerald-700 tracking-wide">Support team available now</span>
                 </div>
-              )}
+                <h1 className="text-5xl lg:text-[64px] font-black text-gray-900 tracking-tight leading-[1.03] mb-6">
+                  World-class<br />support for<br />
+                  <span className="text-red-600">every customer.</span>
+                </h1>
+                <p className="text-gray-400 text-lg leading-relaxed mb-10 max-w-lg">
+                  From first-time buyers to enterprise partners — our dedicated team is here with the answers you need.
+                </p>
+                <div className="relative max-w-lg mb-8">
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input type="text" placeholder="Search help articles and FAQs" value={searchQ}
+                    onChange={(e) => setSearchQ(e.target.value)}
+                    className="w-full pl-14 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-red-400" />
+                  {searchQ && (
+                    <button onClick={() => setSearchQ("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button onClick={openChat} className="inline-flex items-center gap-2 px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-2xl transition-all">
+                    <MessageSquare className="w-4 h-4" /> Chat with support
+                  </button>
+                  <a href="mailto:support@britbooks.co.uk" className="inline-flex items-center gap-2 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-2xl transition-all">
+                    <Mail className="w-4 h-4" /> Email us
+                  </a>
+                </div>
+              </motion.div>
 
-              <div className="bg-white rounded-3xl border border-gray-100 px-8 divide-y divide-gray-50">
-                {filteredFaqs.length > 0 ? (
-                  filteredFaqs.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} i={i} />)
-                ) : (
-                  <div className="py-14 text-center">
-                    <p className="text-gray-500">No matching FAQs found.</p>
-                    <button onClick={openNewChat} className="text-red-600 mt-3 font-bold">Start a chat instead</button>
+              <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="relative">
+                <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl shadow-gray-300/60 h-[560px]">
+                  <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
+                    <source src={VIDEO_SRC} type="video/mp4" />
+                  </video>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-8">
+                    <button
+                      onClick={() => chatSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
+                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-3 rounded-xl"
+                    >
+                      Get help <ArrowRightIcon className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </div>
+                </div>
+              </motion.div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <Footer />
+        {/* STATS BAR */}
+        <section className="bg-gray-900 border-y border-gray-800">
+          <div className="max-w-7xl mx-auto px-6 py-10">
+            <div className="grid grid-cols-4 gap-0 divide-x divide-gray-700">
+              {[
+                { icon: <Zap className="w-5 h-5 text-amber-400" />, stat: "< 2 hours", label: "Average first response" },
+                { icon: <CheckCircle className="w-5 h-5 text-emerald-400" />, stat: "50,000+", label: "Tickets resolved this year" },
+                { icon: <Users className="w-5 h-5 text-blue-400" />, stat: "2M+", label: "Customers supported" },
+                { icon: <Award className="w-5 h-5 text-purple-400" />, stat: "24 / 7", label: "Always available" },
+              ].map((s, i) => (
+                <motion.div key={i} className="px-10 flex items-start gap-4" initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">{s.icon}</div>
+                  <div>
+                    <p className="text-2xl font-black text-white">{s.stat}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 font-medium">{s.label}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* DESKTOP CHAT */}
+        <section ref={chatSectionRef} className="bg-[#f7f7f9] py-14">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="mb-8">
+              <h2 className="text-2xl font-black text-gray-900">Live Support Chat</h2>
+              <p className="text-gray-400 text-sm mt-1">Chat directly with our support team — select a conversation or start a new one.</p>
+            </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              className="rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-white" style={{ height: "680px" }}>
+              <DesktopChatPanel
+                userId={auth.user?.userId}
+                token={auth.token ?? undefined}
+                newChatTrigger={0}
+                shared={chatShared}
+                onSharedChange={updateChatShared}
+              />
+            </motion.div>
+          </div>
+        </section>
+
+        {/* FAQ + CONTACT */}
+        <section className="bg-[#f7f7f9] pb-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="mb-8">
+              <h2 className="text-2xl font-black text-gray-900">Get in touch</h2>
+              <p className="text-gray-400 text-sm mt-1">Choose the channel that works best for you.</p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-5 mb-10">
+              <motion.div className="bg-white rounded-3xl border border-gray-100 p-7 flex flex-col gap-5 hover:shadow-lg transition-all" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}>
+                <div className="flex items-start justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center"><MessageSquare className="w-6 h-6" /></div>
+                  <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-bold text-emerald-700">Live now</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="font-black text-gray-900 text-lg mb-1.5">Live Chat</p>
+                  <p className="text-gray-400 text-sm">Connect instantly with our support specialists.</p>
+                </div>
+                <button onClick={() => chatSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
+                  className="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold">
+                  Start a conversation
+                </button>
+              </motion.div>
+
+              <motion.div className="bg-white rounded-3xl border border-gray-100 p-7 flex flex-col gap-5 hover:shadow-lg transition-all" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <div className="flex items-start justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center"><Mail className="w-6 h-6" /></div>
+                  <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700">Replies in 24h</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-black text-gray-900 text-lg mb-1.5">Email Support</p>
+                  <p className="text-gray-400 text-sm">Send a detailed message to our team.</p>
+                </div>
+                <a href="mailto:support@britbooks.co.uk" className="block text-center w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold">Send an email</a>
+              </motion.div>
+            </div>
+
+            <div className="flex items-center gap-4 mb-8">
+              <div className="flex-1 h-px bg-gray-200" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Frequently asked questions</p>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {searchQ && (
+              <div className="flex justify-between items-center mb-6">
+                <p className="text-sm text-gray-500">Showing results for <span className="font-bold">"{searchQ}"</span></p>
+                <button onClick={() => setSearchQ("")} className="text-red-500 text-xs font-bold">Clear</button>
+              </div>
+            )}
+
+            <div className="bg-white rounded-3xl border border-gray-100 px-8 divide-y divide-gray-50">
+              {filteredFaqs.length > 0 ? (
+                filteredFaqs.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} i={i} />)
+              ) : (
+                <div className="py-14 text-center">
+                  <p className="text-gray-500">No matching FAQs found.</p>
+                  <button onClick={openChat} className="text-red-600 mt-3 font-bold">Start a chat instead</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <Footer />
+      </div>
 
       {/* Mobile FAB */}
-      <AnimatePresence>
-        {!mobileChat && (
-          <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            onClick={openNewChat}
-            className="fixed bottom-6 right-5 w-14 h-14 bg-red-600 rounded-2xl shadow-xl flex items-center justify-center z-40 lg:hidden">
-            <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6 text-white" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile Chat Bottom Sheet */}
-      <AnimatePresence>
-        {mobileChat && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setMobileChat(false)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" />
-            <motion.div
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              className="fixed inset-x-0 bottom-0 z-50 h-[90vh] bg-white rounded-t-3xl overflow-hidden flex flex-col lg:hidden shadow-2xl"
-            >
-              <div className="flex justify-center pt-3 pb-1 shrink-0 bg-white">
-                <div className="w-10 h-1 bg-gray-200 rounded-full" />
-              </div>
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <MobileChatWidget
-                  userId={auth.user?.userId}
-                  token={auth.token ?? undefined}
-                  onClose={() => setMobileChat(false)}
-                  newChatTrigger={newChatTrigger}
-                  shared={chatShared}
-                  onSharedChange={updateChatShared}
-                />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <motion.button
+        initial={{ scale: 0 }} animate={{ scale: 1 }}
+        onClick={openChat}
+        className="fixed bottom-6 right-5 w-14 h-14 bg-red-600 rounded-2xl shadow-xl flex items-center justify-center z-40 sm:hidden"
+      >
+        <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6 text-white" />
+      </motion.button>
     </div>
   );
 }

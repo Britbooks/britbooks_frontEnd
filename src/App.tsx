@@ -20,6 +20,7 @@ import ShippingReturnsPage from './pages/Shipping';
 import BestsellersPage from './pages/BestSeller';
 import SpecialOffersPage from './pages/SpecialOffer';
 import HelpAndSupportPage from './pages/Support';
+import SupportChatPage from './pages/SupportChat';
 import CheckoutFlow from './pages/CheckOut';
 import MyWishlistPage from './pages/Wishlist';
 import AddressesPage from './pages/Addresses';
@@ -78,6 +79,7 @@ const App: React.FC = () => {
               <Route path="/bestsellers" element={<BestsellersPage />} />
               <Route path="/special-offers" element={<SpecialOffersPage />} />
               <Route path="/help" element={<HelpAndSupportPage />} />
+              <Route path="/help/chat" element={<SupportChatPage />} />
               <Route path="/checkout" element={<CheckoutFlow />} />
               <Route path="/wishlist" element={<MyWishlistPage />} />
               <Route path="/addresses" element={<AddressesPage />} />
