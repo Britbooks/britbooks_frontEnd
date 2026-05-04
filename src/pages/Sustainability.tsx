@@ -139,7 +139,7 @@ const SustainabilityPage = () => {
 
   const commitments = [
     { icon: RecycleIcon, title: 'Circular Economy', description: 'Every book purchased from BritBooks is a vote for a circular economy. By giving books a second, third, or fourth life, we drastically reduce the need for new resources and keep valuable materials in circulation.' },
-    { icon: LeafIcon, title: 'Reducing Our Footprint', description: 'We\'re committed to minimizing our environmental impact. This means optimizing our logistics, using energy-efficient servers, and constantly seeking new ways to reduce our carbon footprint across all operations.'},
+    { icon: LeafIcon, title: 'Reducing Our Footprint', description: 'We are committed to minimizing our environmental impact. This means optimizing our logistics, using energy-efficient servers, and constantly seeking new ways to reduce our carbon footprint across all operations.'},
     { icon: PackageIcon, title: 'Eco-Friendly Packaging', description: 'Your books arrive in packaging that’s as green as it is protective. We use 100% recyclable and biodegradable materials, ensuring that your purchase is gentle on the planet from our shelf to your door.' },
   ];
 
@@ -177,7 +177,7 @@ const SustainabilityPage = () => {
           <div className="max-w-7xl mx-auto px-6 sm:px-8">
             <div className="text-center animate-on-scroll">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-800">Our Commitment to a Greener World</h2>
-              <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">We're not just a bookstore; we're a movement. Our core mission is to reduce waste and promote a circular economy for books, ensuring every story can be enjoyed for generations to come.</p>
+              <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">We are not just a bookstore; we are a movement. Our core mission is to reduce waste and promote a circular economy for books, ensuring every story can be enjoyed for generations to come.</p>
             </div>
             <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-12">
               {commitments.map((item, index) => (
@@ -215,8 +215,8 @@ const SustainabilityPage = () => {
         <section className="bg-red-50 py-16 sm:py-24">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="animate-on-scroll">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-800">You're the Hero of This Story</h2>
-              <p className="mt-4 text-lg text-gray-600 leading-relaxed">Every time you choose a used book over a new one, you're making a powerful statement. You're saving a tree, reducing water usage, and cutting down on the carbon emissions from manufacturing and shipping. You are an essential part of the BritBooks community and a champion for a more sustainable future.</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800">You Are the Hero of This Story</h2>
+              <p className="mt-4 text-lg text-gray-600 leading-relaxed">Every time you choose a used book over a new one, you are making a powerful statement. You are saving a tree, reducing water usage, and cutting down on the carbon emissions from manufacturing and shipping. You are an essential part of the BritBooks community and a champion for a more sustainable future.</p>
               <div className="mt-8 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link to="/browse" className="bg-red-600 text-white px-8 py-3 rounded-md font-semibold text-center hover:bg-red-700 transition-transform hover:scale-105">
                   Shop Sustainably

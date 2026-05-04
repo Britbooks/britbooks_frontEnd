@@ -35,11 +35,11 @@ const sections = [
     title: 'Return Process',
     content: (
       <>
-        <p className="text-[#0a1628]/60 leading-relaxed mb-4">Ready to return? Here's how to get started:</p>
+        <p className="text-[#0a1628]/60 leading-relaxed mb-4">Ready to return? Here is how to get started:</p>
         <ol className="space-y-3">
           {[
             <>Email <a href="mailto:support@britbooks.co.uk" className="text-[#c9a84c] font-semibold hover:underline">support@britbooks.co.uk</a> with your order number and reason.</>,
-            "We'll send a Return Merchandise Authorisation (RMA) number and instructions.",
+            "We will send a Return Merchandise Authorisation (RMA) number and instructions.",
             'Pack your item securely with the RMA number on the outside.',
             'Ship it back within 14 days of receiving your RMA.',
           ].map((step, i) => (
@@ -137,7 +137,7 @@ const ReturnPolicyPage = () => {
             Hassle-Free<br /><span className="text-[#c9a84c]">Return Policy</span>
           </h1>
           <p className="text-white/40 text-sm sm:text-base max-w-md mx-auto">
-            We're here to make returns easy and stress-free. Every book, every time.
+            We are here to make returns easy and stress-free. Every book, every time.
           </p>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-8" style={{ backgroundColor: '#f5f0e8', clipPath: 'ellipse(55% 100% at 50% 100%)' }} />

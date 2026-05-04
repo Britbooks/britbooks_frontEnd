@@ -1,4 +1,13 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Book, generatePlaceholderImage } from '../data/books';
+
+interface BookCardProps {
+  id: string;
+  img: string;
+  title: string;
+  author: string;
+  price: string;
+}
 
 type ViewedBook = BookCardProps & { viewedAt: string };
 
@@ -30,7 +39,7 @@ const addToRecentlyViewed = useCallback((input: BookCardProps | Book) => {
     if ('imageUrl' in input) {
       // It's a raw Book
       book = {
-        id: String(input.id || input._id || 'unknown'),
+        id: String((input as any)._id || input.id || 'unknown'),
         img: input.imageUrl?.trim() || generatePlaceholderImage(input),
         title: input.title || "Untitled",
         author: input.author || "Unknown",

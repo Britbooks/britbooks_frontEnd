@@ -400,13 +400,13 @@ const BrowseCategoryDetail = () => {
           transition={{ delay: 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="relative z-10 -mt-5 mx-3 bg-white rounded-[24px] shadow-xl border border-gray-100 px-5 pt-6 pb-5"
         >
-          {/* Stock */}
+          {/* Stock / ISBN */}
           <div className="flex items-center gap-2 mb-3">
-            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-              book.stock > 0 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
-            }`}>
-              {book.stock > 0 ? `In Stock` : "Out of Stock"}
-            </span>
+            {book.stock === 0 && (
+              <span className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider bg-red-50 text-red-500">
+                Out of Stock
+              </span>
+            )}
             {book.isbn && (
               <span className="text-[10px] text-gray-400 font-medium">ISBN {book.isbn}</span>
             )}
@@ -641,10 +641,10 @@ const BrowseCategoryDetail = () => {
               </div>
               <p className="text-xl font-bold text-gray-900 mb-3">£{book.price.toFixed(2)}</p>
               <div className="text-sm mb-3">
-                <span className={`font-semibold ${book.stock > 0 ? "text-green-600" : "text-red-500"}`}>
-                  {book.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}
-                </span>
-                <span className="text-gray-500 ml-2">ISBN: {book.isbn || `BBW0${book.id}`}</span>
+                {book.stock === 0 && (
+                  <span className="font-semibold text-red-500 mr-2">Out of Stock</span>
+                )}
+                <span className="text-gray-500">ISBN: {book.isbn || `BBW0${book.id}`}</span>
               </div>
               {book.description ? (
                 <p className="text-gray-600 leading-relaxed mb-3">{book.description.slice(0, 150)}{book.description.length > 150 && "..."}</p>

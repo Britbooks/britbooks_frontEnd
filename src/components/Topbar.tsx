@@ -511,10 +511,7 @@ const TopBar = () => {
                           className="flex items-center justify-between px-4 py-3 active:bg-gray-100 transition-colors"
                         >
                           <span className="text-xs font-semibold text-gray-700">{cat.name}</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-gray-400">{cat.count}</span>
-                            <ChevronRight size={12} className="text-gray-300" />
-                          </div>
+                          <ChevronRight size={12} className="text-gray-300" />
                         </Link>
                       ))}
                       {categories.length > 7 && (

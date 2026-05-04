@@ -1,4 +1,28 @@
 import React, { useState, useMemo, useEffect, useRef, useContext } from "react";
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (r: { credential: string }) => void;
+            ux_mode?: string;
+            auto_select?: boolean;
+          }) => void;
+          prompt: (notification_callback?: (n: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => void) => void;
+          cancel: () => void;
+        };
+      };
+    };
+    FB?: {
+      init: (config: { appId: string; cookie: boolean; xfbml: boolean; version: string }) => void;
+      login: (callback: (r: { authResponse?: { accessToken: string } }) => void, options: { scope: string }) => void;
+    };
+    fbAsyncInit?: () => void;
+  }
+}
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/authContext";
 import { RegisterFormData, JwtPayload } from "../types/auth";
@@ -150,13 +174,108 @@ const SignupPage = () => {
 
   const context = useContext(AuthContext);
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
-  const { auth, registerUser, verifyRegistration } = context;
+  const { auth, registerUser, verifyRegistration, loginWithSocial } = context;
   const { loading, error, token } = auth;
   const navigate = useNavigate();
+  const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
+  const googleCallbackRef = useRef<(r: { credential: string }) => void>(() => {});
 
   useEffect(() => {
     if (token && !showVerificationModal) setShowVerificationModal(true);
   }, [token, showVerificationModal]);
+
+  // ── Keep Google callback ref up-to-date
+  useEffect(() => {
+    googleCallbackRef.current = async (response: { credential: string }) => {
+      setSocialLoading('google');
+      try {
+        await loginWithSocial('google', response.credential);
+        toast.success('Signed in with Google!');
+        navigate('/', { replace: true });
+      } catch {
+        toast.error('Google sign-in failed. Please try again.');
+      } finally {
+        setSocialLoading(null);
+      }
+    };
+  }, [loginWithSocial, navigate]);
+
+  // ── Load Google Identity Services SDK
+  useEffect(() => {
+    if (document.getElementById('google-gsi-script')) {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          callback: (r) => googleCallbackRef.current(r),
+          ux_mode: 'popup',
+          auto_select: false,
+        });
+      }
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-gsi-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      window.google?.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: (r) => googleCallbackRef.current(r),
+        ux_mode: 'popup',
+        auto_select: false,
+      });
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  // ── Load Facebook JS SDK
+  useEffect(() => {
+    window.fbAsyncInit = () => {
+      window.FB?.init({
+        appId: import.meta.env.VITE_FACEBOOK_APP_ID,
+        cookie: true,
+        xfbml: true,
+        version: 'v19.0',
+      });
+    };
+    if (!document.getElementById('facebook-jssdk')) {
+      const script = document.createElement('script');
+      script.id = 'facebook-jssdk';
+      script.src = 'https://connect.facebook.net/en_US/sdk.js';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  const handleGoogleLogin = () => {
+    if (!window.google) { toast.error('Google not loaded. Please refresh.'); return; }
+    window.google.accounts.id.prompt((n) => {
+      if (n.isNotDisplayed?.() || n.isSkippedMoment?.()) {
+        toast.error('Could not open Google sign-in. Please try again.');
+      }
+    });
+  };
+
+  const handleFacebookLogin = () => {
+    if (!window.FB) { toast.error('Facebook not loaded. Please refresh.'); return; }
+    setSocialLoading('facebook');
+    window.FB.login((response) => {
+      if (response.authResponse?.accessToken) {
+        loginWithSocial('facebook', response.authResponse.accessToken)
+          .then(() => {
+            toast.success('Signed in with Facebook!');
+            navigate('/', { replace: true });
+          })
+          .catch(() => toast.error('Facebook sign-in failed. Please try again.'))
+          .finally(() => setSocialLoading(null));
+      } else {
+        setSocialLoading(null);
+        toast.error('Facebook sign-in was cancelled.');
+      }
+    }, { scope: 'public_profile,email' });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -404,14 +523,24 @@ const SignupPage = () => {
             {/* Social */}
             <div className="grid grid-cols-2 gap-3">
               <motion.button whileTap={{ scale: 0.97 }} type="button"
-                onClick={() => toast("Google sign-up coming soon")}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors">
-                <GoogleIcon /> Google
+                disabled={!!socialLoading || loading}
+                onClick={handleGoogleLogin}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors disabled:opacity-60">
+                {socialLoading === 'google'
+                  ? <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  : <GoogleIcon />
+                }
+                Google
               </motion.button>
               <motion.button whileTap={{ scale: 0.97 }} type="button"
-                onClick={() => toast("Facebook sign-up coming soon")}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors">
-                <FacebookIcon /> Facebook
+                disabled={!!socialLoading || loading}
+                onClick={handleFacebookLogin}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors disabled:opacity-60">
+                {socialLoading === 'facebook'
+                  ? <div className="w-4 h-4 border-2 border-gray-300 border-t-[#1877F2] rounded-full animate-spin" />
+                  : <FacebookIcon />
+                }
+                Facebook
               </motion.button>
             </div>
 

@@ -167,11 +167,11 @@ export default function CreditSlipsPage() {
             animate={{ y: [0, -9, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             className="absolute -left-20 top-4 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 flex items-center gap-2"
           >
-            <div className="w-7 h-7 bg-emerald-400/20 rounded-xl flex items-center justify-center">
+            <div className="w-7 h-7 bg-emerald-400/20 rounded-xl text-black flex items-center justify-center">
               <CheckCircle size={13} className="text-emerald-300" />
             </div>
             <div>
-              <div className="text-white text-xs font-black">Available</div>
+              <div className="text-black text-xs font-black">Available</div>
               <div className="h-1 w-10 bg-white/20 rounded-full mt-1" />
             </div>
           </motion.div>
@@ -181,10 +181,10 @@ export default function CreditSlipsPage() {
             animate={{ y: [0, 8, 0] }} transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
             className="absolute -left-14 bottom-4 bg-white/10 border border-white/20 rounded-2xl px-3 py-2 flex items-center gap-1.5"
           >
-            <span className="text-emerald-300 font-black text-sm">
+            <span className="text-black font-black text-sm">
               {slips.length > 0 ? formatCurrency(availableTotal) : "£0.00"}
             </span>
-            <span className="text-white/70 text-xs">credit</span>
+            <span className="text-black text-xs">credit</span>
           </motion.div>
 
           {/* Sparkle dots */}
@@ -207,8 +207,8 @@ export default function CreditSlipsPage() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
             className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-5"
           >
-            <Wallet size={13} className="text-violet-300" />
-            <span className="text-xs font-bold tracking-widest uppercase text-white/80">Account</span>
+            <Wallet size={13} className="text-black" />
+            <span className="text-xs font-bold tracking-widest uppercase text-black">Account</span>
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -216,12 +216,12 @@ export default function CreditSlipsPage() {
           >Credit Slips</motion.h1>
 
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-            className="text-white/80 text-base max-w-md"
+            className="text-black text-base max-w-md"
           >View refunds, returns credit, and goodwill vouchers issued to your account.</motion.p>
 
           {slips.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-4 mt-8"
+              className="flex flex-wrap gap-4 mt-8 "
             >
               {[
                 { value: formatCurrency(availableTotal),                               label: "Available credit", icon: <Wallet size={14} /> },
@@ -229,12 +229,12 @@ export default function CreditSlipsPage() {
                 { value: String(slips.length),                                         label: "Total issued",    icon: <CreditCard size={14} /> },
               ].map((s, i) => (
                 <motion.div key={i} whileHover={{ scale: 1.04 }}
-                  className="bg-white/10 hover:bg-white/15 border border-white/20 rounded-2xl px-5 py-4 flex items-center gap-3 cursor-default transition-all"
+                  className="bg-white/10 hover:bg-white/15 border border-white/20  text-black rounded-2xl px-5 py-4 flex items-center gap-3 cursor-default transition-all"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-violet-300">{s.icon}</div>
+                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-black">{s.icon}</div>
                   <div>
                     <div className="text-xl font-black leading-none">{s.value}</div>
-                    <div className="text-white/70 text-xs mt-0.5">{s.label}</div>
+                    <div className="text-black text-xs mt-0.5">{s.label}</div>
                   </div>
                 </motion.div>
               ))}

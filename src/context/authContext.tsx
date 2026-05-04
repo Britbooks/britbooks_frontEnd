@@ -75,6 +75,7 @@ interface AuthContextType {
   login: (formData: LoginFormData) => Promise<void>;
   verifyRegistration: (formData: VerifyFormData) => Promise<void>;
   verifyLogin: (formData: VerifyFormData) => Promise<void>;
+  loginWithSocial: (provider: 'google' | 'facebook', token: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -332,6 +333,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const loginWithSocial = async (provider: 'google' | 'facebook', token: string) => {
+    setAuth((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      const response = await axios.post<VerifyResponse>(
+        `${API_BASE_URL}/${provider}`,
+        { token }
+      );
+      const userData = {
+        userId: response.data.user.userId,
+        fullName: response.data.user.fullName,
+        email: response.data.user.email,
+        role: response.data.user.role,
+      };
+      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('authUser', JSON.stringify(userData));
+      setAuth({
+        user: userData,
+        userId: userData.userId,
+        token: response.data.token,
+        loading: false,
+        error: null,
+        isVerified: true,
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiError>;
+      setAuth((prev) => ({
+        ...prev,
+        loading: false,
+        error: axiosError.response?.data?.message || `${provider} sign-in failed`,
+      }));
+      throw error;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
@@ -349,7 +384,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   logoutRef.current = logout;
 
   return (
-    <AuthContext.Provider value={{ auth, registerUser, login, verifyRegistration, verifyLogin, logout }}>
+    <AuthContext.Provider value={{ auth, registerUser, login, verifyRegistration, verifyLogin, loginWithSocial, logout }}>
       {children}
     </AuthContext.Provider>
   );

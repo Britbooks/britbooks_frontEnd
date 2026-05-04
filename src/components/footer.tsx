@@ -90,12 +90,12 @@ const MobileFooter = ({ email, setEmail, subscribed, handleSubscribe }: {
       {/* Socials */}
       <div className="flex items-center gap-3 mb-6">
         {[
-          { icon: FaFacebookF,  label: 'Facebook'  },
-          { icon: FaTwitter,    label: 'Twitter'   },
-          { icon: FaPinterestP, label: 'Pinterest' },
-          { icon: FaInstagram,  label: 'Instagram' },
-        ].map(({ icon: Icon, label }) => (
-          <a key={label} href="#" aria-label={label}
+          { icon: FaFacebookF,  label: 'Facebook',  href: 'https://www.facebook.com/britbooks'  },
+          { icon: FaTwitter,    label: 'Twitter',   href: 'https://www.twitter.com/britbooks'   },
+          { icon: FaPinterestP, label: 'Pinterest', href: 'https://www.pinterest.com/britbooks' },
+          { icon: FaInstagram,  label: 'Instagram', href: 'https://www.instagram.com/britbooks' },
+        ].map(({ icon: Icon, label, href }) => (
+          <a key={label} href={href} aria-label={label} target="_blank" rel="noopener noreferrer"
             className="w-10 h-10 rounded-xl bg-gray-800 hover:bg-red-600 border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-all">
             <Icon size={15} />
           </a>
@@ -283,12 +283,12 @@ const Footer = () => {
             </Link>
             <div className="flex items-center gap-3 mt-8">
               {[
-                { icon: FaFacebookF,  label: 'Facebook'  },
-                { icon: FaTwitter,    label: 'Twitter'   },
-                { icon: FaPinterestP, label: 'Pinterest' },
-                { icon: FaInstagram,  label: 'Instagram' },
-              ].map(({ icon: Icon, label }) => (
-                <a key={label} href="#" aria-label={label}
+                { icon: FaFacebookF,  label: 'Facebook',  href: 'https://www.facebook.com/britbooks'  },
+                { icon: FaTwitter,    label: 'Twitter',   href: 'https://www.twitter.com/britbooks'   },
+                { icon: FaPinterestP, label: 'Pinterest', href: 'https://www.pinterest.com/britbooks' },
+                { icon: FaInstagram,  label: 'Instagram', href: 'https://www.instagram.com/britbooks' },
+              ].map(({ icon: Icon, label, href }) => (
+                <a key={label} href={href} aria-label={label} target="_blank" rel="noopener noreferrer"
                   className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-red-600 border border-gray-700 hover:border-red-600 flex items-center justify-center text-gray-400 hover:text-white transition-all">
                   <Icon size={14} />
                 </a>

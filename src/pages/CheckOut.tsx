@@ -1301,6 +1301,22 @@ const CheckoutFlow = () => {
                 >
                   View My Order
                 </button>
+
+                {/* Trustpilot review nudge */}
+                <a
+                  href="https://uk.trustpilot.com/review/britbooks.co.uk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full border border-gray-200 rounded-2xl py-3 mb-3 hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <svg key={s} className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="#00B67A"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    ))}
+                  </div>
+                  <span className="text-xs font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">Share your experience on Trustpilot</span>
+                </a>
+
                 <p className="text-xs text-gray-400">Redirecting automatically in 5 seconds…</p>
               </motion.div>
             </div>

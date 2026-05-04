@@ -264,11 +264,6 @@ export default function BrowsePage() {
                 {selectedSubcategory || selectedCategory || "All Books"}
               </h1>
             </div>
-            {totalBooks > 0 && (
-              <span className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1.5 rounded-full">
-                {totalBooks.toLocaleString()} books
-              </span>
-            )}
           </div>
 
           {/* Search bar */}
@@ -541,7 +536,7 @@ export default function BrowsePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-6 border-b border-gray-100 gap-4">
                 <div className="flex items-center gap-5 flex-wrap">
                   <p className="text-sm text-gray-600 font-medium">
-                    Showing <strong>{books.length}</strong> of <strong>{totalBooks.toLocaleString()}</strong> books
+                    Showing <strong>{books.length}</strong> results
                   </p>
                   <select className="bg-white border border-gray-200 text-sm font-medium px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
                     <option>Newest First</option>

@@ -462,7 +462,7 @@ const BestsellersPage: React.FC = () => {
             className="flex items-center justify-center gap-8 mt-12 pt-10 border-t border-white/8"
           >
             {[
-              { icon: <BookOpen className="w-3.5 h-3.5" />, val: `${totalBooks.toLocaleString()}+`, label: "titles listed" },
+              { icon: <BookOpen className="w-3.5 h-3.5" />, val: "Daily", label: "new arrivals" },
               { icon: <Star className="w-3.5 h-3.5" />, val: "4.8★", label: "avg. rating" },
               { icon: <TrendingUp className="w-3.5 h-3.5" />, val: "Daily", label: "updated" },
             ].map((s, i) => (
@@ -531,7 +531,7 @@ const BestsellersPage: React.FC = () => {
           <div className="h-px flex-1 bg-[#0a1628]/10" />
           <p className="text-[10px] font-bold text-[#0a1628]/40 uppercase tracking-[0.15em]">
             {selectedCategory ? `${selectedCategory} · ` : ""}
-            {isLoading ? "Loading…" : `${totalBooks.toLocaleString()} titles`}
+            {isLoading ? "Loading…" : selectedCategory || "All Best Sellers"}
           </p>
           <div className="h-px flex-1 bg-[#0a1628]/10" />
         </div>

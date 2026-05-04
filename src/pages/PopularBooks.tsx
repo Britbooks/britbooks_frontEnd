@@ -187,14 +187,6 @@ const SpotlightCard: React.FC<{ book: any; rank: number }> = ({ book, rank }) =>
             ))}
           </div>
 
-          {/* Why popular explanation */}
-          <p className="text-gray-400 text-xs leading-relaxed">
-            {rank === 1
-              ? "Holding the top spot for the 3rd week running. Readers call it unmissable."
-              : rank === 2
-              ? "Climbing fast — added to over 1,200 wishlists this month."
-              : "Consistent favourite — praised for its pacing and depth."}
-          </p>
         </div>
 
         {/* Bottom row */}
@@ -438,7 +430,6 @@ const PopularBooksPage: React.FC = () => {
               <div className="w-1 h-5 bg-indigo-600 rounded-full" />
               <span className="font-black text-sm text-gray-900">Trending Now</span>
             </div>
-            <span className="text-indigo-500 text-[11px] font-bold">{state.totalBooks.toLocaleString()} titles</span>
           </div>
           <div ref={trendRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-1">
             {state.isLoading
@@ -556,9 +547,8 @@ const PopularBooksPage: React.FC = () => {
               {/* Stats row */}
               <div className="flex gap-6 flex-shrink-0">
                 {[
-                  { label: "Total Titles", value: state.totalBooks.toLocaleString(), icon: <BookOpen size={18} />, color: "text-indigo-400" },
+                  { label: "Updated", value: "Daily", icon: <BookOpen size={18} />, color: "text-indigo-400" },
                   { label: "Avg Rating", value: avgRating > 0 ? avgRating.toFixed(1) : "—", icon: <Star size={18} />, color: "text-yellow-400" },
-                  { label: "Readers This Week", value: "12.4k+", icon: <Users size={18} />, color: "text-green-400" },
                   { label: "Categories", value: state.categories.length.toString(), icon: <BarChart2 size={18} />, color: "text-red-400" },
                 ].map((s, i) => (
                   <div key={i} className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-center min-w-[110px]">
@@ -666,12 +656,16 @@ const PopularBooksPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Category Breakdown */}
+
+                {/* Genre Breakdown — based on current page results */}
                 {catDistribution.length > 0 && (
                   <div className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm">
-                    <h3 className="font-black text-gray-900 text-sm mb-4 flex items-center gap-2">
-                      <BarChart2 size={15} className="text-indigo-500" /> Genre Breakdown
+                    <h3 className="font-black text-gray-900 text-sm mb-1 flex items-center gap-2">
+                      <BarChart2 size={15} className="text-indigo-500" /> Genre Mix
                     </h3>
+                    <p className="text-[10px] text-gray-400 mb-4 leading-relaxed">
+                      Based on results shown on this page
+                    </p>
                     <div className="space-y-3">
                       {catDistribution.map((cat, i) => (
                         <button
@@ -719,19 +713,6 @@ const PopularBooksPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Trend insight */}
-                <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-3xl p-5 text-white">
-                  <div className="flex items-center gap-2 mb-3">
-                    <TrendingUp size={15} />
-                    <span className="font-black text-sm">Trend Insight</span>
-                  </div>
-                  <p className="text-indigo-100 text-xs leading-relaxed mb-3">
-                    Fiction and Romance titles are up <strong className="text-white">+18%</strong> this month. Readers are gravitating towards character-driven stories.
-                  </p>
-                  <div className="bg-white/10 rounded-xl px-3 py-2 text-[11px] font-bold text-indigo-200">
-                    📈 Peak browsing: 7–10 PM daily
-                  </div>
-                </div>
 
               </div>
             </aside>
@@ -741,8 +722,8 @@ const PopularBooksPage: React.FC = () => {
               {/* Result count + page indicator */}
               <div className="flex items-center justify-between mb-5">
                 <p className="text-sm text-gray-500">
-                  <span className="font-bold text-gray-900">{state.totalBooks.toLocaleString()}</span> books
-                  {state.selectedCategory && <> in <span className="font-bold text-indigo-600">{state.selectedCategory}</span></>}
+                  {state.selectedCategory && <>Browsing <span className="font-bold text-indigo-600">{state.selectedCategory}</span></>}
+                  {!state.selectedCategory && <span className="font-bold text-gray-900">All Popular Books</span>}
                   {activeReasonFilter && <> · tagged <span className="font-bold text-indigo-600">{activeReasonFilter}</span></>}
                 </p>
                 <span className="text-xs text-gray-400">Hover a book for details</span>
