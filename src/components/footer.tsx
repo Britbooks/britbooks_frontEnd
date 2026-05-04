@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FaFacebookF, FaTwitter, FaPinterestP, FaInstagram } from 'react-icons/fa';
-import { Mail, Phone, MapPin, ArrowRight, ShieldCheck, BookOpen, ChevronDown } from 'lucide-react';
+import { Mail, ArrowRight, ShieldCheck, BookOpen, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 
 /* ── New Arrivals Ticker ───────────────────────────────────────── */
@@ -104,7 +104,7 @@ const MobileFooter = ({ email, setEmail, subscribed, handleSubscribe }: {
       {/* Newsletter */}
       {subscribed ? (
         <div className="flex items-center gap-2 px-5 py-3 bg-green-600/20 border border-green-500/30 rounded-xl text-sm text-green-400 font-semibold w-full justify-center">
-          <ShieldCheck className="w-4 h-4 shrink-0" /> You're subscribed — 25% off applied!
+          <ShieldCheck className="w-4 h-4 shrink-0" /> You are subscribed — 25% off applied!
         </div>
       ) : (
         <div className="w-full bg-blue-900 rounded-2xl px-4 py-5">
@@ -179,16 +179,8 @@ const MobileFooter = ({ email, setEmail, subscribed, handleSubscribe }: {
     <div className="px-6 py-6 border-b border-gray-800 space-y-4">
       <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Contact Us</h3>
       <div className="flex items-center gap-3">
-        <Phone className="w-4 h-4 text-red-500 shrink-0" />
-        <a href="tel:02089046479" className="text-sm text-gray-400">0208 904 6479</a>
-      </div>
-      <div className="flex items-center gap-3">
         <Mail className="w-4 h-4 text-red-500 shrink-0" />
         <a href="mailto:customercare@britbooks.co.uk" className="text-sm text-gray-400">customercare@britbooks.co.uk</a>
-      </div>
-      <div className="flex items-start gap-3">
-        <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-        <p className="text-sm text-gray-400">London, United Kingdom</p>
       </div>
     </div>
 
@@ -248,7 +240,7 @@ const Footer = () => {
             </p>
             {subscribed ? (
               <div className="flex items-center gap-2 px-5 py-2.5 bg-green-600/20 border border-green-500/30 rounded-lg text-sm text-green-400 font-semibold">
-                <ShieldCheck className="w-4 h-4 shrink-0" /> You're subscribed!
+                <ShieldCheck className="w-4 h-4 shrink-0" /> You are subscribed!
               </div>
             ) : (
               <form onSubmit={handleSubscribe} className="flex w-full md:w-auto">
@@ -349,17 +341,9 @@ const Footer = () => {
             <div>
               <h3 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-6">Contact Us</h3>
               <div className="space-y-5">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-sm text-gray-400 leading-relaxed">London, United Kingdom</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-red-500 shrink-0" />
-                  <a href="tel:02089046479" className="text-sm text-gray-400 hover:text-white transition-colors">0208 904 6479</a>
-                </div>
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-red-500 shrink-0" />
-                  <a href="mailto:hello@britbooks.co.uk" className="text-sm text-gray-400 hover:text-white transition-colors">customercare@britbooks.co.uk</a>
+                  <a href="mailto:customercare@britbooks.co.uk" className="text-sm text-gray-400 hover:text-white transition-colors">customercare@britbooks.co.uk</a>
                 </div>
               </div>
             </div>
