@@ -311,7 +311,6 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
 
           <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
             Page {currentPage} of {totalPages}
-            {totalBooks > 0 && ` • ${totalBooks.toLocaleString()} books`}
           </span>
 
           <button
@@ -396,11 +395,6 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
       )}
 
       {/* Summary */}
-      {books.length > 0 && !isLoadingMore && (
-        <p className="text-center text-sm text-gray-500 mt-10 animate-slide-up">
-          Showing {books.length} of {totalBooks.toLocaleString()} books
-        </p>
-      )}
     </section>
   );
 };
@@ -1267,7 +1261,7 @@ const Homepage = () => {
             className="mx-4 mb-8 bg-white border border-[#e8e0d0] rounded-2xl overflow-hidden shadow-sm"
           >
             {[
-              { icon: '🚚', title: 'Free Shipping', sub: 'On orders over £100' },
+              { icon: '🚚', title: 'Free Shipping', sub: 'On orders over £15' },
               { icon: '↩️', title: '30-Day Returns', sub: 'No questions asked' },
               { icon: '🔒', title: 'Secure Payment', sub: 'All major cards accepted' },
             ].map((item, i) => (
@@ -1426,7 +1420,7 @@ const Homepage = () => {
           {/* Promotional Banners */}
           <div className="max-w-7xl mx-auto py-8 sm:py-12 px-4 sm:px-8 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[
-              { title: "Free Shipping", subtitle: "Orders Over £100", image: "https://media.istockphoto.com/id/1309243817/vector/fast-delivery-truck-with-motion-lines-online-delivery-express-delivery-quick-move-fast.jpg?s=612x612&w=0&k=20&c=l2JlE6VQ4uRS6jABMS558puDgTyhEJW0bSiPhbBgXMc=" },
+              { title: "Free Shipping", subtitle: "Orders Over £15", image: "https://media.istockphoto.com/id/1309243817/vector/fast-delivery-truck-with-motion-lines-online-delivery-express-delivery-quick-move-fast.jpg?s=612x612&w=0&k=20&c=l2JlE6VQ4uRS6jABMS558puDgTyhEJW0bSiPhbBgXMc=" },
               { title: "Money Guarantee", subtitle: "30 Day Money Back Guarantee", image: "https://media.istockphoto.com/id/1129401378/photo/a-hand-with-protective-shield-containing-a-currency-unit-inside.jpg?s=612x612&w=0&k=20&c=R3Y_IIp64RvH7g7YmDDirCwiu3QbFRE1KDV8X-R1peo=" },
               { title: "Secure Payment", subtitle: "All Cards Accepted", image: "https://media.istockphoto.com/id/2078490118/photo/businessman-using-laptop-to-online-payment-banking-and-online-shopping-financial-transaction.jpg?s=612x612&w=0&k=20&c=1x2G24ANsWxG4YW6ZaoeFPEzjmKFE4ZlohVQSwbjGj8=" },
             ].map((item, idx) => (
