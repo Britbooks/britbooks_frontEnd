@@ -37,14 +37,14 @@ const StarDisplay = ({ rating }: { rating: number }) => (
 
 const MyReviewsTab: React.FC<{ userId: string | null; token: string | null }> = ({ userId, token }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = async (p: number) => {
-    if (!userId || !token) return;
+    if (!userId || !token) { setLoading(false); return; }
     setLoading(true);
     try {
       const res = await getUserReviews(userId, token, p, 8);
@@ -265,6 +265,29 @@ const AccountSettingsPage: React.FC = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.token || !userData?._id) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setStatus({ ok: false, msg: "Image must be under 2 MB." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        await axios.put(`${API_URL}/api/users/${userData._id}`, { avatar: base64 }, {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        });
+        setUserData((prev: any) => ({ ...prev, avatar: base64 }));
+        setStatus({ ok: true, msg: "Profile picture updated." });
+      } catch {
+        setStatus({ ok: false, msg: "Failed to update profile picture." });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleForgotPassword = async () => {
     if (!userData?.email) return;
     setForgotLoading(true);
@@ -353,14 +376,14 @@ const AccountSettingsPage: React.FC = () => {
           <div className="relative shrink-0">
             <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-gray-100">
               <img
-                src={userData?.profilePicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userData?.fullName}`}
+                src={userData?.avatar || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userData?.fullName}`}
                 alt="avatar"
                 className="w-full h-full object-cover"
               />
             </div>
             <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-red-600 rounded-lg flex items-center justify-center cursor-pointer shadow-sm hover:bg-red-700 transition-colors">
               <Camera className="w-3 h-3 text-white" />
-              <input type="file" accept="image/*" className="hidden" onChange={() => {}} />
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
             </label>
           </div>
           <div className="min-w-0 flex-1">
@@ -408,14 +431,14 @@ const AccountSettingsPage: React.FC = () => {
               <div className="relative shrink-0">
                 <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-gray-100">
                   <img
-                    src={userData?.profilePicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userData?.fullName}`}
+                    src={userData?.avatar || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userData?.fullName}`}
                     alt="avatar"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-red-600 rounded-lg flex items-center justify-center cursor-pointer shadow-sm hover:bg-red-700 transition-colors">
                   <Camera className="w-3 h-3 text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={() => {}} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                 </label>
               </div>
               <div className="min-w-0">
@@ -692,9 +715,9 @@ const AccountSettingsPage: React.FC = () => {
             )}
 
             {/* ══ MY REVIEWS TAB ══════════════════════════ */}
-            {activeTab === "reviews" && (
+            <div style={{ display: activeTab === "reviews" ? "block" : "none" }}>
               <MyReviewsTab userId={auth.userId} token={auth.token} />
-            )}
+            </div>
           </form>
         </div>
 

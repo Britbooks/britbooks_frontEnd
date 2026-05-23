@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, useInView, Variants } from "framer-motion";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
@@ -139,6 +140,13 @@ const PrivacyPolicyPage = () => {
               <p className="text-sm text-blue-900 leading-relaxed mb-4">Questions about your rights or data?</p>
               <a
                 href="mailto:privacy@britbooks.co.uk"
+                onClick={e => {
+                  setTimeout(() => {
+                    if (document.hasFocus()) {
+                      navigator.clipboard?.writeText("privacy@britbooks.co.uk");
+                    }
+                  }, 500);
+                }}
                 className="text-sm font-black text-blue-600 flex items-center gap-2 hover:gap-3 transition-all"
               >
                 Email our Privacy Team <ExternalLink size={14} />
@@ -649,12 +657,12 @@ const PrivacyPolicyPage = () => {
                 >
                   Make ICO Complaint <ExternalLink size={16} />
                 </a>
-                <a
-                  href="mailto:privacy@britbooks.co.uk"
+                <Link
+                  to="/contact"
                   className="px-8 py-4 bg-white border border-slate-200 text-slate-900 font-black rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2 justify-center"
                 >
                   Contact BritBooks
-                </a>
+                </Link>
               </div>
             </div>
           </motion.section>

@@ -234,7 +234,7 @@ function DeliveryScene({ covers }: { covers: string[] }) {
           <Road width={420} />
 
           {/* Truck driving along the road */}
-          <div className="absolute top-7 left-0 right-0 overflow-hidden" style={{ height: 72 }}>
+          <div className="absolute top-3 left-0 right-0 overflow-hidden" style={{ height: 78 }}>
             {/* Speed lines behind truck */}
             <motion.div
               className="absolute top-4 flex flex-col gap-1.5"
@@ -284,7 +284,7 @@ function DeliveryScene({ covers }: { covers: string[] }) {
             <div className="h-px flex-1 bg-white/8" />
           </div>
           <Road width={260} />
-          <div className="absolute top-7 left-0 right-0 overflow-hidden" style={{ height: 52 }}>
+          <div className="absolute top-4 left-0 right-0 overflow-hidden" style={{ height: 58 }}>
             <motion.div
               className="absolute top-0"
               animate={{ x: ["-180px", "100px", "100px", "320px"] }}

@@ -1434,7 +1434,15 @@ export default function HelpAndSupportPage() {
                   <button onClick={openChat} className="inline-flex items-center gap-2 px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-2xl transition-all">
                     <MessageSquare className="w-4 h-4" /> Chat with support
                   </button>
-                  <a href="mailto:support@britbooks.co.uk" className="inline-flex items-center gap-2 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-2xl transition-all">
+                  <a
+                    href="mailto:support@britbooks.co.uk"
+                    onClick={e => {
+                      e.preventDefault();
+                      const opened = window.open("mailto:support@britbooks.co.uk", "_self");
+                      if (!opened) window.location.href = "/contact";
+                    }}
+                    className="inline-flex items-center gap-2 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-2xl transition-all cursor-pointer"
+                  >
                     <Mail className="w-4 h-4" /> Email us
                   </a>
                 </div>
@@ -1537,7 +1545,17 @@ export default function HelpAndSupportPage() {
                   <p className="font-black text-gray-900 text-lg mb-1.5">Email Support</p>
                   <p className="text-gray-400 text-sm">Send a detailed message to our team.</p>
                 </div>
-                <a href="mailto:support@britbooks.co.uk" className="block text-center w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold">Send an email</a>
+                <a
+                  href="mailto:support@britbooks.co.uk"
+                  onClick={e => {
+                    e.preventDefault();
+                    const opened = window.open("mailto:support@britbooks.co.uk", "_self");
+                    if (!opened) window.location.href = "/contact";
+                  }}
+                  className="block text-center w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold cursor-pointer"
+                >
+                  Send an email
+                </a>
               </motion.div>
             </div>
 

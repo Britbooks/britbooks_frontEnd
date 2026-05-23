@@ -378,6 +378,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       error: null,
       isVerified: false,
     });
+    navigate('/', { replace: true });
   };
 
   // Keep ref in sync so the interceptor always calls the current logout

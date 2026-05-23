@@ -296,14 +296,14 @@ const ShippingReturnsPage: React.FC = () => {
           </div>
 
           {/* Start a Return CTA */}
-          <a
-            href="mailto:support@britbooks.co.uk"
+          <Link
+            to="/support"
             className="inline-flex items-center gap-2.5 bg-[#c9a84c] hover:bg-[#b8963e] text-[#0a1628] text-sm font-bold px-6 py-3 rounded-xl transition-colors shadow-sm"
           >
             <Mail className="w-4 h-4" />
             Start a Return
             <ArrowRight className="w-4 h-4" />
-          </a>
+          </Link>
 
           {/* Conditions */}
           <div className="bg-white border border-[#e8e0d0] rounded-2xl p-6 shadow-sm">

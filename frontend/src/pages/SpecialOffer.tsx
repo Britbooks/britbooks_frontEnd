@@ -46,6 +46,31 @@ const Countdown = ({ seconds }: { seconds: number }) => {
 };
 
 /* ─────────────────────────────────────────────────────────────────
+   GAME COOLDOWN HELPERS  (24 h, stored in localStorage)
+───────────────────────────────────────────────────────────────── */
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function isCoolingDown(key: string): boolean {
+  const ts = localStorage.getItem(key);
+  if (!ts) return false;
+  return Date.now() - parseInt(ts, 10) < COOLDOWN_MS;
+}
+
+function setCooldown(key: string) {
+  localStorage.setItem(key, Date.now().toString());
+}
+
+function cooldownRemaining(key: string): string {
+  const ts = localStorage.getItem(key);
+  if (!ts) return "";
+  const left = COOLDOWN_MS - (Date.now() - parseInt(ts, 10));
+  if (left <= 0) return "";
+  const h = Math.floor(left / 3600000);
+  const m = Math.floor((left % 3600000) / 60000);
+  return `${h}h ${m}m`;
+}
+
+/* ─────────────────────────────────────────────────────────────────
    SPIN THE WHEEL
 ───────────────────────────────────────────────────────────────── */
 const PRIZES = [
@@ -59,11 +84,14 @@ const PRIZES = [
   { label: "TRY AGAIN",    color: "#6b7280", code: null       },
 ];
 
+const WHEEL_KEY = "bb_spin_ts";
+
 const SpinWheel = () => {
   const [spinning, setSpinning]   = useState(false);
   const [rotation, setRotation]   = useState(0);
   const [result, setResult]       = useState<typeof PRIZES[0] | null>(null);
-  const [used, setUsed]           = useState(false);
+  const [used, setUsed]           = useState(() => isCoolingDown(WHEEL_KEY));
+  const [claimed, setClaimed]     = useState(false);
   const [copied, setCopied]       = useState(false);
   const canvasRef                 = useRef<HTMLCanvasElement>(null);
   const slices                    = PRIZES.length;
@@ -141,6 +169,7 @@ const SpinWheel = () => {
       } else {
         setSpinning(false);
         setUsed(true);
+        setCooldown(WHEEL_KEY);
         setResult(PRIZES[winner]);
       }
     };
@@ -173,7 +202,7 @@ const SpinWheel = () => {
         }`}
       >
         <RotateCcw size={16} className={spinning ? "animate-spin" : ""} />
-        {spinning ? "Spinning…" : used ? "Already spun!" : "SPIN TO WIN"}
+        {spinning ? "Spinning…" : used ? `Come back in ${cooldownRemaining(WHEEL_KEY) || "24h"}` : "SPIN TO WIN"}
       </button>
 
       <AnimatePresence>
@@ -187,15 +216,29 @@ const SpinWheel = () => {
               <>
                 <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
                 <p className="font-black text-gray-900 text-lg mb-1">You won {result.label}!</p>
-                <p className="text-gray-400 text-xs mb-3">Use this code at checkout</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-xl px-4 py-2.5 font-mono font-bold text-gray-800 tracking-widest text-sm">
-                    {result.code}
-                  </div>
-                  <button onClick={copy} className="p-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-700 transition-colors">
-                    {copied ? <Check size={16} /> : <Gift size={16} />}
-                  </button>
-                </div>
+                {!claimed ? (
+                  <>
+                    <p className="text-gray-400 text-xs mb-3">Claim your reward to reveal the code.</p>
+                    <button
+                      onClick={() => setClaimed(true)}
+                      className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors"
+                    >
+                      Claim Reward
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-400 text-xs mb-3">Use this code at checkout</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-xl px-4 py-2.5 font-mono font-bold text-gray-800 tracking-widest text-sm">
+                        {result.code}
+                      </div>
+                      <button onClick={copy} className="p-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-700 transition-colors">
+                        {copied ? <Check size={16} /> : <Gift size={16} />}
+                      </button>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -216,9 +259,13 @@ const SpinWheel = () => {
 const SCRATCH_PRIZES = ["12% OFF", "FREE SHIP", "£3 OFF", "8% OFF", "MYSTERY BOOK", "15% OFF"];
 const SCRATCH_CODES  = ["SCRATCH12", "FREESHIP", "THREE0FF", "SCRATCH8", "MYSTBOOK", "SCRATCH15"];
 
+const SCRATCH_KEY = "bb_scratch_ts";
+
 const ScratchCard = () => {
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const [revealed, setRevealed] = useState(false);
+  const [claimed, setClaimed]   = useState(false);
+  const [locked]                = useState(() => isCoolingDown(SCRATCH_KEY));
   const [prize]                 = useState(() => Math.floor(Math.random() * SCRATCH_PRIZES.length));
   const [scratched, setScratched] = useState(0);
   const [copied, setCopied]     = useState(false);
@@ -254,7 +301,7 @@ const ScratchCard = () => {
     for (let i = 3; i < data.length; i += 4) if (data[i] === 0) transparent++;
     const pctScratched = (transparent / (canvas.width * canvas.height)) * 100;
     setScratched(pctScratched);
-    if (pctScratched > 55 && !revealed) setRevealed(true);
+    if (pctScratched > 55 && !revealed) { setRevealed(true); setCooldown(SCRATCH_KEY); }
   };
 
   const handlers = {
@@ -272,6 +319,16 @@ const ScratchCard = () => {
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     });
   };
+
+  if (locked) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <Lock className="w-10 h-10 text-gray-300" />
+        <p className="font-bold text-gray-500 text-sm">Already scratched today!</p>
+        <p className="text-xs text-gray-400">Come back in {cooldownRemaining(SCRATCH_KEY) || "24h"}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -299,14 +356,26 @@ const ScratchCard = () => {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             className="w-full bg-white rounded-2xl border border-gray-100 shadow-md p-4 text-center">
             <p className="font-black text-gray-900 mb-1">You scratched <span className="text-orange-500">{SCRATCH_PRIZES[prize]}</span>!</p>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-xl px-3 py-2 font-mono font-bold text-gray-800 tracking-widest text-sm">
-                {SCRATCH_CODES[prize]}
+            {!claimed ? (
+              <>
+                <p className="text-gray-400 text-xs mb-3">Claim your reward to reveal the code.</p>
+                <button
+                  onClick={() => setClaimed(true)}
+                  className="w-full py-2.5 rounded-xl bg-orange-400 hover:bg-orange-500 text-white font-bold text-sm transition-colors"
+                >
+                  Claim Reward
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-xl px-3 py-2 font-mono font-bold text-gray-800 tracking-widest text-sm">
+                  {SCRATCH_CODES[prize]}
+                </div>
+                <button onClick={copy} className="p-2.5 bg-orange-400 text-white rounded-xl hover:bg-orange-500 transition-colors">
+                  {copied ? <Check size={15} /> : <Gift size={15} />}
+                </button>
               </div>
-              <button onClick={copy} className="p-2.5 bg-orange-400 text-white rounded-xl hover:bg-orange-500 transition-colors">
-                {copied ? <Check size={15} /> : <Gift size={15} />}
-              </button>
-            </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -317,19 +386,33 @@ const ScratchCard = () => {
 /* ─────────────────────────────────────────────────────────────────
    MYSTERY BOX
 ───────────────────────────────────────────────────────────────── */
+const MYSTERY_KEY = "bb_mystery_ts";
+
 const MysteryBox = ({ books }: { books: any[] }) => {
   const [opened, setOpened]     = useState<number | null>(null);
   const [revealed, setRevealed] = useState<any | null>(null);
+  const [locked]                = useState(() => isCoolingDown(MYSTERY_KEY));
   const { addToCart }           = useCart();
 
   const open = (i: number) => {
-    if (opened !== null) return;
+    if (opened !== null || locked) return;
     setOpened(i);
+    setCooldown(MYSTERY_KEY);
     const book = books[Math.floor(Math.random() * books.length)];
     setRevealed(book);
   };
 
   const reset = () => { setOpened(null); setRevealed(null); };
+
+  if (locked) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <Lock className="w-10 h-10 text-gray-300" />
+        <p className="font-bold text-gray-500 text-sm">Mystery box already opened today!</p>
+        <p className="text-xs text-gray-400">Come back in {cooldownRemaining(MYSTERY_KEY) || "24h"}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

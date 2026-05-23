@@ -421,7 +421,7 @@ const BestsellersPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20 text-center relative z-10">
           {/* Breadcrumb */}
           <nav className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest mb-10">
-            <Link to="/" className="text-white/30 hover:text-white/60 transition-colors">Home</Link>
+            <Link to="/" className="text-white/55 hover:text-white/80 transition-colors">Home</Link>
             <span className="text-white/20">/</span>
             <span className="text-[#c9a84c]">Bestsellers</span>
           </nav>
@@ -471,7 +471,7 @@ const BestsellersPage: React.FC = () => {
                   {s.icon}
                   <span className="text-sm font-black text-white">{s.val}</span>
                 </div>
-                <span className="text-[10px] text-white/30 uppercase tracking-widest font-semibold">{s.label}</span>
+                <span className="text-[10px] text-white/60 uppercase tracking-widest font-semibold">{s.label}</span>
               </div>
             ))}
           </motion.div>
@@ -529,7 +529,7 @@ const BestsellersPage: React.FC = () => {
         {/* Section header */}
         <div className="flex items-center gap-4 mb-8">
           <div className="h-px flex-1 bg-[#0a1628]/10" />
-          <p className="text-[10px] font-bold text-[#0a1628]/40 uppercase tracking-[0.15em]">
+          <p className="text-[10px] font-bold text-[#0a1628]/60 uppercase tracking-[0.15em]">
             {selectedCategory ? `${selectedCategory} · ` : ""}
             {isLoading ? "Loading…" : selectedCategory || "All Best Sellers"}
           </p>

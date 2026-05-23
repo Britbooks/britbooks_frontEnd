@@ -362,6 +362,32 @@ export default function InvoicesPage() {
 
   const totalSpent = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
 
+  const handleExportCSV = () => {
+    if (!invoices.length) return;
+    const headers = ["Invoice ID", "Order ID", "Date", "Status", "Items", "Total (GBP)"];
+    const rows = invoices.map(inv => [
+      inv.invoiceId,
+      inv.orderId,
+      new Date(inv.createdAt).toLocaleDateString("en-GB"),
+      inv.status,
+      inv.itemCount,
+      inv.total.toFixed(2),
+    ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const link = Object.assign(document.createElement("a"), {
+      href:     url,
+      download: `britbooks-invoices-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDownload = async (url: string, id: string) => {
     try {
       const res = await axios.get(`${API_BASE}${url}`, {
@@ -582,7 +608,7 @@ export default function InvoicesPage() {
         <div className="mt-14 pt-6 border-t border-[#E7E3DC] flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-sm text-gray-500">
             Need a full export?{" "}
-            <span className="font-bold cursor-pointer hover:underline" style={{ color: NAVY }}>
+            <span className="font-bold cursor-pointer hover:underline" style={{ color: NAVY }} onClick={handleExportCSV}>
               Request CSV
             </span>
           </p>
