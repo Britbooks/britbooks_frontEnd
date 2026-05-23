@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Block private/account pages from indexing
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /orders
+Disallow: /order/
+Disallow: /item/
+Disallow: /wishlist
+Disallow: /addresses
+Disallow: /settings
+Disallow: /invoices
+Disallow: /credits
+Disallow: /login
+Disallow: /signup
+
+Sitemap: https://www.britbooks.co.uk/sitemap.xml

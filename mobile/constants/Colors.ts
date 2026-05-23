@@ -1,0 +1,60 @@
+export const Colors = {
+  primary: '#0A1628',
+  primaryLight: '#1E3A5F',
+  accent: '#C9A84C',
+  accentLight: '#E8C97A',
+  accentDark: '#A8883A',
+  background: '#FAFAF8',
+  surface: '#FFFFFF',
+  surfaceSecondary: '#F5F3EE',
+  border: '#E8E4DC',
+  borderLight: '#F0EDE8',
+  text: '#0A1628',
+  textSecondary: '#4B5563',
+  textMuted: '#9CA3AF',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+  white: '#FFFFFF',
+  black: '#000000',
+  overlay: 'rgba(10,22,40,0.6)',
+  skeleton: '#E8E4DC',
+  skeletonShimmer: '#F5F3EE',
+  tabBar: '#0A1628',
+  tabBarActive: '#C9A84C',
+  tabBarInactive: '#6B7280',
+  cardShadow: 'rgba(10,22,40,0.12)',
+};
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  base: 16,
+  lg: 20,
+  xl: 24,
+  '2xl': 32,
+  '3xl': 40,
+  '4xl': 48,
+  '5xl': 64,
+};
+
+export const Radius = {
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 20,
+  full: 999,
+};
+
+export const Typography = {
+  largeTitle: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5 },
+  title1: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.3 },
+  title2: { fontSize: 20, fontWeight: '600' as const, letterSpacing: -0.2 },
+  title3: { fontSize: 18, fontWeight: '600' as const },
+  headline: { fontSize: 16, fontWeight: '600' as const },
+  body: { fontSize: 15, fontWeight: '400' as const },
+  callout: { fontSize: 14, fontWeight: '400' as const },
+  caption: { fontSize: 12, fontWeight: '400' as const },
+  captionBold: { fontSize: 12, fontWeight: '600' as const },
+};
