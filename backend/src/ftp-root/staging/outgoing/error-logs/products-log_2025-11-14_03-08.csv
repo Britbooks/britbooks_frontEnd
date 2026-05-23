@@ -1,0 +1,6 @@
+sku,status,error
+752314,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+752322,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+752563,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+752669,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+752785,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""

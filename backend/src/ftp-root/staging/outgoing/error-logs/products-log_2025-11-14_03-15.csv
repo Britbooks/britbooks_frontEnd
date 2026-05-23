@@ -1,0 +1,6 @@
+sku,status,error
+800001,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+800002,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+800003,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+800004,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""
+800005,error,"Cast to Number failed for value ""NaN"" (type number) at path ""price"""

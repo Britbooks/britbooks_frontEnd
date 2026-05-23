@@ -1,0 +1,21 @@
+# Global ownership — all files require review from the team lead
+* @Structurezz
+
+# Core API & services
+src/app/            @Structurezz
+src/routes/         @Structurezz
+
+# Analytics module (sensitive — business data)
+src/analytics/      @Structurezz
+
+# Infrastructure & config
+.github/            @Structurezz
+Dockerfile          @Structurezz
+docker-compose*.yml @Structurezz
+
+# Security-sensitive files
+src/lib/config/     @Structurezz
+src/app/middleware/ @Structurezz
+
+# Tests must be reviewed alongside code changes
+tests/              @Structurezz

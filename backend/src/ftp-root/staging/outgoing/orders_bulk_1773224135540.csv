@@ -1,0 +1,2 @@
+OrderId,orderItemId,sku,quantity,price,shippingfee,Name,address1,address2,city,county,postcode,country,phone,email,title,date
+69b13e9c35bfb66939644f62,698f2a339cdb863deef5be21,4280304,1,11.48,0.00,Michael Akam,"Street, Apartment 4B",,Lagos,,101241,Nigeria,+2348012345678,donmissile@gmail.com,Topics in Advanced Quantum Mechanics (Dover Books on Physics) (4280304),2026-03-11T10:06:20.126Z

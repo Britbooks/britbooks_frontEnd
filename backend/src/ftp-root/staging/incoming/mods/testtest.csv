@@ -1,0 +1,6 @@
+SKU,ISBN,Title,Author,Edition,Language,Condition,Price,Quantity,ImageUrl,ItemDescription,Format,Publisher,PublicationDate,Pages,DimsHeight,DimsWidth,DimsLength,DimsWeight,category,subcategory
+800001,9781234567890,Introduction to AI,John Doe,1,English,new,29.99,5,,A beginner-friendly book on AI concepts,Hardcover,TechPress,01/01/2021,320,24,150,220,500,Education,Technology
+800002,9780987654321,Mastering TypeScript,Jane Smith,,English,like new,35.50,3,,Advanced TypeScript techniques for developers,Paperback,CodeBooks,15/05/2020,450,26,160,230,600,Education,Programming
+800003,9781111111111,World History Overview,Alex Johnson,,English,good,19.95,10,,Comprehensive guide to world history,Paperback,HistoryHouse,12/09/2019,600,28,170,240,700,Non-fiction,History
+800004,9782222222222,Culinary Arts Basics,Sarah Lee,2,English,very good,24.75,4,,Learn basic culinary skills from scratch,Hardcover,CookBook Publishers,22/03/2018,280,22,140,210,450,Non-fiction,Cooking
+800005,9783333333333,Travel Guide: Japan,Mike Brown,,English,acceptable,15.80,8,,Practical travel tips for exploring Japan,Paperback,GlobeTrotters,05/06/2022,200,20,130,200,400,Travel,Guides

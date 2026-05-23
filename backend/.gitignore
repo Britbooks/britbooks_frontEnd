@@ -1,0 +1,47 @@
+
+
+
+
+*.log
+logs/**/*.log
+
+.env 
+.env.local
+.env.*.local
+
+dist/
+build/
+coverage/
+
+# IDE Files
+.vscode/
+.idea/
+.DS_Store
+
+
+Thumbs.db
+.DS_Store
+
+# Debugging
+*.swp
+*.swo
+
+# Optional npm cache directory
+.npm/
+
+# CI artifacts
+npm-audit-report.json
+trivy-results.sarif
+scorecard-results.sarif
+
+# TypeScript
+*.tsbuildinfo
+
+# Redis
+dump.rdb
+
+# Miscellaneous
+*.lock
+src/ftp-root/staging/outgoing/orders/*.csv
+node_modules/
+# package-lock.json is tracked — needed for reproducible CI builds

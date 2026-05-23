@@ -1,0 +1,46 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (rebuilt inside container)
+node_modules
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Tests & coverage
+tests/
+coverage/
+vitest.config.js
+
+# Scripts / tooling
+scripts/
+.github/
+
+# Dev files
+*.log
+logs/
+dump.rdb
+backup/
+
+# FTP staging data (mounted as volumes in production)
+src/ftp-root/
+
+# CI artifacts
+npm-audit-report.json
+trivy-results.sarif
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# CSV data files
+*.csv
+missing_covers.txt
+
+# Docs
+*.md
