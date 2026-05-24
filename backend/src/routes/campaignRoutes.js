@@ -10,6 +10,7 @@ import {
   exportCampaigns,
   generateCode,
   validateCode,
+  claimReward,
   clearanceSuggestions,
   createClearance,
   getCampaignListings,
@@ -21,9 +22,10 @@ import { authorizeAdmin } from '../app/middleware/adminMiddleware.js';
 
 const router = express.Router();
 
-// Public (checkout flow)
+// Public (checkout flow + game rewards)
 router.post('/validate', validateCode);
 router.post('/redeem', validateCode);
+router.post('/claim-reward', claimReward);
 
 // Admin — fixed routes before /:id
 router.get('/export', verifyTokenMiddleware, authMiddleware, authorizeAdmin, exportCampaigns);

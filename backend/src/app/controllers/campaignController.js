@@ -8,6 +8,7 @@ import {
   getClearanceSuggestions,
   createClearanceCampaign,
   removeDiscountFromListings,
+  claimGameReward,
 } from '../services/campaignService.js';
 import { MarketplaceListing } from '../models/MarketPlace.js';
 
@@ -354,6 +355,15 @@ export const endClearanceCampaign = async (req, res) => {
 export const validateCode = async (req, res) => {
   try {
     const result = await validateCampaignCode(req.body);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const claimReward = async (req, res) => {
+  try {
+    const result = await claimGameReward(req.body);
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

@@ -3,15 +3,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Clock, Gift, Star, Flame, Sparkles,
   ShoppingCart, ChevronRight, RotateCcw, Trophy, X, Check,
-  ArrowRight, Lock,
+  ArrowRight, Lock, Loader2,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import axios from "axios";
 import Footer from "../components/footer";
 import TopBar from "../components/Topbar";
 import SEOHead from "../components/SEOHead";
 import { fetchBooks } from "../data/books";
 import { useCart } from "../context/cartContext";
 import { Link } from "react-router-dom";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? "https://britbooks-api-production-8ebd.up.railway.app";
+
+async function fetchRewardCode(prizeKey: string): Promise<string> {
+  const res = await axios.post(`${API_BASE}/api/campaigns/claim-reward`, { prizeKey });
+  return res.data.code;
+}
 
 /* ─────────────────────────────────────────────────────────────────
    HELPERS
@@ -87,12 +95,13 @@ const PRIZES = [
 const WHEEL_KEY = "bb_spin_ts";
 
 const SpinWheel = () => {
-  const [spinning, setSpinning]   = useState(false);
-  const [rotation, setRotation]   = useState(0);
-  const [result, setResult]       = useState<typeof PRIZES[0] | null>(null);
-  const [used, setUsed]           = useState(() => isCoolingDown(WHEEL_KEY));
-  const [claimed, setClaimed]     = useState(false);
-  const [copied, setCopied]       = useState(false);
+  const [spinning, setSpinning]     = useState(false);
+  const [rotation, setRotation]     = useState(0);
+  const [result, setResult]         = useState<typeof PRIZES[0] | null>(null);
+  const [used, setUsed]             = useState(() => isCoolingDown(WHEEL_KEY));
+  const [claiming, setClaiming]     = useState(false);
+  const [claimedCode, setClaimedCode] = useState<string | null>(null);
+  const [copied, setCopied]         = useState(false);
   const canvasRef                 = useRef<HTMLCanvasElement>(null);
   const slices                    = PRIZES.length;
   const arc                       = (2 * Math.PI) / slices;
@@ -177,8 +186,8 @@ const SpinWheel = () => {
   };
 
   const copy = () => {
-    if (!result?.code) return;
-    navigator.clipboard.writeText(result.code).then(() => {
+    if (!claimedCode) return;
+    navigator.clipboard.writeText(claimedCode).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -216,22 +225,33 @@ const SpinWheel = () => {
               <>
                 <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
                 <p className="font-black text-gray-900 text-lg mb-1">You won {result.label}!</p>
-                {!claimed ? (
+                {!claimedCode ? (
                   <>
-                    <p className="text-gray-400 text-xs mb-3">Claim your reward to reveal the code.</p>
+                    <p className="text-gray-400 text-xs mb-3">Claim your reward to reveal your unique code.</p>
                     <button
-                      onClick={() => setClaimed(true)}
-                      className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors"
+                      disabled={claiming}
+                      onClick={async () => {
+                        setClaiming(true);
+                        try {
+                          const code = await fetchRewardCode(result.code!);
+                          setClaimedCode(code);
+                        } catch {
+                          toast.error("Failed to generate code. Please try again.");
+                        } finally {
+                          setClaiming(false);
+                        }
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
                     >
-                      Claim Reward
+                      {claiming ? <><Loader2 size={14} className="animate-spin" /> Generating…</> : "Claim Reward"}
                     </button>
                   </>
                 ) : (
                   <>
-                    <p className="text-gray-400 text-xs mb-3">Use this code at checkout</p>
+                    <p className="text-gray-400 text-xs mb-3">Use this code at checkout — valid for 30 days</p>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-xl px-4 py-2.5 font-mono font-bold text-gray-800 tracking-widest text-sm">
-                        {result.code}
+                        {claimedCode}
                       </div>
                       <button onClick={copy} className="p-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-700 transition-colors">
                         {copied ? <Check size={16} /> : <Gift size={16} />}
@@ -263,13 +283,14 @@ const SCRATCH_KEY = "bb_scratch_ts";
 
 const ScratchCard = () => {
   const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [claimed, setClaimed]   = useState(false);
-  const [locked]                = useState(() => isCoolingDown(SCRATCH_KEY));
-  const [prize]                 = useState(() => Math.floor(Math.random() * SCRATCH_PRIZES.length));
-  const [scratched, setScratched] = useState(0);
-  const [copied, setCopied]     = useState(false);
-  const isDrawing               = useRef(false);
+  const [revealed, setRevealed]     = useState(false);
+  const [claiming, setClaiming]     = useState(false);
+  const [claimedCode, setClaimedCode] = useState<string | null>(null);
+  const [locked]                    = useState(() => isCoolingDown(SCRATCH_KEY));
+  const [prize]                     = useState(() => Math.floor(Math.random() * SCRATCH_PRIZES.length));
+  const [scratched, setScratched]   = useState(0);
+  const [copied, setCopied]         = useState(false);
+  const isDrawing                   = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -315,7 +336,8 @@ const ScratchCard = () => {
   };
 
   const copy = () => {
-    navigator.clipboard.writeText(SCRATCH_CODES[prize]).then(() => {
+    if (!claimedCode) return;
+    navigator.clipboard.writeText(claimedCode).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     });
   };
@@ -356,20 +378,31 @@ const ScratchCard = () => {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             className="w-full bg-white rounded-2xl border border-gray-100 shadow-md p-4 text-center">
             <p className="font-black text-gray-900 mb-1">You scratched <span className="text-orange-500">{SCRATCH_PRIZES[prize]}</span>!</p>
-            {!claimed ? (
+            {!claimedCode ? (
               <>
-                <p className="text-gray-400 text-xs mb-3">Claim your reward to reveal the code.</p>
+                <p className="text-gray-400 text-xs mb-3">Claim your reward to reveal your unique code.</p>
                 <button
-                  onClick={() => setClaimed(true)}
-                  className="w-full py-2.5 rounded-xl bg-orange-400 hover:bg-orange-500 text-white font-bold text-sm transition-colors"
+                  disabled={claiming}
+                  onClick={async () => {
+                    setClaiming(true);
+                    try {
+                      const code = await fetchRewardCode(SCRATCH_CODES[prize]);
+                      setClaimedCode(code);
+                    } catch {
+                      toast.error("Failed to generate code. Please try again.");
+                    } finally {
+                      setClaiming(false);
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-orange-400 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
                 >
-                  Claim Reward
+                  {claiming ? <><Loader2 size={14} className="animate-spin" /> Generating…</> : "Claim Reward"}
                 </button>
               </>
             ) : (
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-xl px-3 py-2 font-mono font-bold text-gray-800 tracking-widest text-sm">
-                  {SCRATCH_CODES[prize]}
+                  {claimedCode}
                 </div>
                 <button onClick={copy} className="p-2.5 bg-orange-400 text-white rounded-xl hover:bg-orange-500 transition-colors">
                   {copied ? <Check size={15} /> : <Gift size={15} />}

@@ -100,6 +100,54 @@ export const redeemCampaign = async ({ campaignId, userId, orderId, discountAmou
   });
 };
 
+// ─── Game reward claim — creates a real single-use Campaign ──
+const GAME_PRIZE_MAP = {
+  SPIN10:    { type: 'percentage',    value: 10,  title: '10% Off — Spin the Wheel' },
+  FREESHIP:  { type: 'free_shipping', value: 0,   title: 'Free Shipping — Game Reward' },
+  SPIN15:    { type: 'percentage',    value: 15,  title: '15% Off — Spin the Wheel' },
+  SPIN20:    { type: 'percentage',    value: 20,  title: '20% Off — Spin the Wheel' },
+  SPIN5:     { type: 'percentage',    value: 5,   title: '5% Off — Spin the Wheel' },
+  TWO0FF:    { type: 'fixed',        value: 2,   title: '£2 Off — Spin the Wheel' },
+  SCRATCH12: { type: 'percentage',    value: 12,  title: '12% Off — Scratch Card' },
+  THREE0FF:  { type: 'fixed',        value: 3,   title: '£3 Off — Scratch Card' },
+  SCRATCH8:  { type: 'percentage',    value: 8,   title: '8% Off — Scratch Card' },
+  SCRATCH15: { type: 'percentage',    value: 15,  title: '15% Off — Scratch Card' },
+  MYSTBOOK:  { type: 'fixed',        value: 5,   title: '£5 Off — Mystery Box' },
+};
+
+export const claimGameReward = async ({ prizeKey }) => {
+  const prize = GAME_PRIZE_MAP[prizeKey?.toUpperCase()];
+  if (!prize) throw new Error('Unknown prize');
+
+  const code = await generateUniqueCode('BB');
+  const now  = new Date();
+  const end  = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days validity
+
+  const campaign = await Campaign.create({
+    title:           prize.title,
+    code,
+    type:            prize.type,
+    value:           prize.value,
+    status:          'active',
+    startDate:       now,
+    endDate:         end,
+    maxTotalUses:    1,
+    maxUsesPerUser:  1,
+    minimumOrderValue: 0,
+    applyTo:         'all_products',
+    targetAudience:  'all',
+    conditions:      'Generated via game reward',
+  });
+
+  return {
+    code: campaign.code,
+    type: campaign.type,
+    value: campaign.value,
+    title: campaign.title,
+    expiresAt: end,
+  };
+};
+
 // ─── Analytics with daily breakdown ──────────────────────────
 export const getCampaignAnalyticsData = async (campaignId) => {
   const id = new mongoose.Types.ObjectId(campaignId);
