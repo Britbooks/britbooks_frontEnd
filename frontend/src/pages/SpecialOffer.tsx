@@ -293,8 +293,10 @@ const ScratchCard = () => {
   const isDrawing                   = useRef(false);
 
   useEffect(() => {
-    const canvas = canvasRef.current!;
-    const ctx    = canvas.getContext("2d")!;
+    if (locked) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#374151";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#6b7280";
@@ -303,7 +305,7 @@ const ScratchCard = () => {
     ctx.fillText("✦ SCRATCH HERE ✦", canvas.width / 2, canvas.height / 2 - 8);
     ctx.font = "11px sans-serif";
     ctx.fillText("Reveal your prize", canvas.width / 2, canvas.height / 2 + 10);
-  }, []);
+  }, [locked]);
 
   const scratch = (x: number, y: number) => {
     const canvas = canvasRef.current!;

@@ -214,9 +214,9 @@ function DeliveryScene({ covers }: { covers: string[] }) {
   return (
     <>
       {/* ── DESKTOP ── */}
-      <div className="hidden lg:flex flex-col items-center gap-0">
+      <div className="hidden lg:flex flex-col items-center gap-0 -mt-10">
         {/* Books area */}
-        <div className="relative" style={{ width: 420, height: 300 }}>
+        <div className="relative overflow-hidden" style={{ width: 420, height: 240 }}>
           {desktopCards.map((c, i) => <BookItem key={i} c={c} img={imgs[i]} i={i} bookW={116} />)}
           <div className="absolute inset-0 -z-10 blur-3xl opacity-25"
             style={{ background: "radial-gradient(ellipse at center, #c9a84c 0%, transparent 68%)" }} />
@@ -269,8 +269,8 @@ function DeliveryScene({ covers }: { covers: string[] }) {
       </div>
 
       {/* ── MOBILE ── */}
-      <div className="lg:hidden flex flex-col items-center gap-0">
-        <div className="relative" style={{ width: 230, height: 230 }}>
+      <div className="lg:hidden flex flex-col items-center gap-0 -mt-6">
+        <div className="relative overflow-hidden" style={{ width: 230, height: 190 }}>
           {mobileCards.map((c, i) => <BookItem key={i} c={c} img={imgs[i]} i={i} bookW={90} />)}
           <div className="absolute inset-0 -z-10 blur-3xl opacity-20"
             style={{ background: "radial-gradient(circle, #c9a84c 0%, transparent 70%)" }} />
@@ -318,7 +318,7 @@ function FeaturedCard({ book }: { book: any }) {
       initial={{ opacity: 0, y: 28 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-      className="relative rounded-3xl overflow-hidden border border-white/8 shadow-2xl"
+      className="relative rounded-3xl  overflow-hidden border border-white/8 shadow-2xl"
       style={{ background: "linear-gradient(130deg,#0a1628 0%,#132038 60%,#1a2d4a 100%)" }}
     >
       {/* Blurred bg */}
