@@ -1,8 +1,0 @@
-[build]
-  command = "npm run build"
-  publish = "dist"   # or "build" for CRA, ".next" for Next.js static export
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
