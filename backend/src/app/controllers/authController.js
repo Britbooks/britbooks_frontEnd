@@ -491,13 +491,13 @@ export const addAdmin = async (req, res) => {
 
 export const googleAuthController = async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { accessToken } = req.body;
 
-    if (!idToken) {
-      return res.status(400).json({ message: 'Google token is required.' });
+    if (!accessToken) {
+      return res.status(400).json({ message: 'Google access token is required.' });
     }
 
-    const result = await googleAuth(idToken);
+    const result = await googleAuth(accessToken);
 
     const { userDetails, token } = result;
 

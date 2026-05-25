@@ -386,14 +386,12 @@ export async function validateApiKey(apiKey) {
   return { id: user._id.toString(), role: user.role };
 }
 
-export const googleAuth = async (idToken) => {
+export const googleAuth = async (accessToken) => {
   try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
+    const { data: payload } = await axios.get(
+      'https://www.googleapis.com/oauth2/v3/userinfo',
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
     const { sub, email, name, picture } = payload;
 
