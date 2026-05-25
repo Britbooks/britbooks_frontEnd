@@ -153,7 +153,8 @@ const ContactPage = () => {
             transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
           >
             <p className="text-white/45 text-sm sm:text-base max-w-sm mx-auto mb-10">
-              Whether you have a question about an order or need help with a title, we are ready to assist.
+              Whether you have a question about an order or need help with a title, we are ready to assist. Email us at{' '}
+              <span className="text-[#c9a84c] font-semibold">customercare@britbooks.co.uk</span>
             </p>
           </motion.div>
 
@@ -171,14 +172,14 @@ const ContactPage = () => {
               <span className="text-xs text-white/50 font-medium">Team online · {ukTime} UK</span>
             </div>
 
-            <motion.a
-              href="mailto:customercare@britbooks.co.uk"
+            <motion.button
+              onClick={() => { const ok = window.open('mailto:customercare@britbooks.co.uk', '_self'); if (!ok) window.location.href = '/contact'; }}
               whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 border border-[#c9a84c]/30 bg-[#c9a84c]/10 rounded-full px-4 py-2 text-xs text-[#c9a84c] font-semibold hover:bg-[#c9a84c]/20 transition-colors"
+              className="inline-flex items-center gap-2 border border-[#c9a84c]/30 bg-[#c9a84c]/10 rounded-full px-4 py-2 text-xs text-black font-semibold hover:bg-[#c9a84c]/20 transition-colors cursor-pointer"
             >
               <Mail className="w-3.5 h-3.5" />
               customercare@britbooks.co.uk
-            </motion.a>
+            </motion.button>
           </motion.div>
         </div>
 
@@ -221,7 +222,7 @@ const ContactPage = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-white/30 uppercase tracking-widest mb-0.5">Email</p>
-                  <p className="text-sm font-bold text-white leading-tight break-all">customercare@britbooks.co.uk</p>
+                  <p className="text-sm font-bold text-black leading-tight ">customercare@britbooks.co.uk</p>
                 </div>
               </motion.a>
             </div>

@@ -20,14 +20,13 @@ const categoryMeta: Record<string, { Icon: React.ElementType; color: string; bg:
 };
 
 const faqs = [
-  { category: 'Orders & Delivery', q: 'How long does shipping take?',     a: 'Standard delivery within the UK takes 2–4 working days. Express next-day delivery is available at checkout. International shipping typically takes 7–14 days.' },
+  { category: 'Orders & Delivery', q: 'How long does shipping take?',     a: 'Standard delivery within the UK takes 2–4 working days. International shipping typically takes 7–14 days.' },
   { category: 'Orders & Delivery', q: 'How do I track my order?',          a: 'Once your order ships you will receive a tracking link by email. You can also view real-time status from the My Orders section of your account dashboard.' },
-  { category: 'Returns',           q: 'What is your return policy?',       a: 'We accept returns within 30 days of receipt for books in their original, unused condition. Start a return from your account or email support@britbooks.co.uk with your order number.' },
+  { category: 'Returns',           q: 'What is your return policy?',       a: 'We accept returns within 30 days of receipt for books in their original, sellable condition. Start a return from your account or email customercare@britbooks.co.uk with your order number.' },
   { category: 'Returns',           q: 'Who covers return shipping costs?', a: 'You cover return postage unless the item arrived damaged or defective, in which case we will arrange a free collection.' },
   { category: 'Account',           q: 'How do I create an account?',       a: 'Click Sign Up in the top navigation, fill in your name, email, and password, and follow the prompts. It takes less than a minute.' },
-  { category: 'Account',           q: 'Can I change my email address?',    a: 'Email addresses are locked for security. If you need yours changed, please contact support@britbooks.co.uk and our team will assist you promptly.' },
-  { category: 'Selling',           q: 'How do I sell my books on BritBooks?', a: 'Go to Sell Books, enter the ISBN and receive an instant valuation. We collect from your door free of charge and transfer payment within 5 working days.' },
-  { category: 'Selling',           q: 'Do you offer bulk or business accounts?', a: 'Yes. We offer volume pricing, dedicated account managers, and priority support for business customers. Contact us for a tailored quote.' },
+  { category: 'Account',           q: 'Can I change my email address?',    a: 'Email addresses are locked for security. If you need yours changed, please contact customercare@britbooks.co.uk and our team will assist you promptly.' },
+  { category: 'Selling',           q: 'Do you offer business or bulk accounts?', a: 'Yes. We offer dedicated account managers, volume pricing, and priority support for business customers. Email us at customercare@britbooks.co.uk for a tailored quote.' },
   { category: 'Payments',          q: 'What payment methods do you accept?', a: 'We accept Visa, Mastercard, American Express, and PayPal. All payments are protected by 256-bit SSL encryption.' },
 ];
 

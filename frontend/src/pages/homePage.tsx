@@ -1329,7 +1329,7 @@ const Homepage = () => {
                 <span className="font-bold text-gray-900">online books</span> super store
               </h2>
               <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
-                the UK’s most trusted platform for high-quality secondhand books. Our mission is simple: to make reading more affordable, sustainable, and accessible to everyone. 
+                One of the UK’s most trusted platform for high-quality second hand books. Our mission is simple: to make reading more affordable, sustainable, and accessible to everyone.
                 Whether you’re a curious student hunting for academic texts, a parent looking for bedtime stories, or an avid reader building your personal library, we’ve got shelves filled just for you.
               </p>
             </div>
