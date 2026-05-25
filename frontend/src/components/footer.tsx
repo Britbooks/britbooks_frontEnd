@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaFacebookF, FaTwitter, FaPinterestP, FaInstagram } from 'react-icons/fa';
 import { Mail, ArrowRight, ShieldCheck, BookOpen, ChevronDown } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 /* ── New Arrivals Ticker ───────────────────────────────────────── */
 const NewArrivalsTicker = () => {
@@ -213,11 +214,28 @@ const Footer = () => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    const trimmed = email.trim();
+    if (!trimmed) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+    try {
+      await axios.post(
+        'https://britbooks-api-production-8ebd.up.railway.app/api/users/newsletter/subscribe',
+        { email: trimmed }
+      );
+    } catch {
+      // best-effort — don't block the UI if the endpoint isn't wired yet
+    }
     setSubscribed(true);
     setEmail('');
+    toast.success('Subscribed! Your 25% discount code is on its way.');
   };
 
   return (

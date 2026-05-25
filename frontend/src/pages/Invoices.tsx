@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 import {
   BookOpen, Download, Search, CheckCircle2,
   Clock3, XCircle, ChevronDown, ArrowUpRight,
@@ -363,7 +364,10 @@ export default function InvoicesPage() {
   const totalSpent = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
 
   const handleExportCSV = () => {
-    if (!invoices.length) return;
+    if (!invoices.length) {
+      toast.error('No invoices to export yet.');
+      return;
+    }
     const headers = ["Invoice ID", "Order ID", "Date", "Status", "Items", "Total (GBP)"];
     const rows = invoices.map(inv => [
       inv.invoiceId,

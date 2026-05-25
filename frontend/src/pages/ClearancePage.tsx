@@ -210,35 +210,35 @@ const ClearancePage = () => {
               </motion.div>
             </div>
 
-            {/* Right: Countdown */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 text-center backdrop-blur-sm flex-shrink-0"
-            >
-              <div className="flex items-center justify-center gap-1.5 text-white text-xs font-black uppercase tracking-widest mb-4">
-                <Clock size={12} /> Sale Ends In
-              </div>
-              {!countdown ? (
-                <p className="text-white/40 text-sm font-medium">Loading…</p>
-              ) : countdown.expired ? (
-                <p className="text-[#c9a84c] font-black text-sm">Sale has ended</p>
-              ) : (
-                <div className="flex text-white items-center gap-2">
-                  <Chip v={countdown.h} label="hrs" />
-                  <span className="text-white font-black text-xl">:</span>
-                  <Chip v={countdown.m} label="min" />
-                  <span className="text-white font-black text-xl">:</span>
-                  <Chip v={countdown.s} label="sec" />
+            {/* Right: Countdown — only shown when a sale end date exists */}
+            {saleEndDate && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 text-center backdrop-blur-sm flex-shrink-0"
+              >
+                <div className="flex items-center justify-center gap-1.5 text-white text-xs font-black uppercase tracking-widest mb-4">
+                  <Clock size={12} /> Sale Ends In
                 </div>
-              )}
-              {saleEndDate && !countdown?.expired && (
-                <p className="text-white text-[10px] mt-4 uppercase tracking-wider">
-                  Ends {saleEndDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
-              )}
-            </motion.div>
+                {countdown?.expired ? (
+                  <p className="text-[#c9a84c] font-black text-sm">Sale has ended</p>
+                ) : countdown ? (
+                  <div className="flex text-white items-center gap-2">
+                    <Chip v={countdown.h} label="hrs" />
+                    <span className="text-white font-black text-xl">:</span>
+                    <Chip v={countdown.m} label="min" />
+                    <span className="text-white font-black text-xl">:</span>
+                    <Chip v={countdown.s} label="sec" />
+                  </div>
+                ) : null}
+                {!countdown?.expired && (
+                  <p className="text-white text-[10px] mt-4 uppercase tracking-wider">
+                    Ends {saleEndDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                )}
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

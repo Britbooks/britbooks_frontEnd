@@ -1436,11 +1436,6 @@ export default function HelpAndSupportPage() {
                   </button>
                   <a
                     href="mailto:support@britbooks.co.uk"
-                    onClick={e => {
-                      e.preventDefault();
-                      const opened = window.open("mailto:support@britbooks.co.uk", "_self");
-                      if (!opened) window.location.href = "/contact";
-                    }}
                     className="inline-flex items-center gap-2 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-2xl transition-all cursor-pointer"
                   >
                     <Mail className="w-4 h-4" /> Email us
@@ -1547,11 +1542,6 @@ export default function HelpAndSupportPage() {
                 </div>
                 <a
                   href="mailto:support@britbooks.co.uk"
-                  onClick={e => {
-                    e.preventDefault();
-                    const opened = window.open("mailto:support@britbooks.co.uk", "_self");
-                    if (!opened) window.location.href = "/contact";
-                  }}
                   className="block text-center w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold cursor-pointer"
                 >
                   Send an email

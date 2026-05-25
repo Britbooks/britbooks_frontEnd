@@ -9,7 +9,7 @@ import {
   Mail, Phone, Eye, EyeOff, Trash2, Activity,
   Check, AlertCircle, ChevronRight, Loader2, Star, BookOpen,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { JwtPayload } from "../types/auth";
@@ -81,7 +81,7 @@ const MyReviewsTab: React.FC<{ userId: string | null; token: string | null }> = 
     return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   };
 
-  if (loading) return (
+  if (loading && !reviews.length) return (
     <div className="space-y-3 py-2">
       {[1, 2, 3].map((i) => (
         <div key={i} className="animate-pulse bg-white rounded-2xl p-4 border border-gray-100 space-y-2">
@@ -206,6 +206,7 @@ const AccountSettingsPage: React.FC = () => {
   const [securityStatus, setSecurityStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  const navigate = useNavigate();
   const context = useContext(AuthContext);
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
   const { auth, logout } = context;
@@ -334,6 +335,12 @@ const AccountSettingsPage: React.FC = () => {
     { id: "notifications", label: "Notifications", icon: Bell,        desc: "Email preferences"      },
     { id: "reviews",       label: "My Reviews",    icon: Star,        desc: "Your book reviews"      },
   ];
+
+  /* ── Auth guard ── */
+  if (!loading && !auth.token) {
+    navigate('/login', { replace: true });
+    return null;
+  }
 
   /* ── Skeleton ── */
   if (loading) return (
@@ -565,6 +572,10 @@ const AccountSettingsPage: React.FC = () => {
                     </div>
                     <Toggle checked={profile.is2FA} onChange={v => setProfile(p => ({ ...p, is2FA: v }))} />
                   </div>
+                  <p className="text-xs text-gray-400 mt-2 px-1">
+                    Note: your BritBooks account already uses email OTP on every login.
+                    Authenticator app support (TOTP) is coming soon — save your preference now.
+                  </p>
                 </Section>
 
                 {/* Change password — own form so it doesn't trigger the outer profile save */}

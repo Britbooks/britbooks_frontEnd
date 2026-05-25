@@ -218,7 +218,7 @@ function AdCarousel() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-sm text-white/55 leading-relaxed mb-5 max-w-[280px]"
+              className="text-sm text-white/75 leading-relaxed mb-5 max-w-[280px]"
             >
               {ad.sub}
             </motion.p>
@@ -449,7 +449,7 @@ const BestsellersPage: React.FC = () => {
               The Nation's<br />
               <span className="text-[#c9a84c]">Favourites.</span>
             </h1>
-            <p className="text-white/40 text-base md:text-lg max-w-lg mx-auto">
+            <p className="text-white/70 text-base md:text-lg max-w-lg mx-auto">
               Britain's most-loved books, ranked by real readers. Updated daily.
             </p>
           </motion.div>

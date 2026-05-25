@@ -167,10 +167,22 @@ function Road({ width }: { width: number }) {
   );
 }
 
+function getSetImgs(covers: string[], n: number, set: number): string[] {
+  const pool = covers.length > 0 ? covers : PLACEHOLDERS;
+  return Array.from({ length: n }, (_, i) => pool[(set * n + i) % pool.length]);
+}
+
 function DeliveryScene({ covers }: { covers: string[] }) {
-  const imgs = covers.length >= 5 ? covers.slice(0, 5) : [
-    ...covers, ...PLACEHOLDERS.slice(covers.length, 5),
-  ];
+  const [bookSet, setBookSet] = useState(0);
+
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval>;
+    const timeoutId = setTimeout(() => {
+      setBookSet(s => s + 1);
+      intervalId = setInterval(() => setBookSet(s => s + 1), 5000);
+    }, 2400);
+    return () => { clearTimeout(timeoutId); clearInterval(intervalId); };
+  }, []);
 
   const desktopCards = [
     { rotate: -22, x: -130, y: 20,  z: 10, scale: 0.72, dur: 4.5, del: 0 },
@@ -211,13 +223,28 @@ function DeliveryScene({ covers }: { covers: string[] }) {
     </motion.div>
   );
 
+  const desktopImgs = getSetImgs(covers, 5, bookSet);
+  const mobileImgs  = getSetImgs(covers, 3, bookSet);
+
   return (
     <>
       {/* ── DESKTOP ── */}
       <div className="hidden lg:flex flex-col items-center gap-0 -mt-10">
         {/* Books area */}
         <div className="relative overflow-hidden" style={{ width: 420, height: 240 }}>
-          {desktopCards.map((c, i) => <BookItem key={i} c={c} img={imgs[i]} i={i} bookW={116} />)}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={bookSet}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.5 } }}
+              exit={{ opacity: 0, transition: { duration: 0.3 } }}
+              style={{ position: "absolute", inset: 0 }}
+            >
+              {desktopCards.map((c, i) => (
+                <BookItem key={i} c={c} img={desktopImgs[i]} i={i} bookW={116} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
           <div className="absolute inset-0 -z-10 blur-3xl opacity-25"
             style={{ background: "radial-gradient(ellipse at center, #c9a84c 0%, transparent 68%)" }} />
         </div>
@@ -234,7 +261,7 @@ function DeliveryScene({ covers }: { covers: string[] }) {
           <Road width={420} />
 
           {/* Truck driving along the road */}
-          <div className="absolute top-3 left-0 right-0 overflow-hidden" style={{ height: 78 }}>
+          <div className="absolute -top-2 left-0 right-0 overflow-hidden" style={{ height: 82 }}>
             {/* Speed lines behind truck */}
             <motion.div
               className="absolute top-4 flex flex-col gap-1.5"
@@ -271,7 +298,19 @@ function DeliveryScene({ covers }: { covers: string[] }) {
       {/* ── MOBILE ── */}
       <div className="lg:hidden flex flex-col items-center gap-0 -mt-6">
         <div className="relative overflow-hidden" style={{ width: 230, height: 190 }}>
-          {mobileCards.map((c, i) => <BookItem key={i} c={c} img={imgs[i]} i={i} bookW={90} />)}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={bookSet}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.5 } }}
+              exit={{ opacity: 0, transition: { duration: 0.3 } }}
+              style={{ position: "absolute", inset: 0 }}
+            >
+              {mobileCards.map((c, i) => (
+                <BookItem key={i} c={c} img={mobileImgs[i]} i={i} bookW={90} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
           <div className="absolute inset-0 -z-10 blur-3xl opacity-20"
             style={{ background: "radial-gradient(circle, #c9a84c 0%, transparent 70%)" }} />
         </div>
