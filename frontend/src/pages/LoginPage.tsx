@@ -4,15 +4,12 @@ declare global {
   interface Window {
     google?: {
       accounts: {
-        id: {
-          initialize: (config: {
+        oauth2: {
+          initTokenClient: (config: {
             client_id: string;
-            callback: (r: { credential: string }) => void;
-            ux_mode?: string;
-            auto_select?: boolean;
-          }) => void;
-          prompt: (notification_callback?: (n: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => void) => void;
-          cancel: () => void;
+            scope: string;
+            callback: (r: { access_token: string; error?: string }) => void;
+          }) => { requestAccessToken: () => void };
         };
       };
     };
@@ -116,18 +113,19 @@ const LoginPage = () => {
   const { auth, login, verifyLogin, loginWithSocial } = context;
   const { loading, error, token } = auth;
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
-  const googleCallbackRef = useRef<(r: { credential: string }) => void>(() => {});
+  const googleTokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
+  const googleCallbackRef = useRef<(accessToken: string) => void>(() => {});
 
   useEffect(() => {
     if (token && !showVerificationModal && !auth.isVerified) setShowVerificationModal(true);
   }, [token, showVerificationModal, auth.isVerified]);
 
-  // ── Keep Google callback ref up-to-date so it always has latest navigate/loginWithSocial
+  // Keep Google callback ref fresh so it always captures latest navigate/loginWithSocial
   useEffect(() => {
-    googleCallbackRef.current = async (response: { credential: string }) => {
+    googleCallbackRef.current = async (accessToken: string) => {
       setSocialLoading('google');
       try {
-        await loginWithSocial('google', response.credential);
+        await loginWithSocial('google', accessToken);
         toast.success('Signed in with Google!');
         navigate(location.state?.from || '/', { replace: true });
       } catch {
@@ -138,8 +136,24 @@ const LoginPage = () => {
     };
   }, [loginWithSocial, navigate, location.state]);
 
-  // ── Load Google Identity Services SDK
+  // Load Google Identity Services SDK and init OAuth2 token client
   useEffect(() => {
+    function initGIS() {
+      if (!window.google || googleTokenClientRef.current) return;
+      googleTokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'openid email profile',
+        callback: (r) => {
+          if (r.error || !r.access_token) {
+            setSocialLoading(null);
+            if (r.error !== 'access_denied') toast.error('Google sign-in failed. Please try again.');
+            return;
+          }
+          googleCallbackRef.current(r.access_token);
+        },
+      });
+    }
+
     if (document.getElementById('google-gsi-script')) {
       if (window.google) initGIS();
       return;
@@ -151,15 +165,6 @@ const LoginPage = () => {
     script.defer = true;
     script.onload = initGIS;
     document.head.appendChild(script);
-
-    function initGIS() {
-      window.google?.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        callback: (r) => googleCallbackRef.current(r),
-        ux_mode: 'popup',
-        auto_select: false,
-      });
-    }
   }, []);
 
   // ── Load Facebook JS SDK
@@ -183,12 +188,8 @@ const LoginPage = () => {
   }, []);
 
   const handleGoogleLogin = () => {
-    if (!window.google) { toast.error('Google not loaded. Please refresh.'); return; }
-    window.google.accounts.id.prompt((n) => {
-      if (n.isNotDisplayed?.() || n.isSkippedMoment?.()) {
-        toast.error('Could not open Google sign-in. Please try again.');
-      }
-    });
+    if (!googleTokenClientRef.current) { toast.error('Google not loaded. Please refresh.'); return; }
+    googleTokenClientRef.current.requestAccessToken();
   };
 
   const handleFacebookLogin = () => {

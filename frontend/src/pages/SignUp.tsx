@@ -4,15 +4,12 @@ declare global {
   interface Window {
     google?: {
       accounts: {
-        id: {
-          initialize: (config: {
+        oauth2: {
+          initTokenClient: (config: {
             client_id: string;
-            callback: (r: { credential: string }) => void;
-            ux_mode?: string;
-            auto_select?: boolean;
-          }) => void;
-          prompt: (notification_callback?: (n: { isNotDisplayed?: () => boolean; isSkippedMoment?: () => boolean }) => void) => void;
-          cancel: () => void;
+            scope: string;
+            callback: (r: { access_token: string; error?: string }) => void;
+          }) => { requestAccessToken: () => void };
         };
       };
     };
@@ -178,18 +175,19 @@ const SignupPage = () => {
   const { loading, error, token } = auth;
   const navigate = useNavigate();
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
-  const googleCallbackRef = useRef<(r: { credential: string }) => void>(() => {});
+  const googleTokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
+  const googleCallbackRef = useRef<(accessToken: string) => void>(() => {});
 
   useEffect(() => {
     if (token && !showVerificationModal) setShowVerificationModal(true);
   }, [token, showVerificationModal]);
 
-  // ── Keep Google callback ref up-to-date
+  // Keep Google callback ref fresh
   useEffect(() => {
-    googleCallbackRef.current = async (response: { credential: string }) => {
+    googleCallbackRef.current = async (accessToken: string) => {
       setSocialLoading('google');
       try {
-        await loginWithSocial('google', response.credential);
+        await loginWithSocial('google', accessToken);
         toast.success('Signed in with Google!');
         navigate('/', { replace: true });
       } catch {
@@ -200,17 +198,26 @@ const SignupPage = () => {
     };
   }, [loginWithSocial, navigate]);
 
-  // ── Load Google Identity Services SDK
+  // Load Google Identity Services SDK and init OAuth2 token client
   useEffect(() => {
+    function initGIS() {
+      if (!window.google || googleTokenClientRef.current) return;
+      googleTokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'openid email profile',
+        callback: (r) => {
+          if (r.error || !r.access_token) {
+            setSocialLoading(null);
+            if (r.error !== 'access_denied') toast.error('Google sign-in failed. Please try again.');
+            return;
+          }
+          googleCallbackRef.current(r.access_token);
+        },
+      });
+    }
+
     if (document.getElementById('google-gsi-script')) {
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: (r) => googleCallbackRef.current(r),
-          ux_mode: 'popup',
-          auto_select: false,
-        });
-      }
+      if (window.google) initGIS();
       return;
     }
     const script = document.createElement('script');
@@ -218,14 +225,7 @@ const SignupPage = () => {
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
-    script.onload = () => {
-      window.google?.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        callback: (r) => googleCallbackRef.current(r),
-        ux_mode: 'popup',
-        auto_select: false,
-      });
-    };
+    script.onload = initGIS;
     document.head.appendChild(script);
   }, []);
 
@@ -250,12 +250,8 @@ const SignupPage = () => {
   }, []);
 
   const handleGoogleLogin = () => {
-    if (!window.google) { toast.error('Google not loaded. Please refresh.'); return; }
-    window.google.accounts.id.prompt((n) => {
-      if (n.isNotDisplayed?.() || n.isSkippedMoment?.()) {
-        toast.error('Could not open Google sign-in. Please try again.');
-      }
-    });
+    if (!googleTokenClientRef.current) { toast.error('Google not loaded. Please refresh.'); return; }
+    googleTokenClientRef.current.requestAccessToken();
   };
 
   const handleFacebookLogin = () => {

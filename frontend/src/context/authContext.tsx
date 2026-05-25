@@ -338,7 +338,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await axios.post<VerifyResponse>(
         `${API_BASE_URL}/${provider}`,
-        { token }
+        { accessToken: token }
       );
       const userData = {
         userId: response.data.user.userId,
