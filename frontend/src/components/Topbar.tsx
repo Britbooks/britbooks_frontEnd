@@ -453,15 +453,15 @@ const TopBar = () => {
 
                   {/* Flash sale banner */}
                   <div className="p-3">
-                    <Link to="/clearance" onClick={toggleMobileMenu}
+                    <Link to="/special-offers" onClick={toggleMobileMenu}
                       className="flex items-center gap-3 px-4 py-3 rounded-2xl"
                       style={{ background: 'linear-gradient(135deg,#c9a84c,#e8c96a)' }}>
                       <div className="w-8 h-8 bg-black/10 rounded-xl flex items-center justify-center flex-shrink-0">
                         <Zap size={16} className="text-black" fill="currentColor" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-black font-black text-xs">Flash Sale — Up to 60% off</p>
-                        <p className="text-black/60 text-[10px] font-medium mt-0.5">Clearance titles. No codes needed.</p>
+                        <p className="text-black font-black text-xs">Special Offers — Great Deals</p>
+                        <p className="text-black/60 text-[10px] font-medium mt-0.5">Spin, scratch &amp; win discount codes.</p>
                       </div>
                       <ChevronRight size={14} className="text-black/40 flex-shrink-0" />
                     </Link>
@@ -476,7 +476,7 @@ const TopBar = () => {
                         { to: '/popular-books', icon: TrendingUp,    label: 'Popular',      bg: '#ecfdf5', color: '#10b981' },
                         { to: '/new-arrivals',  icon: Sparkles,      label: 'New In',       bg: '#fffbeb', color: '#f59e0b' },
                         { to: '/bestsellers',   icon: Trophy,        label: 'Best Sellers', bg: '#fef2f2', color: '#ef4444' },
-                        { to: '/clearance',     icon: Tag,           label: 'Clearance',    bg: '#f5f3ff', color: '#8b5cf6' },
+                        { to: '/special-offers', icon: Tag,           label: 'Offers',       bg: '#f5f3ff', color: '#8b5cf6' },
                         { to: '/category',      icon: Grid3X3,       label: 'Categories',   bg: '#fff7ed', color: '#f97316' },
                         { to: '/wishlist',      icon: HeartIcon,     label: 'Wishlist',     bg: '#fdf2f8', color: '#ec4899' },
                         { to: '/checkout',      icon: Package,       label: 'Basket',       bg: '#f0fdf4', color: '#22c55e' },
@@ -719,9 +719,6 @@ const TopBar = () => {
                 </Link>
                 <Link to="/bestsellers" className={`py-3 ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Best Sellers
-                </Link>
-                <Link to="/clearance" className={`py-3 ${isActive('/clearance') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-                  Clearance
                 </Link>
                 <Link to="/help" className={`py-3 ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Contact Us

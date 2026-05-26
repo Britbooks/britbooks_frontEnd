@@ -167,7 +167,6 @@ const MobileFooter = ({ email, setEmail, subscribed, handleSubscribe }: {
           { label: 'New Arrivals',   to: '/new-arrivals'   },
           { label: 'Best Sellers',   to: '/bestsellers'    },
           { label: 'Special Offers', to: '/special-offers' },
-          { label: 'Clearance',      to: '/clearance'      },
           { label: 'Popular Books',  to: '/popular-books'  },
           { label: 'Browse All',     to: '/category'       },
         ].map(({ label, to }) => (
@@ -376,8 +375,7 @@ const Footer = () => {
                 { label: 'New Arrivals',   to: '/new-arrivals'   },
                 { label: 'Best Sellers',   to: '/bestsellers'    },
                 { label: 'Special Offers', to: '/special-offers' },
-                { label: 'Clearance',      to: '/clearance'      },
-                { label: 'Popular Books',  to: '/popular-books'  },
+                      { label: 'Popular Books',  to: '/popular-books'  },
                 { label: 'Browse All',     to: '/category'       },
               ].map(({ label, to }) => (
                 <li key={label}>

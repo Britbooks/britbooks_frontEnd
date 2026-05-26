@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 
 import Homepage from './pages/homePage';
 import ExplorePage from './pages/ExplorePage';
@@ -26,7 +26,6 @@ import MyWishlistPage from './pages/Wishlist';
 import AddressesPage from './pages/Addresses';
 import AccountSettingsPage from './pages/Account';
 import PopularBooksPage from './pages/PopularBooks';
-import ClearancePage from './pages/ClearancePage';
 import ReturnPolicyPage from './pages/returnPolicy';
 import PrivacyPolicyPage from './pages/PrivacyPolicy';
 import CookiesPolicyPage from './pages/CookiesPolicy';
@@ -85,7 +84,7 @@ const App: React.FC = () => {
               <Route path="/addresses" element={<AddressesPage />} />
               <Route path="/settings" element={<AccountSettingsPage />} />
               <Route path="/popular-books" element={<PopularBooksPage />} />
-              <Route path="/clearance" element={<ClearancePage />} />
+              <Route path="/clearance" element={<Navigate to="/special-offers" replace />} />
               <Route path="/return-policy" element={<ReturnPolicyPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/cookies" element={<CookiesPolicyPage />} />
