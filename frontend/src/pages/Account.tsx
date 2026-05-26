@@ -206,6 +206,14 @@ const AccountSettingsPage: React.FC = () => {
   const [securityStatus, setSecurityStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  // 2FA setup flow
+  const [totpStep, setTotpStep]   = useState<'idle' | 'setup' | 'disable'>('idle');
+  const [totpQr, setTotpQr]       = useState<string | null>(null);
+  const [totpSecret, setTotpSecret] = useState<string | null>(null);
+  const [totpCode, setTotpCode]   = useState('');
+  const [totpLoading, setTotpLoading] = useState(false);
+  const [totpError, setTotpError] = useState<string | null>(null);
+
   const navigate = useNavigate();
   const context = useContext(AuthContext);
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
@@ -225,7 +233,7 @@ const AccountSettingsPage: React.FC = () => {
         });
         const d = res.data;
         setUserData(d);
-        setProfile({ name: d.fullName || "", email: d.email || "", phone: d.phoneNumber || "", is2FA: d.is2FA || false });
+        setProfile({ name: d.fullName || "", email: d.email || "", phone: d.phoneNumber || "", is2FA: d.totpEnabled || false });
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
@@ -303,6 +311,62 @@ const AccountSettingsPage: React.FC = () => {
     }
   };
 
+  const handle2FASetup = async () => {
+    setTotpError(null);
+    setTotpLoading(true);
+    try {
+      const { data } = await axios.post(`${API_URL}/api/auth/2fa/setup`, {}, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      setTotpQr(data.qrCode);
+      setTotpSecret(data.secret);
+      setTotpStep('setup');
+      setTotpCode('');
+    } catch (err: any) {
+      setTotpError(err.response?.data?.message || 'Failed to start setup.');
+    } finally {
+      setTotpLoading(false);
+    }
+  };
+
+  const handle2FAEnable = async () => {
+    if (!totpCode || totpCode.length !== 6) { setTotpError('Enter the 6-digit code from your app.'); return; }
+    setTotpError(null);
+    setTotpLoading(true);
+    try {
+      await axios.post(`${API_URL}/api/auth/2fa/enable`, { code: totpCode }, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      setProfile(p => ({ ...p, is2FA: true }));
+      setTotpStep('idle');
+      setTotpQr(null);
+      setTotpSecret(null);
+      setTotpCode('');
+    } catch (err: any) {
+      setTotpError(err.response?.data?.message || 'Invalid code. Try again.');
+    } finally {
+      setTotpLoading(false);
+    }
+  };
+
+  const handle2FADisable = async () => {
+    if (!totpCode || totpCode.length !== 6) { setTotpError('Enter the 6-digit code from your app.'); return; }
+    setTotpError(null);
+    setTotpLoading(true);
+    try {
+      await axios.post(`${API_URL}/api/auth/2fa/disable`, { code: totpCode }, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      setProfile(p => ({ ...p, is2FA: false }));
+      setTotpStep('idle');
+      setTotpCode('');
+    } catch (err: any) {
+      setTotpError(err.response?.data?.message || 'Invalid code. Try again.');
+    } finally {
+      setTotpLoading(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus(null);
@@ -312,7 +376,7 @@ const AccountSettingsPage: React.FC = () => {
     }
     setSaving(true);
     try {
-      const body: any = { fullName: profile.name, phoneNumber: profile.phone, is2FA: profile.is2FA };
+      const body: any = { fullName: profile.name, phoneNumber: profile.phone };
       if (password.next) body.password = password.next;
       const res = await axios.put(`${API_URL}/api/users/${userData._id}`, body, {
         headers: { Authorization: `Bearer ${auth.token}` },
@@ -558,24 +622,116 @@ const AccountSettingsPage: React.FC = () => {
             {activeTab === "security" && (
               <>
                 {/* 2FA */}
-                <Section title="Two-factor authentication" desc="Add an extra layer of security to your account.">
+                <Section title="Two-factor authentication" desc="Add an extra layer of security using an authenticator app.">
+                  {/* Status row */}
                   <div className="flex items-center justify-between p-5 bg-gray-50 border border-gray-200 rounded-2xl">
                     <div className="flex items-center gap-4">
-                      <span className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shadow-sm">
-                        <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                      <span className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border ${profile.is2FA ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200'}`}>
+                        <ShieldCheck className={`w-5 h-5 ${profile.is2FA ? 'text-emerald-500' : 'text-gray-300'}`} />
                       </span>
                       <div>
                         <p className="text-sm font-semibold text-gray-800">Authenticator app</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {profile.is2FA ? 'Enabled — your account is protected' : 'Disabled — click to enable'}
+                          {profile.is2FA ? 'Enabled — your account is protected' : 'Disabled'}
                         </p>
                       </div>
                     </div>
-                    <Toggle checked={profile.is2FA} onChange={v => setProfile(p => ({ ...p, is2FA: v }))} />
+                    {profile.is2FA ? (
+                      <button
+                        type="button"
+                        onClick={() => { setTotpStep('disable'); setTotpCode(''); setTotpError(null); }}
+                        className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
+                      >
+                        Disable
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handle2FASetup}
+                        disabled={totpLoading}
+                        className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
+                      >
+                        {totpLoading && totpStep === 'idle' ? <Loader2 size={12} className="animate-spin" /> : null}
+                        Set up
+                      </button>
+                    )}
                   </div>
+
+                  {/* Setup flow — scan QR + enter code */}
+                  {totpStep === 'setup' && totpQr && (
+                    <div className="mt-4 p-5 bg-white border border-gray-200 rounded-2xl space-y-4">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800 mb-1">1. Scan this QR code</p>
+                        <p className="text-xs text-gray-400 mb-3">Open Google Authenticator, Authy, or any TOTP app and scan the code below.</p>
+                        <div className="flex justify-center">
+                          <img src={totpQr} alt="QR Code" className="w-40 h-40 rounded-xl border border-gray-100" />
+                        </div>
+                        {totpSecret && (
+                          <p className="text-center text-xs text-gray-400 mt-2">
+                            Can't scan? Enter manually: <span className="font-mono font-bold text-gray-700">{totpSecret}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800 mb-2">2. Enter the 6-digit code</p>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={totpCode}
+                          onChange={e => { setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTotpError(null); }}
+                          placeholder="000000"
+                          className="w-full px-4 py-3 text-center font-mono text-lg font-bold tracking-[0.4em] bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
+                        />
+                      </div>
+                      {totpError && <p className="text-xs text-red-500 font-medium">{totpError}</p>}
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => { setTotpStep('idle'); setTotpQr(null); setTotpSecret(null); setTotpCode(''); setTotpError(null); }}
+                          className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handle2FAEnable} disabled={totpLoading || totpCode.length < 6}
+                          className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                          {totpLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                          Verify &amp; Enable
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Disable flow — confirm with code */}
+                  {totpStep === 'disable' && (
+                    <div className="mt-4 p-5 bg-white border border-gray-200 rounded-2xl space-y-4">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800 mb-1">Confirm with your authenticator app</p>
+                        <p className="text-xs text-gray-400">Enter the current 6-digit code to disable 2FA.</p>
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={totpCode}
+                        onChange={e => { setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTotpError(null); }}
+                        placeholder="000000"
+                        className="w-full px-4 py-3 text-center font-mono text-lg font-bold tracking-[0.4em] bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition-all"
+                      />
+                      {totpError && <p className="text-xs text-red-500 font-medium">{totpError}</p>}
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => { setTotpStep('idle'); setTotpCode(''); setTotpError(null); }}
+                          className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handle2FADisable} disabled={totpLoading || totpCode.length < 6}
+                          className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                          {totpLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                          Disable 2FA
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <p className="text-xs text-gray-400 mt-2 px-1">
-                    Note: your BritBooks account already uses email OTP on every login.
-                    Authenticator app support (TOTP) is coming soon — save your preference now.
+                    Your account already uses email OTP on every login. Authenticator app adds a second layer — skip email OTP entirely.
                   </p>
                 </Section>
 

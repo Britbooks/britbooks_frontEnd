@@ -11,6 +11,7 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   isVerified: boolean;
+  pendingTotp: boolean;
 }
 
 interface RegisterFormData {
@@ -36,6 +37,7 @@ interface RegisterResponse {
 interface LoginResponse {
   message: string;
   token: string;
+  requiresTotp?: boolean;
 }
 
 interface VerifyFormData {
@@ -75,6 +77,7 @@ interface AuthContextType {
   login: (formData: LoginFormData) => Promise<void>;
   verifyRegistration: (formData: VerifyFormData) => Promise<void>;
   verifyLogin: (formData: VerifyFormData) => Promise<void>;
+  verifyTotp: (code: string) => Promise<void>;
   loginWithSocial: (provider: 'google' | 'facebook', token: string) => Promise<void>;
   logout: () => void;
 }
@@ -92,6 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loading: false,
     error: null,
     isVerified: false,
+    pendingTotp: false,
   });
   const navigate = useNavigate();
   // Keep logout stable across renders for the interceptor
@@ -153,6 +157,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             loading: false,
             error: null,
             isVerified: response.data.isVerified,
+            pendingTotp: false,
           });
           console.log('Restored auth state:', { user: response.data, token: storedToken });
         } catch (error) {
@@ -166,6 +171,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             loading: false,
             error: null,
             isVerified: false,
+            pendingTotp: false,
           });
           toast.error('Your session has expired. Please log in again.', { id: 'session-expired' });
           navigate('/login', { replace: true });
@@ -212,31 +218,65 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (formData: LoginFormData) => {
     setAuth((prev) => ({ ...prev, loading: true, error: null }));
-    console.log("Sending login request to:", `${API_BASE_URL}/login`, "with data:", formData);
     try {
       const response = await axios.post<LoginResponse>(`${API_BASE_URL}/login`, formData);
-      console.log("Login response:", response.data);
       if (!response.data.token) {
-        console.error("No token in login response");
         setAuth((prev) => ({ ...prev, loading: false, error: "No token returned from server" }));
         return;
       }
       localStorage.setItem('authToken', response.data.token);
-      // User data not available yet, will be set after verifyLogin
       setAuth((prev) => ({
         ...prev,
         loading: false,
         token: response.data.token,
+        pendingTotp: response.data.requiresTotp === true,
         error: null,
       }));
-      console.log("Auth state after login:", { token: response.data.token });
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
-      console.error("Login error:", axiosError.response?.data || axiosError.message);
       setAuth((prev) => ({
         ...prev,
         loading: false,
         error: axiosError.response?.data?.message || "Login failed",
+      }));
+    }
+  };
+
+  const verifyTotp = async (code: string) => {
+    setAuth((prev) => ({ ...prev, loading: true, error: null }));
+    if (!auth.token) {
+      setAuth((prev) => ({ ...prev, loading: false, error: 'Token missing' }));
+      return;
+    }
+    try {
+      const response = await axios.post<VerifyResponse>(
+        `${API_BASE_URL}/2fa/login`,
+        { code },
+        { headers: { Authorization: `Bearer ${auth.token}` } }
+      );
+      const userData = {
+        userId: response.data.user.userId,
+        fullName: response.data.user.fullName,
+        email: response.data.user.email,
+        role: response.data.user.role,
+      };
+      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('authUser', JSON.stringify(userData));
+      setAuth({
+        user: userData,
+        userId: userData.userId,
+        token: response.data.token,
+        loading: false,
+        error: null,
+        isVerified: true,
+        pendingTotp: false,
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiError>;
+      setAuth((prev) => ({
+        ...prev,
+        loading: false,
+        error: axiosError.response?.data?.message || 'Authenticator verification failed',
       }));
     }
   };
@@ -355,6 +395,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading: false,
         error: null,
         isVerified: true,
+        pendingTotp: false,
       });
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
@@ -377,6 +418,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       loading: false,
       error: null,
       isVerified: false,
+      pendingTotp: false,
     });
     navigate('/', { replace: true });
   };
@@ -385,7 +427,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   logoutRef.current = logout;
 
   return (
-    <AuthContext.Provider value={{ auth, registerUser, login, verifyRegistration, verifyLogin, loginWithSocial, logout }}>
+    <AuthContext.Provider value={{ auth, registerUser, login, verifyRegistration, verifyLogin, verifyTotp, loginWithSocial, logout }}>
       {children}
     </AuthContext.Provider>
   );

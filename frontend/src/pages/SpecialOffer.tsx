@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Zap, Clock, Gift, Star, Flame, Sparkles,
+  Zap, Gift, Star, Flame, Sparkles,
   ShoppingCart, ChevronRight, RotateCcw, Trophy, X, Check,
-  ArrowRight, Lock, Loader2,
+  ArrowRight, Lock, Loader2, LogIn,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import axios from "axios";
@@ -17,8 +17,36 @@ import { Link } from "react-router-dom";
 const API_BASE = import.meta.env.VITE_API_URL ?? "https://britbooks-api-production-8ebd.up.railway.app";
 
 async function fetchRewardCode(prizeKey: string): Promise<string> {
-  const res = await axios.post(`${API_BASE}/api/campaigns/claim-reward`, { prizeKey });
+  const token = localStorage.getItem('authToken');
+  const res = await axios.post(
+    `${API_BASE}/api/campaigns/claim-reward`,
+    { prizeKey },
+    token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+  );
   return res.data.code;
+}
+
+async function fetchGameStatus(game: string): Promise<{ coolingDown: boolean; remainingMs: number }> {
+  const token = localStorage.getItem('authToken');
+  if (!token) return { coolingDown: false, remainingMs: 0 };
+  try {
+    const res = await axios.get(`${API_BASE}/api/campaigns/game-status?game=${game}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch {
+    return { coolingDown: false, remainingMs: 0 };
+  }
+}
+
+async function recordGamePlayed(game: string): Promise<void> {
+  const token = localStorage.getItem('authToken');
+  if (!token) return;
+  try {
+    await axios.post(`${API_BASE}/api/campaigns/record-game`, { game }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {}
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -54,28 +82,32 @@ const Countdown = ({ seconds }: { seconds: number }) => {
 };
 
 /* ─────────────────────────────────────────────────────────────────
-   GAME COOLDOWN HELPERS  (24 h, stored in localStorage)
+   GAME COOLDOWN HELPERS  (24 h, server-side + localStorage fallback)
 ───────────────────────────────────────────────────────────────── */
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
-function isCoolingDown(key: string): boolean {
+function isCoolingDownLocal(key: string): boolean {
   const ts = localStorage.getItem(key);
   if (!ts) return false;
   return Date.now() - parseInt(ts, 10) < COOLDOWN_MS;
 }
 
-function setCooldown(key: string) {
+function setCooldownLocal(key: string) {
   localStorage.setItem(key, Date.now().toString());
 }
 
-function cooldownRemaining(key: string): string {
+function remainingLabel(ms: number): string {
+  if (ms <= 0) return "";
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return `${h}h ${m}m`;
+}
+
+function cooldownRemainingLocal(key: string): string {
   const ts = localStorage.getItem(key);
   if (!ts) return "";
   const left = COOLDOWN_MS - (Date.now() - parseInt(ts, 10));
-  if (left <= 0) return "";
-  const h = Math.floor(left / 3600000);
-  const m = Math.floor((left % 3600000) / 60000);
-  return `${h}h ${m}m`;
+  return remainingLabel(left);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -98,7 +130,9 @@ const SpinWheel = () => {
   const [spinning, setSpinning]     = useState(false);
   const [rotation, setRotation]     = useState(0);
   const [result, setResult]         = useState<typeof PRIZES[0] | null>(null);
-  const [used, setUsed]             = useState(() => isCoolingDown(WHEEL_KEY));
+  const [used, setUsed]             = useState(false);
+  const [cooldownLabel, setCooldownLabel] = useState("");
+  const [statusLoading, setStatusLoading] = useState(true);
   const [claiming, setClaiming]     = useState(false);
   const [claimedCode, setClaimedCode] = useState<string | null>(null);
   const [copied, setCopied]         = useState(false);
@@ -149,7 +183,18 @@ const SpinWheel = () => {
     ctx.stroke();
   };
 
-  useEffect(() => { drawWheel(0); }, []);
+  useEffect(() => {
+    fetchGameStatus('spin').then(s => {
+      setUsed(s.coolingDown);
+      if (s.remainingMs > 0) setCooldownLabel(remainingLabel(s.remainingMs));
+      else if (isCoolingDownLocal(WHEEL_KEY)) {
+        setUsed(true);
+        setCooldownLabel(cooldownRemainingLocal(WHEEL_KEY) || "24h");
+      }
+    }).finally(() => setStatusLoading(false));
+  }, []);
+
+  useEffect(() => { if (!statusLoading) drawWheel(0); }, [statusLoading]);
 
   const spin = () => {
     if (spinning || used) return;
@@ -178,7 +223,8 @@ const SpinWheel = () => {
       } else {
         setSpinning(false);
         setUsed(true);
-        setCooldown(WHEEL_KEY);
+        setCooldownLocal(WHEEL_KEY);
+        recordGamePlayed('spin');
         setResult(PRIZES[winner]);
       }
     };
@@ -203,16 +249,22 @@ const SpinWheel = () => {
         <canvas ref={canvasRef} width={260} height={260} className="rounded-full shadow-2xl" />
       </div>
 
-      <button
-        onClick={spin}
-        disabled={spinning || used}
-        className={`flex items-center gap-2 px-8 py-3.5 rounded-2xl font-black text-sm transition-all ${
-          used ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700 text-white shadow-lg active:scale-95"
-        }`}
-      >
-        <RotateCcw size={16} className={spinning ? "animate-spin" : ""} />
-        {spinning ? "Spinning…" : used ? `Come back in ${cooldownRemaining(WHEEL_KEY) || "24h"}` : "SPIN TO WIN"}
-      </button>
+      {!localStorage.getItem('authToken') ? (
+        <Link to="/login" className="flex items-center gap-2 px-8 py-3.5 rounded-2xl font-black text-sm bg-gray-900 hover:bg-gray-700 text-white shadow-lg transition-all">
+          <LogIn size={16} /> Log in to play
+        </Link>
+      ) : (
+        <button
+          onClick={spin}
+          disabled={spinning || used || statusLoading}
+          className={`flex items-center gap-2 px-8 py-3.5 rounded-2xl font-black text-sm transition-all ${
+            used ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700 text-white shadow-lg active:scale-95"
+          }`}
+        >
+          {statusLoading ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} className={spinning ? "animate-spin" : ""} />}
+          {statusLoading ? "Loading…" : spinning ? "Spinning…" : used ? `Come back in ${cooldownLabel || "24h"}` : "SPIN TO WIN"}
+        </button>
+      )}
 
       <AnimatePresence>
         {result && (
@@ -286,14 +338,28 @@ const ScratchCard = () => {
   const [revealed, setRevealed]     = useState(false);
   const [claiming, setClaiming]     = useState(false);
   const [claimedCode, setClaimedCode] = useState<string | null>(null);
-  const [locked]                    = useState(() => isCoolingDown(SCRATCH_KEY));
+  const [locked, setLocked]         = useState(false);
+  const [cooldownLabel, setCooldownLabel] = useState("");
+  const [statusLoading, setStatusLoading] = useState(true);
   const [prize]                     = useState(() => Math.floor(Math.random() * SCRATCH_PRIZES.length));
   const [scratched, setScratched]   = useState(0);
   const [copied, setCopied]         = useState(false);
   const isDrawing                   = useRef(false);
 
   useEffect(() => {
-    if (locked) return;
+    fetchGameStatus('scratch').then(s => {
+      if (s.coolingDown) {
+        setLocked(true);
+        setCooldownLabel(remainingLabel(s.remainingMs) || "24h");
+      } else if (isCoolingDownLocal(SCRATCH_KEY)) {
+        setLocked(true);
+        setCooldownLabel(cooldownRemainingLocal(SCRATCH_KEY) || "24h");
+      }
+    }).finally(() => setStatusLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (locked || statusLoading) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
@@ -305,7 +371,7 @@ const ScratchCard = () => {
     ctx.fillText("✦ SCRATCH HERE ✦", canvas.width / 2, canvas.height / 2 - 8);
     ctx.font = "11px sans-serif";
     ctx.fillText("Reveal your prize", canvas.width / 2, canvas.height / 2 + 10);
-  }, [locked]);
+  }, [locked, statusLoading]);
 
   const scratch = (x: number, y: number) => {
     const canvas = canvasRef.current!;
@@ -324,7 +390,11 @@ const ScratchCard = () => {
     for (let i = 3; i < data.length; i += 4) if (data[i] === 0) transparent++;
     const pctScratched = (transparent / (canvas.width * canvas.height)) * 100;
     setScratched(pctScratched);
-    if (pctScratched > 55 && !revealed) { setRevealed(true); setCooldown(SCRATCH_KEY); }
+    if (pctScratched > 55 && !revealed) {
+      setRevealed(true);
+      setCooldownLocal(SCRATCH_KEY);
+      recordGamePlayed('scratch');
+    }
   };
 
   const handlers = {
@@ -344,12 +414,32 @@ const ScratchCard = () => {
     });
   };
 
+  if (!localStorage.getItem('authToken')) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <Lock className="w-10 h-10 text-gray-300" />
+        <p className="font-bold text-gray-500 text-sm">Log in to play</p>
+        <Link to="/login" className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-gray-900 hover:bg-gray-700 text-white transition-colors">
+          <LogIn size={14} /> Sign in
+        </Link>
+      </div>
+    );
+  }
+
+  if (statusLoading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="w-8 h-8 text-gray-300 animate-spin" />
+      </div>
+    );
+  }
+
   if (locked) {
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <Lock className="w-10 h-10 text-gray-300" />
         <p className="font-bold text-gray-500 text-sm">Already scratched today!</p>
-        <p className="text-xs text-gray-400">Come back in {cooldownRemaining(SCRATCH_KEY) || "24h"}</p>
+        <p className="text-xs text-gray-400">Come back in {cooldownLabel || "24h"}</p>
       </div>
     );
   }
@@ -426,25 +516,60 @@ const MYSTERY_KEY = "bb_mystery_ts";
 const MysteryBox = ({ books }: { books: any[] }) => {
   const [opened, setOpened]     = useState<number | null>(null);
   const [revealed, setRevealed] = useState<any | null>(null);
-  const [locked]                = useState(() => isCoolingDown(MYSTERY_KEY));
+  const [locked, setLocked]     = useState(false);
+  const [cooldownLabel, setCooldownLabel] = useState("");
+  const [statusLoading, setStatusLoading] = useState(true);
   const { addToCart }           = useCart();
+
+  useEffect(() => {
+    fetchGameStatus('mystery').then(s => {
+      if (s.coolingDown) {
+        setLocked(true);
+        setCooldownLabel(remainingLabel(s.remainingMs) || "24h");
+      } else if (isCoolingDownLocal(MYSTERY_KEY)) {
+        setLocked(true);
+        setCooldownLabel(cooldownRemainingLocal(MYSTERY_KEY) || "24h");
+      }
+    }).finally(() => setStatusLoading(false));
+  }, []);
 
   const open = (i: number) => {
     if (opened !== null || locked) return;
     setOpened(i);
-    setCooldown(MYSTERY_KEY);
+    setCooldownLocal(MYSTERY_KEY);
+    recordGamePlayed('mystery');
     const book = books[Math.floor(Math.random() * books.length)];
     setRevealed(book);
   };
 
   const reset = () => { setOpened(null); setRevealed(null); };
 
+  if (!localStorage.getItem('authToken')) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <Lock className="w-10 h-10 text-gray-300" />
+        <p className="font-bold text-gray-500 text-sm">Log in to play</p>
+        <Link to="/login" className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-gray-900 hover:bg-gray-700 text-white transition-colors">
+          <LogIn size={14} /> Sign in
+        </Link>
+      </div>
+    );
+  }
+
+  if (statusLoading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="w-8 h-8 text-gray-300 animate-spin" />
+      </div>
+    );
+  }
+
   if (locked) {
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <Lock className="w-10 h-10 text-gray-300" />
         <p className="font-bold text-gray-500 text-sm">Mystery box already opened today!</p>
-        <p className="text-xs text-gray-400">Come back in {cooldownRemaining(MYSTERY_KEY) || "24h"}</p>
+        <p className="text-xs text-gray-400">Come back in {cooldownLabel || "24h"}</p>
       </div>
     );
   }

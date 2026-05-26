@@ -105,20 +105,21 @@ const LoginPage = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
+  const [totpCode, setTotpCode] = useState("");
   const navigate = useNavigate();
   const context = useContext(AuthContext);
   const location = useLocation();
 
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
-  const { auth, login, verifyLogin, loginWithSocial } = context;
+  const { auth, login, verifyLogin, verifyTotp, loginWithSocial } = context;
   const { loading, error, token } = auth;
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
   const googleTokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
   const googleCallbackRef = useRef<(accessToken: string) => void>(() => {});
 
   useEffect(() => {
-    if (token && !showVerificationModal && !auth.isVerified) setShowVerificationModal(true);
-  }, [token, showVerificationModal, auth.isVerified]);
+    if (token && !auth.pendingTotp && !showVerificationModal && !auth.isVerified) setShowVerificationModal(true);
+  }, [token, auth.pendingTotp, showVerificationModal, auth.isVerified]);
 
   // Keep Google callback ref fresh so it always captures latest navigate/loginWithSocial
   useEffect(() => {
@@ -250,6 +251,20 @@ const LoginPage = () => {
   };
 
   const handleCloseModal = () => { setShowVerificationModal(false); setVerifyCode(""); localStorage.removeItem("loginEmail"); };
+
+  const handleTotpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!totpCode || !/^\d{6}$/.test(totpCode)) { toast.error("Please enter a valid 6-digit code."); return; }
+    try {
+      await verifyTotp(totpCode);
+      if (!auth.error) {
+        setTotpCode("");
+        localStorage.removeItem("loginEmail");
+        toast.success("Welcome back!");
+        navigate(location.state?.from || "/", { replace: true });
+      } else { toast.error(auth.error || "Authenticator verification failed."); }
+    } catch { toast.error("Authenticator verification failed. Please try again."); }
+  };
 
   const emailDisplay = (() => {
     let email = localStorage.getItem("loginEmail") || formData.email;
@@ -475,6 +490,35 @@ const LoginPage = () => {
         </div>
       </div>
 
+      {/* ── TOTP MODAL ───────────────────────────────────── */}
+      <AnimatePresence>
+        {auth.pendingTotp && (
+          <>
+            <motion.div key="totp-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+
+            {/* Mobile sheet */}
+            <motion.div key="totp-mobile"
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl p-7 shadow-2xl">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-7" />
+              <TotpContent totpCode={totpCode} setTotpCode={setTotpCode} handleTotpSubmit={handleTotpSubmit} loading={loading} />
+            </motion.div>
+
+            {/* Desktop modal */}
+            <motion.div key="totp-desktop"
+              initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="hidden sm:flex fixed inset-0 z-50 items-center justify-center p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+                <TotpContent totpCode={totpCode} setTotpCode={setTotpCode} handleTotpSubmit={handleTotpSubmit} loading={loading} />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* ── VERIFICATION MODAL ───────────────────────────── */}
       <AnimatePresence>
         {showVerificationModal && (
@@ -576,9 +620,39 @@ function VerifyContent({ emailDisplay, verifyCode, setVerifyCode, handleVerifySu
   );
 }
 
-/* ── Shared OtpInput (defined above main component) ─ */
-function OtpInputReExport(props: Parameters<typeof OtpInput>[0]) {
-  return <OtpInput {...props} />;
+/* ── TOTP modal content ──────────────────────────── */
+function TotpContent({ totpCode, setTotpCode, handleTotpSubmit, loading }: {
+  totpCode: string;
+  setTotpCode: (v: string) => void;
+  handleTotpSubmit: (e: React.FormEvent) => void;
+  loading: boolean;
+}) {
+  return (
+    <>
+      <div className="mb-6">
+        <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
+          <ShieldCheck className="w-6 h-6 text-emerald-500" />
+        </div>
+        <h2 className="text-xl font-black text-gray-900">Authenticator code</h2>
+        <p className="text-sm text-gray-400 mt-1">
+          Open your authenticator app and enter the 6-digit code for BritBooks.
+        </p>
+      </div>
+
+      <form onSubmit={handleTotpSubmit} className="space-y-5">
+        <OtpInput value={totpCode} onChange={setTotpCode} />
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          type="submit"
+          disabled={loading || totpCode.length < 6}
+          className="w-full py-3.5 rounded-xl font-black text-sm transition-all disabled:opacity-50"
+          style={{ background: "#c9a84c", color: "#0a1628" }}
+        >
+          {loading ? "Verifying…" : "Confirm & Sign In"}
+        </motion.button>
+      </form>
+    </>
+  );
 }
 
 export default LoginPage;
