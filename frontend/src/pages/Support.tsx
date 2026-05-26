@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDownIcon,
@@ -1540,12 +1540,12 @@ export default function HelpAndSupportPage() {
                   <p className="font-black text-gray-900 text-lg mb-1.5">Email Support</p>
                   <p className="text-gray-400 text-sm">Send a detailed message to our team.</p>
                 </div>
-                <a
-                  href="mailto:support@britbooks.co.uk"
+                <Link
+                  to="/contact"
                   className="block text-center w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold cursor-pointer"
                 >
-                  Send an email
-                </a>
+                  Send a message
+                </Link>
               </motion.div>
             </div>
 

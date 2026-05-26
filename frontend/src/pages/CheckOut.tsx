@@ -704,6 +704,15 @@ const PaymentForm = ({
     e.preventDefault();
     if (!stripe || !elements) return;
 
+    if (useSavedAddress && !selectedAddressId) {
+      setError("Please select a delivery address, or toggle off to enter one manually.");
+      return;
+    }
+    if (!shippingAddress.name || !shippingAddress.line1 || !shippingAddress.city || !shippingAddress.postalCode) {
+      setError("Please provide a complete delivery address.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 

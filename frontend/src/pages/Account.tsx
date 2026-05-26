@@ -282,6 +282,7 @@ const AccountSettingsPage: React.FC = () => {
         });
         setUserData((prev: any) => ({ ...prev, avatar: base64 }));
         setStatus({ ok: true, msg: "Profile picture updated." });
+        setTimeout(() => setStatus(null), 4000);
       } catch {
         setStatus({ ok: false, msg: "Failed to update profile picture." });
       }

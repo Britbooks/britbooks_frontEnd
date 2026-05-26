@@ -76,7 +76,23 @@ const ContactPage = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setSubmitted(true); };
+  const subjectLabels: Record<string, string> = {
+    order: 'Order Enquiry', shipping: 'Shipping & Delivery',
+    return: 'Returns & Refunds', product: 'Product Question', other: 'General Enquiry',
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const label = subjectLabels[formData.subject] || formData.subject;
+    const subject = encodeURIComponent(`[BritBooks] ${label}`);
+    const body = encodeURIComponent(
+      `Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`
+    );
+    const a = document.createElement('a');
+    a.href = `mailto:customercare@britbooks.co.uk?subject=${subject}&body=${body}`;
+    a.click();
+    setSubmitted(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col font-sans overflow-x-hidden" style={{ backgroundColor: '#f5f0e8' }}>
@@ -172,14 +188,14 @@ const ContactPage = () => {
               <span className="text-xs text-white/50 font-medium">Team online · {ukTime} UK</span>
             </div>
 
-            <motion.button
-              onClick={() => { const ok = window.open('mailto:customercare@britbooks.co.uk', '_self'); if (!ok) window.location.href = '/contact'; }}
+            <motion.a
+              href="mailto:customercare@britbooks.co.uk"
               whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
               className="inline-flex items-center gap-2 border border-[#c9a84c]/30 bg-[#c9a84c]/10 rounded-full px-4 py-2 text-xs text-black font-semibold hover:bg-[#c9a84c]/20 transition-colors cursor-pointer"
             >
               <Mail className="w-3.5 h-3.5" />
               customercare@britbooks.co.uk
-            </motion.button>
+            </motion.a>
           </motion.div>
         </div>
 
