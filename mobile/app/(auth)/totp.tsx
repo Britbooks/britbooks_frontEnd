@@ -9,31 +9,16 @@ import { Colors, Radius, Spacing, Typography } from '../../constants/Colors';
 import { useAuth } from '../../context/AuthContext';
 import OtpInput from '../../components/OtpInput';
 
-export default function OtpScreen() {
-  const { verifyOtp, resendOtp, loading, error, clearError } = useAuth();
+export default function TotpScreen() {
+  const { verifyTotp, loading, error, clearError } = useAuth();
   const [code, setCode] = useState('');
-  const [resending, setResending] = useState(false);
-  const [resentMsg, setResentMsg] = useState('');
 
   async function handleVerify() {
     if (code.length < 6) return;
     clearError();
     try {
-      await verifyOtp(code);
+      await verifyTotp(code);
     } catch {}
-  }
-
-  async function handleResend() {
-    setResentMsg('');
-    setResending(true);
-    try {
-      await resendOtp();
-      setResentMsg('Code resent — check your email.');
-    } catch {
-      setResentMsg('Could not resend. Please try again.');
-    } finally {
-      setResending(false);
-    }
   }
 
   return (
@@ -44,12 +29,12 @@ export default function OtpScreen() {
         </TouchableOpacity>
 
         <View style={styles.iconWrap}>
-          <Ionicons name="mail-unread-outline" size={40} color={Colors.accent} />
+          <Ionicons name="shield-checkmark-outline" size={40} color={Colors.accent} />
         </View>
 
-        <Text style={styles.title}>Check your email</Text>
+        <Text style={styles.title}>Two-Factor Authentication</Text>
         <Text style={styles.subtitle}>
-          We've sent a 6-digit verification code to your email address. Enter it below to continue.
+          Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code shown for BritBooks.
         </Text>
 
         <View style={styles.otpWrap}>
@@ -63,13 +48,6 @@ export default function OtpScreen() {
           </View>
         )}
 
-        {!!resentMsg && (
-          <View style={[styles.errorBox, { borderColor: Colors.success + '40', backgroundColor: Colors.success + '12' }]}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={Colors.success} />
-            <Text style={[styles.errorText, { color: Colors.success }]}>{resentMsg}</Text>
-          </View>
-        )}
-
         <TouchableOpacity
           style={[styles.verifyBtn, code.length < 6 && styles.verifyBtnDisabled]}
           onPress={handleVerify}
@@ -79,22 +57,15 @@ export default function OtpScreen() {
             <ActivityIndicator color={Colors.primary} />
           ) : (
             <>
-              <Text style={styles.verifyBtnText}>Verify Code</Text>
+              <Text style={styles.verifyBtnText}>Verify & Sign In</Text>
               <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
             </>
           )}
         </TouchableOpacity>
 
-        <View style={styles.resendRow}>
-          <Text style={styles.resendText}>Didn't receive the code?</Text>
-          <TouchableOpacity onPress={handleResend} disabled={resending} hitSlop={8}>
-            {resending ? (
-              <ActivityIndicator size="small" color={Colors.accent} style={{ marginLeft: 6 }} />
-            ) : (
-              <Text style={styles.resendLink}> Resend</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.hint}>
+          Codes refresh every 30 seconds. Make sure your device clock is correct.
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -157,7 +128,11 @@ const styles = StyleSheet.create({
   },
   verifyBtnDisabled: { opacity: 0.5 },
   verifyBtnText: { ...Typography.headline, color: Colors.primary },
-  resendRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xl },
-  resendText: { ...Typography.callout, color: Colors.textSecondary },
-  resendLink: { ...Typography.callout, color: Colors.accent, fontWeight: '700' },
+  hint: {
+    ...Typography.caption,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: Spacing.xl,
+    lineHeight: 18,
+  },
 });

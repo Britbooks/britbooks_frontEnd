@@ -20,7 +20,8 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
   pendingToken: string | null;
-  pendingFlow: 'login' | 'register' | null;
+  pendingFlow: 'login' | 'register' | 'totp' | null;
+  pendingTotp: boolean;
 }
 
 export interface Book {

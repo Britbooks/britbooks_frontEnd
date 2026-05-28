@@ -32,6 +32,11 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# App store credentials (never commit)
+google-play-key.json
+*.p8
 
 # typescript
 *.tsbuildinfo

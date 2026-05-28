@@ -1,0 +1,25 @@
+# Ignore everything node_modules-related (EAS installs fresh)
+node_modules/
+
+# Local Expo cache
+.expo/
+
+# Git internals
+.git/
+
+# macOS junk
+.DS_Store
+**/.DS_Store
+
+# Test / dev files
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+
+# Docs / config not needed at build time
+*.md
+LICENSE
+
+# FTP staging data (not in mobile, but just in case)
+**/ftp-root/

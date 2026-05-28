@@ -44,7 +44,7 @@ const HERO_SLIDES = [
     id: '3',
     badge: 'SPECIAL OFFERS',
     title: 'Up to 50% Off',
-    subtitle: 'Limited time clearance deals',
+    subtitle: 'Handpicked deals — up to 50% off selected titles',
     cta: 'View Deals',
     route: '/special-offers',
     image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&q=80',

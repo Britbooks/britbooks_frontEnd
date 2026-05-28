@@ -1,20 +1,73 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Facebook from 'expo-auth-session/providers/facebook';
+import * as WebBrowser from 'expo-web-browser';
 import { Colors, Radius, Spacing, Typography } from '../../constants/Colors';
 import { useAuth } from '../../context/AuthContext';
+import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID } from '../../constants/Api';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
-  const { login, loading, error, clearError } = useAuth();
+  const { login, socialLogin, loading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
+
+  const [googleRequest, googleResponse, googlePrompt] = Google.useIdTokenAuthRequest({
+    clientId: GOOGLE_WEB_CLIENT_ID,
+  });
+
+  const [fbRequest, fbResponse, fbPrompt] = Facebook.useAuthRequest({
+    clientId: FACEBOOK_APP_ID,
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const idToken = googleResponse.params.id_token;
+      if (idToken) {
+        setSocialLoading('google');
+        socialLogin('google', idToken).catch(() => {}).finally(() => setSocialLoading(null));
+      }
+    }
+  }, [googleResponse]);
+
+  useEffect(() => {
+    if (fbResponse?.type === 'success') {
+      const accessToken = fbResponse.params.access_token;
+      if (accessToken) {
+        setSocialLoading('facebook');
+        socialLogin('facebook', accessToken).catch(() => {}).finally(() => setSocialLoading(null));
+      }
+    }
+  }, [fbResponse]);
+
+  async function handleGoogleSignIn() {
+    if (!GOOGLE_WEB_CLIENT_ID) {
+      Alert.alert('Not configured', 'Google sign-in is not configured yet.');
+      return;
+    }
+    clearError();
+    await googlePrompt();
+  }
+
+  async function handleFacebookSignIn() {
+    if (!FACEBOOK_APP_ID) {
+      Alert.alert('Not configured', 'Facebook sign-in is not configured yet.');
+      return;
+    }
+    clearError();
+    await fbPrompt();
+  }
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
@@ -95,6 +148,13 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            <TouchableOpacity
+              style={styles.forgotLink}
+              onPress={() => router.push('/(auth)/forgot-password')}
+            >
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.primaryBtn} onPress={handleLogin} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color={Colors.primary} />
@@ -105,8 +165,40 @@ export default function LoginScreen() {
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
+              <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
               <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialRow}>
+              <TouchableOpacity
+                style={styles.socialBtn}
+                onPress={handleGoogleSignIn}
+                disabled={!googleRequest || loading || !!socialLoading}
+              >
+                {socialLoading === 'google' ? (
+                  <ActivityIndicator color={Colors.text} size="small" />
+                ) : (
+                  <>
+                    <FontAwesome name="google" size={18} color="#DB4437" />
+                    <Text style={styles.socialBtnText}>Google</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialBtn}
+                onPress={handleFacebookSignIn}
+                disabled={!fbRequest || loading || !!socialLoading}
+              >
+                {socialLoading === 'facebook' ? (
+                  <ActivityIndicator color={Colors.text} size="small" />
+                ) : (
+                  <>
+                    <FontAwesome name="facebook" size={18} color="#1877F2" />
+                    <Text style={styles.socialBtnText}>Facebook</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
 
             <View style={styles.footer}>
@@ -194,6 +286,9 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontSize: 15, color: Colors.text, padding: 0 },
 
+  forgotLink: { alignSelf: 'flex-end', marginTop: -4 },
+  forgotText: { ...Typography.callout, color: Colors.accent, fontWeight: '600' },
+
   primaryBtn: {
     backgroundColor: Colors.accent,
     borderRadius: Radius.lg,
@@ -216,6 +311,24 @@ const styles = StyleSheet.create({
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
   dividerText: { ...Typography.caption, color: Colors.textMuted },
+
+  socialRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  socialBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface,
+  },
+  socialBtnText: { ...Typography.callout, color: Colors.text, fontWeight: '600' },
 
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   footerText: { ...Typography.callout, color: Colors.textSecondary },

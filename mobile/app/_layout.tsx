@@ -53,6 +53,8 @@ export default function RootLayout() {
             />
             <Stack.Screen name="reviews/index"   options={{ headerShown: false }} />
             <Stack.Screen name="privacy-policy"  options={{ headerShown: false }} />
+            <Stack.Screen name="chat"            options={{ headerShown: false }} />
+            <Stack.Screen name="support"         options={{ headerShown: false }} />
           </Stack>
         </WishlistProvider>
       </CartProvider>
