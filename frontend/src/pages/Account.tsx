@@ -640,7 +640,7 @@ const AccountSettingsPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => { setTotpStep('disable'); setTotpCode(''); setTotpError(null); }}
-                        className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
+                        className="text-xs font-bold text-black  hover:text-black transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
                       >
                         Disable
                       </button>
@@ -649,7 +649,7 @@ const AccountSettingsPage: React.FC = () => {
                         type="button"
                         onClick={handle2FASetup}
                         disabled={totpLoading}
-                        className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
+                        className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-black px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
                       >
                         {totpLoading && totpStep === 'idle' ? <Loader2 size={12} className="animate-spin" /> : null}
                         Set up

@@ -1171,12 +1171,16 @@ function MobileChatWidget({ userId, token, onClose, newChatTrigger = 0, shared, 
    FAQ
 ────────────────────────────────────────────────────────── */
 const faqs = [
-  { q: "How do I track my order?", a: "Track your order from the My Orders section in your account dashboard with real-time status updates." },
-  { q: "What is your return policy?", a: "We accept returns within 30 days of receipt, provided the book is in its original condition with no marks or damage." },
-  { q: "How do I sell my books on BritBooks?", a: "Navigate to Sell Books, enter the ISBN and receive an instant valuation. We collect from your door at no charge." },
-  { q: "What payment methods do you accept?", a: "Visa, Mastercard, American Express, and PayPal. All transactions are protected by 256-bit SSL encryption." },
-  { q: "How long does delivery take?", a: "Standard delivery takes 2 to 4 working days. Express next-day delivery is available at checkout." },
-  { q: "Do you offer business or bulk accounts?", a: "Yes. We offer dedicated account managers, volume pricing, and priority support for business customers." },
+  { q: "How long does delivery take?", a: "Standard UK delivery typically arrives within 2–4 working days from the date your order is dispatched. International orders generally arrive within 7–14 working days, depending on the destination country and local customs processing. Please note that delivery times are estimates only and may vary during peak periods, public holidays, or due to circumstances outside our control." },
+  { q: "How can I track my order?", a: "Once your order has been dispatched, you will receive a confirmation email containing your tracking information. You may also monitor your order status at any time by logging into your BritBooks account and visiting the \"My Orders\" section." },
+  { q: "What is the BritBooks returns policy?", a: "We accept returns within 30 days of the delivery date, provided the item is returned in its original and resellable condition. To initiate a return, please submit a return request through your account dashboard, or contact our customer support team at customercare@britbooks.co.uk with your order number. BritBooks reserves the right to refuse returns that do not meet our eligibility requirements." },
+  { q: "Who pays for return shipping?", a: "Customers are responsible for return shipping costs unless the item received was damaged, faulty, defective, or incorrectly supplied by BritBooks. Where BritBooks accepts responsibility for the issue, a prepaid return label or reimbursement of reasonable return postage costs may be provided at our discretion." },
+  { q: "Which payment methods do you accept?", a: "We currently accept Visa, Mastercard, American Express, and PayPal. All transactions are processed securely using industry-standard encryption and payment security technologies. BritBooks does not store full payment card details on its servers." },
+  { q: "Do you offer business or bulk purchase accounts?", a: "Yes. BritBooks offers tailored pricing, volume discounts, and priority support for educational institutions, businesses, and bulk purchasers. For a customised quotation, please contact customercare@britbooks.co.uk." },
+  { q: "Can I change the email address linked to my account?", a: "For security and fraud-prevention purposes, account email addresses cannot be changed directly through the website. If you need assistance updating your registered email address, please contact our customer support team at customercare@britbooks.co.uk. Additional verification may be required before changes are processed." },
+  { q: "Do you ship to Guernsey, Jersey, or the Isle of Man?", a: "Orders shipped to Guernsey, Jersey, and the Isle of Man are classified as international shipments and may be subject to different delivery times and shipping charges." },
+  { q: "Who is responsible for customs duties and import taxes?", a: "International customers may be responsible for customs duties, import taxes, or local handling charges imposed by their country's authorities. These charges are outside BritBooks' control and are the sole responsibility of the recipient." },
+  { q: "What happens if I provide incorrect delivery details?", a: "Customers are responsible for ensuring that delivery details are accurate at the time of purchase. BritBooks cannot accept liability for delays or losses resulting from incorrect or incomplete shipping information provided by the customer." },
 ];
 
 function FaqItem({ q, a, i }: { q: string; a: string; i: number }) {
@@ -1435,7 +1439,7 @@ export default function HelpAndSupportPage() {
                     <MessageSquare className="w-4 h-4" /> Chat with support
                   </button>
                   <a
-                    href="mailto:support@britbooks.co.uk"
+                    href="mailto:customercare@britbooks.co.uk"
                     className="inline-flex items-center gap-2 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-2xl transition-all cursor-pointer"
                   >
                     <Mail className="w-4 h-4" /> Email us

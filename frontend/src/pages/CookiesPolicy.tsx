@@ -17,13 +17,7 @@ const cookieTypes = [
     badgeColor: "bg-emerald-100 text-emerald-700",
     required: true,
     description:
-      "These cookies are strictly necessary for the website to function. They enable core features like your shopping basket, account login, and secure checkout. You cannot opt out of these.",
-    examples: [
-      { name: "session_id", purpose: "Keeps you logged in during your visit", duration: "Session" },
-      { name: "cart_token", purpose: "Saves your shopping basket items", duration: "7 days" },
-      { name: "csrf_token", purpose: "Protects against cross-site request forgery", duration: "Session" },
-      { name: "auth_token", purpose: "Authenticates your account securely", duration: "30 days" },
-    ],
+      "These cookies are necessary to keep the website working properly. They enable core features such as keeping you logged in, saving your basket, and allowing secure checkout. You cannot opt out of these.",
   },
   {
     id: "analytics",
@@ -36,12 +30,7 @@ const cookieTypes = [
     badgeColor: "bg-blue-100 text-blue-700",
     required: false,
     description:
-      "These cookies help us understand how visitors interact with our website. We use this data to improve your experience — for example, identifying which pages are most useful and where navigation could be clearer.",
-    examples: [
-      { name: "_ga", purpose: "Google Analytics — distinguishes users", duration: "2 years" },
-      { name: "_gid", purpose: "Google Analytics — distinguishes users within 24h", duration: "24 hours" },
-      { name: "hotjar_*", purpose: "Records anonymised heatmap and session data", duration: "1 year" },
-    ],
+      "These cookies help us analyse traffic and usage so we can improve website performance and customer experience.",
   },
   {
     id: "functional",
@@ -49,17 +38,12 @@ const cookieTypes = [
     color: "text-purple-600",
     bg: "bg-purple-50",
     border: "border-purple-100",
-    title: "Functional Cookies",
+    title: "Functionality Cookies",
     badge: "Optional",
     badgeColor: "bg-purple-100 text-purple-700",
     required: false,
     description:
-      "These cookies remember your preferences to provide a more personalised experience — such as your preferred language, recently viewed books, and display settings.",
-    examples: [
-      { name: "recently_viewed", purpose: "Saves your recently viewed books", duration: "30 days" },
-      { name: "currency_pref", purpose: "Remembers your currency selection", duration: "1 year" },
-      { name: "theme_pref", purpose: "Stores your display preference", duration: "1 year" },
-    ],
+      "These cookies remember your preferences and personalise your experience and content on our website.",
   },
   {
     id: "marketing",
@@ -67,27 +51,20 @@ const cookieTypes = [
     color: "text-orange-600",
     bg: "bg-orange-50",
     border: "border-orange-100",
-    title: "Marketing Cookies",
+    title: "Advertising Cookies",
     badge: "Optional",
     badgeColor: "bg-orange-100 text-orange-700",
     required: false,
     description:
-      "These cookies track your browsing to deliver relevant adverts on other websites. They help ensure that adverts you see are meaningful to you. We do not sell your data to third parties.",
-    examples: [
-      { name: "fbp", purpose: "Facebook Pixel — tracks conversions from ads", duration: "90 days" },
-      { name: "_gcl_au", purpose: "Google Ads — measures ad conversion", duration: "90 days" },
-      { name: "ads_prefs", purpose: "Stores advertising consent preferences", duration: "1 year" },
-    ],
+      "These cookies support marketing and advertising. Some third-party services may also use cookies when you interact with our website.",
   },
 ];
 
 const faqs = [
-  { q: "What exactly is a cookie?", a: "A cookie is a small text file placed on your device when you visit a website. It stores information that helps the site recognise your browser and remember your preferences or actions over time." },
-  { q: "How do I manage or delete cookies?", a: "You can manage cookies at any time through your browser settings. Most browsers allow you to view, block, or delete cookies. Note that blocking essential cookies will prevent key parts of the site from working." },
-  { q: "Does BritBooks use third-party cookies?", a: "Yes — analytics (Google Analytics), session recording (Hotjar), and advertising partners (Google Ads, Facebook Pixel) may place cookies. All are covered by our cookie consent banner." },
-  { q: "How long do cookies last?", a: "It varies by type. Session cookies expire when you close your browser. Persistent cookies have fixed durations — typically from 24 hours up to 2 years — as listed in the table for each category above." },
-  { q: "What happens if I decline optional cookies?", a: "The site will continue to work normally. You'll still be able to browse, add to your basket, and checkout. We simply won't collect analytics or show personalised ads." },
-  { q: "How do I withdraw my consent?", a: "You can withdraw consent at any time by clicking 'Cookie Settings' in the footer, or by clearing your browser cookies. Your new preferences will take effect immediately." },
+  { q: "What exactly is a cookie?", a: "Cookies are small files stored on your device when you visit our website. They help the website remember your preferences and work properly." },
+  { q: "How do I manage or disable cookies?", a: "You can manage or disable cookies through your browser settings. Please note that some website features may not work correctly if cookies are disabled." },
+  { q: "What happens if I decline optional cookies?", a: "The site will continue to work normally. You will still be able to browse, add to your basket, and checkout. Essential cookies will remain active as they are required for the website to function." },
+  { q: "How do I withdraw my consent?", a: "You can withdraw consent at any time by adjusting your cookie preferences or clearing your browser cookies. Your new preferences will take effect immediately." },
 ];
 
 export default function CookiesPolicyPage() {
@@ -216,7 +193,7 @@ export default function CookiesPolicyPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
             className="flex flex-wrap items-center gap-4 mt-6 text-sm text-white/70"
           >
-            <span className="flex items-center gap-1.5"><Clock size={13} /> Last updated: 1 February 2026</span>
+            <span className="flex items-center gap-1.5"><Clock size={13} /> Last updated: May 2026</span>
             <span>·</span>
             <span>Applies to britbooks.co.uk</span>
           </motion.div>
@@ -244,10 +221,10 @@ export default function CookiesPolicyPage() {
         {/* Intro */}
         <section>
           <p className="text-gray-600 text-base leading-relaxed">
-            When you visit BritBooks, we may place small files called <strong className="text-gray-900">cookies</strong> on your device. Cookies help us keep you logged in, remember your preferences, understand how people use our site, and sometimes show relevant ads. This policy explains the types of cookies we use and gives you control over which ones are active.
+            Cookies are small files stored on your device when you visit our website. Brit Books uses cookies and similar technologies to keep the website working properly, remember your preferences, improve website performance, analyse traffic and usage, personalise content, and support marketing and advertising.
           </p>
           <p className="text-gray-600 text-base leading-relaxed mt-4">
-            We comply with the <strong className="text-gray-900">UK GDPR</strong>, the <strong className="text-gray-900">Privacy and Electronic Communications Regulations (PECR)</strong>, and ICO guidance on cookies.
+            Some third-party services may also use cookies when you interact with our website. You can manage or disable cookies through your browser settings. Please note that some website features may not work correctly if cookies are disabled.
           </p>
         </section>
 
@@ -290,29 +267,7 @@ export default function CookiesPolicyPage() {
                   )}
                 </div>
 
-                <p className="text-gray-500 text-sm leading-relaxed mb-4">{type.description}</p>
-
-                {/* Cookie table */}
-                <div className="rounded-2xl overflow-hidden border border-gray-100">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-gray-50 text-gray-500 font-bold">
-                        <td className="px-4 py-2.5">Cookie name</td>
-                        <td className="px-4 py-2.5">Purpose</td>
-                        <td className="px-4 py-2.5 text-right">Duration</td>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {type.examples.map((ex, i) => (
-                        <tr key={i} className="border-t border-gray-100">
-                          <td className="px-4 py-2.5 font-mono text-gray-700 font-semibold">{ex.name}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{ex.purpose}</td>
-                          <td className="px-4 py-2.5 text-gray-400 text-right whitespace-nowrap">{ex.duration}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <p className="text-gray-500 text-sm leading-relaxed">{type.description}</p>
               </motion.div>
             ))}
           </div>
@@ -341,7 +296,7 @@ export default function CookiesPolicyPage() {
             ))}
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={handleSave} className="px-6 py-3 bg-gray-900 hover:bg-indigo-600 text-white text-sm font-bold rounded-2xl transition-all">
+            <button onClick={handleSave} className="px-6 py-3 bg-[#c9a84c] hover:bg-[#b8963e] text-black text-sm font-bold rounded-2xl transition-all">
               Save preferences
             </button>
             {saved && (
@@ -376,14 +331,14 @@ export default function CookiesPolicyPage() {
         </section>
 
         {/* Contact */}
-        <section className="bg-[#0d1b3e] text-white rounded-3xl p-8">
-          <h2 className="text-xl font-black mb-2">Questions about this policy?</h2>
-          <p className="text-white/80 text-sm mb-5">Our Data Protection Officer is available to help with any privacy or cookie-related queries.</p>
+        <section className="border-2 border-[#0a1628] rounded-3xl p-8">
+          <h2 className="text-xl font-black text-black mb-2">Questions about this policy?</h2>
+          <p className="text-black text-sm mb-5">Contact Brit Books Customer Care for any questions about this cookies policy or your personal information.</p>
           <div className="flex flex-wrap gap-3">
-            <a href="mailto:privacy@britbooks.co.uk" className="flex items-center gap-2 px-5 py-3 bg-white text-gray-900 rounded-2xl text-sm font-bold hover:bg-gray-100 transition-all">
-              <ExternalLink size={14} /> privacy@britbooks.co.uk
+            <a href="mailto:customercare@britbooks.co.uk" className="flex items-center gap-2 px-5 py-3 bg-[#c9a84c] text-black rounded-2xl text-sm font-bold hover:bg-[#b8963e] transition-all">
+              <ExternalLink size={14} /> customercare@britbooks.co.uk
             </a>
-            <a href="/privacy-policy" className="flex items-center gap-2 px-5 py-3 bg-white/10 border border-white/20 text-white rounded-2xl text-sm font-bold hover:bg-white/20 transition-all">
+            <a href="/privacy-policy" className="flex items-center gap-2 px-5 py-3 border-2 border-[#0a1628] text-black rounded-2xl text-sm font-bold hover:bg-[#f5f0e8] transition-all">
               Privacy Policy →
             </a>
           </div>

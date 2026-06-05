@@ -412,7 +412,7 @@ export default function CreditSlipsPage() {
             <div>
               <div className="font-bold text-gray-900 text-sm mb-1">Questions about your credit?</div>
               <p className="text-gray-500 text-sm leading-relaxed">
-                Contact our team at <a href="mailto:support@britbooks.co.uk" className="text-indigo-600 font-semibold hover:underline">support@britbooks.co.uk</a> — quote your slip code and we'll look into it right away.
+                Contact our team at <a href="mailto:customercare@britbooks.co.uk" className="text-indigo-600 font-semibold hover:underline">customercare@britbooks.co.uk</a> — quote your slip code and we'll look into it right away.
               </p>
             </div>
           </div>
