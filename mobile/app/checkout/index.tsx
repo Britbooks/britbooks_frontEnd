@@ -736,6 +736,7 @@ const styles = StyleSheet.create({
   secureTag:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
   secureText: { fontSize: 11, color: Colors.success, fontWeight: '600' },
   stripeWrap: {
+    height: 90,
     borderRadius: Radius.lg, overflow: 'hidden',
     borderWidth: 1, borderColor: Colors.border,
     backgroundColor: Colors.surface,

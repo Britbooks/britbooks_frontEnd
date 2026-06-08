@@ -11,6 +11,8 @@ import { router } from 'expo-router';
 import { Colors, Radius, Spacing, Typography } from '../../constants/Colors';
 import { useAuth } from '../../context/AuthContext';
 import { fetchUserProfile, setup2FAApi, enable2FAApi, disable2FAApi } from '../../services/auth';
+import { apiClient } from '../../services/api';
+import { ENDPOINTS } from '../../constants/Api';
 import OtpInput from '../../components/OtpInput';
 
 interface MenuItem {
@@ -48,7 +50,7 @@ function MenuSection({ title, children }: { title?: string; children: React.Reac
 type TwoFaStep = 'idle' | 'setup' | 'enable' | 'disable';
 
 export default function AccountScreen() {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, updateLocalUser } = useAuth();
   const scrollRef = useRef(null);
   useScrollToTop(scrollRef);
 
@@ -59,6 +61,41 @@ export default function AccountScreen() {
   const [totpCode, setTotpCode] = useState('');
   const [totpLoading, setTotpLoading] = useState(false);
   const [totpError, setTotpError] = useState('');
+
+  const [editVisible, setEditVisible] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  function openEditProfile() {
+    setEditName(user?.fullName ?? '');
+    setEditEmail(user?.email ?? '');
+    setEditError('');
+    setEditVisible(true);
+  }
+
+  async function saveProfile() {
+    if (!user || !token) return;
+    const trimmedName = editName.trim();
+    const trimmedEmail = editEmail.trim();
+    if (!trimmedName) { setEditError('Name cannot be empty.'); return; }
+    if (!trimmedEmail) { setEditError('Email cannot be empty.'); return; }
+    setEditLoading(true);
+    setEditError('');
+    try {
+      await apiClient.put(ENDPOINTS.users.profile(user.userId), {
+        fullName: trimmedName,
+        email: trimmedEmail,
+      });
+      await updateLocalUser({ ...user, fullName: trimmedName, email: trimmedEmail });
+      setEditVisible(false);
+    } catch (e: any) {
+      setEditError(e.response?.data?.message ?? 'Failed to update profile.');
+    } finally {
+      setEditLoading(false);
+    }
+  }
 
   // Load profile to get totpEnabled state
   useEffect(() => {
@@ -193,9 +230,10 @@ export default function AccountScreen() {
         </MenuSection>
 
         <MenuSection title="My Account">
-          <MenuRow icon="home-outline"  label="Saved Addresses" onPress={() => router.push('/addresses/')} />
-          <MenuRow icon="heart-outline" label="Wishlist"        onPress={() => router.push('/(tabs)/wishlist')} />
-          <MenuRow icon="star-outline"  label="My Reviews"      onPress={() => router.push('/reviews/')} />
+          <MenuRow icon="person-circle-outline" label="Edit Profile"    onPress={openEditProfile} />
+          <MenuRow icon="home-outline"          label="Saved Addresses" onPress={() => router.push('/addresses/')} />
+          <MenuRow icon="heart-outline"         label="Wishlist"        onPress={() => router.push('/(tabs)/wishlist')} />
+          <MenuRow icon="star-outline"          label="My Reviews"      onPress={() => router.push('/reviews/')} />
         </MenuSection>
 
         <MenuSection title="Security">
@@ -222,7 +260,7 @@ export default function AccountScreen() {
         </MenuSection>
 
         <MenuSection title="Support">
-          <MenuRow icon="help-circle-outline"        label="Help & FAQ"       onPress={() => {}} />
+          <MenuRow icon="help-circle-outline"        label="Help & FAQ"       onPress={() => router.push('/support')} />
           <MenuRow icon="chatbubble-ellipses-outline" label="Contact Support" onPress={() => router.push('/support')} />
           <MenuRow icon="document-text-outline"      label="Privacy Policy"  onPress={() => router.push('/privacy-policy')} />
         </MenuSection>
@@ -233,6 +271,53 @@ export default function AccountScreen() {
 
         <Text style={styles.version}>BritBooks v1.0.0</Text>
       </ScrollView>
+
+      {/* ── Edit Profile Modal ── */}
+      <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <TouchableOpacity onPress={() => setEditVisible(false)} hitSlop={8}>
+                <Ionicons name="close" size={22} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalFieldLabel}>Full Name</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Your full name"
+              placeholderTextColor={Colors.textMuted}
+              autoCapitalize="words"
+            />
+
+            <Text style={[styles.modalFieldLabel, { marginTop: Spacing.md }]}>Email</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editEmail}
+              onChangeText={setEditEmail}
+              placeholder="your@email.com"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            {!!editError && <Text style={styles.modalError}>{editError}</Text>}
+
+            <TouchableOpacity
+              style={[styles.modalBtn, editLoading && styles.modalBtnDisabled]}
+              onPress={saveProfile}
+              disabled={editLoading}
+            >
+              {editLoading
+                ? <ActivityIndicator color={Colors.primary} />
+                : <Text style={styles.modalBtnText}>Save Changes</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── 2FA Modal ── */}
       <Modal visible={twoFaStep !== 'idle'} transparent animationType="slide" onRequestClose={closeTwoFaModal}>
@@ -422,4 +507,15 @@ const styles = StyleSheet.create({
   modalBtnDanger: { backgroundColor: Colors.error, shadowColor: Colors.error },
   modalBtnDisabled: { opacity: 0.5 },
   modalBtnText: { ...Typography.headline, color: Colors.primary, fontWeight: '800' },
+  editInput: {
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: 15,
+    color: Colors.text,
+    marginTop: 4,
+  },
 });

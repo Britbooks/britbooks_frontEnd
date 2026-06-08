@@ -392,15 +392,17 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
                           {/* Qty stepper */}
                           <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-1 py-1">
                             <motion.button
+                              type="button"
                               whileTap={{ scale: 0.85 }}
                               onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
                               disabled={item.quantity <= 1}
-                              className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center disabled:text-gray-300"
+                              className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               <Minus size={12} className="text-gray-700" />
                             </motion.button>
                             <span className="text-sm font-black text-gray-800 w-5 text-center">{item.quantity}</span>
                             <motion.button
+                              type="button"
                               whileTap={{ scale: 0.85 }}
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center"
@@ -531,9 +533,9 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
                           <td className="p-4 font-medium">{item.price}</td>
                           <td className="p-4">
                             <div className="flex items-center border rounded-lg w-fit">
-                              <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="px-3 py-1 hover:bg-gray-100" disabled={item.quantity <= 1}>-</button>
+                              <button type="button" onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="px-3 py-1 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed" disabled={item.quantity <= 1}>-</button>
                               <span className="px-4 py-1 border-x">{item.quantity}</span>
-                              <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-3 py-1 hover:bg-gray-100">+</button>
+                              <button type="button" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-3 py-1 hover:bg-gray-100">+</button>
                             </div>
                           </td>
                           <td className="p-4 font-bold">£{((typeof item.price === "string" ? Number(item.price.replace("£", "")) : item.price) * item.quantity).toFixed(2)}</td>

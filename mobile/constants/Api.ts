@@ -26,8 +26,10 @@ export const ENDPOINTS = {
     },
   },
   users: {
-    profile:  (userId: string) => `${API_BASE}/users/${userId}`,
+    profile:   (userId: string) => `${API_BASE}/users/${userId}`,
     addresses: (userId: string) => `${API_BASE}/users/${userId}/address`,
+    cart:      (userId: string) => `${API_BASE}/users/${userId}/cart`,
+    wishlist:  (userId: string) => `${API_BASE}/users/${userId}/wishlist`,
   },
   market: {
     listings:      `${API_BASE}/market/admin/listings`,

@@ -14,6 +14,7 @@ type Action =
   | { type: 'AUTH_SUCCESS'; user: User; token: string }
   | { type: 'SET_PENDING'; token: string; flow: 'login' | 'register' }
   | { type: 'SET_PENDING_TOTP'; token: string }
+  | { type: 'UPDATE_USER'; user: User }
   | { type: 'LOGOUT' };
 
 const initialState: AuthState = {
@@ -47,6 +48,8 @@ function reducer(state: AuthState, action: Action): AuthState {
       return { ...state, pendingToken: action.token, pendingFlow: action.flow, pendingTotp: false, loading: false };
     case 'SET_PENDING_TOTP':
       return { ...state, pendingToken: action.token, pendingFlow: 'totp', pendingTotp: true, loading: false };
+    case 'UPDATE_USER':
+      return { ...state, user: action.user };
     case 'LOGOUT':
       return { ...initialState, loading: false };
     default:
@@ -69,6 +72,7 @@ interface AuthContextValue extends AuthState {
   socialLogin: (provider: 'google' | 'facebook', token: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  updateLocalUser: (user: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -203,8 +207,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_ERROR', error: null });
   }
 
+  async function updateLocalUser(user: User) {
+    await storage.saveUser(user);
+    dispatch({ type: 'UPDATE_USER', user });
+  }
+
   return (
-    <AuthContext.Provider value={{ ...state, login, register, verifyOtp, verifyTotp, resendOtp, socialLogin, logout, clearError }}>
+    <AuthContext.Provider value={{ ...state, login, register, verifyOtp, verifyTotp, resendOtp, socialLogin, logout, clearError, updateLocalUser }}>
       {children}
     </AuthContext.Provider>
   );
