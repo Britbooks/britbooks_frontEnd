@@ -37,9 +37,7 @@ router.get('/:userId/wishlist', verifyTokenMiddleware, authMiddleware, getWishli
 router.put('/:userId/wishlist', verifyTokenMiddleware, authMiddleware, setWishlist);
 
 
-// ==========================
-// Dynamic user routes
-// ==========================
+
 
 // User settings update
 
@@ -60,3 +58,4 @@ router.get('/:userId', userController.getUserById);
 router.get('/', verifyTokenMiddleware, authMiddleware, userController.getAllUsers);
 
 export default router;
+
