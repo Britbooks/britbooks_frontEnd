@@ -1,3 +1,4 @@
+// user routes
 import express from 'express';
 import * as userController from '../app/controllers/userController.js';
 import { createAdmin, updateAdminPermissions, updateUserAddress, removeUserAddress, handleSuspendUser, handleUnsuspendUser, handleDeleteUser, getCart, setCart, getWishlist, setWishlist } from "../app/controllers/userController.js";
