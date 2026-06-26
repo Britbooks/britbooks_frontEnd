@@ -560,14 +560,9 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
     }
   };
 
-  const filteredThreads = threads
-    .filter((t: any) =>
-      !threadSearch || (t.subject || "").toLowerCase().includes(threadSearch.toLowerCase())
-    )
-    .sort((a: any, b: any) =>
-      new Date(b.lastMessageAt || b.updatedAt || b.createdAt || 0).getTime() -
-      new Date(a.lastMessageAt || a.updatedAt || a.createdAt || 0).getTime()
-    );
+  const filteredThreads = threads.filter((t: any) =>
+    !threadSearch || (t.subject || "").toLowerCase().includes(threadSearch.toLowerCase())
+  );
 
   /* ── RIGHT PANEL CONTENT ── */
   const renderRight = () => {
@@ -896,9 +891,9 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
                     <p className="text-sm font-semibold text-gray-900 truncate">{t.subject || "New conversation"}</p>
-                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.lastMessageAt || t.updatedAt || t.createdAt)}</span>
+                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.createdAt)}</span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">{t.lastMessage || "Tap to view messages"}</p>
+                  <p className="text-xs text-gray-500 truncate">Tap to view messages</p>
                 </div>
               </button>
             ))
@@ -1045,9 +1040,9 @@ function MobileChatWidget({ userId, token, onClose, newChatTrigger = 0, shared, 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-0.5">
                     <p className="text-sm font-semibold text-gray-900 truncate">{t.subject || "New conversation"}</p>
-                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.lastMessageAt || t.updatedAt || t.createdAt)}</span>
+                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.createdAt)}</span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">{t.lastMessage || "Tap to view messages"}</p>
+                  <p className="text-xs text-gray-500 truncate">Tap to view messages</p>
                 </div>
               </button>
             ))}
