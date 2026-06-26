@@ -13,6 +13,7 @@ const remoteConfig = {
   password: process.env.SFTP_PASS,
 };
 
+
 const localBase = path.resolve('./src/ftp-root/staging/incoming');
 const processingBase = path.resolve('./src/ftp-root/staging/processing');
 
