@@ -897,7 +897,7 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
                     <p className="text-sm font-semibold text-gray-900 truncate">{t.subject || "New conversation"}</p>
-                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.createdAt)}</span>
+                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.lastMessageAt || t.createdAt)}</span>
                   </div>
                   <p className="text-xs text-gray-500 truncate">Tap to view messages</p>
                 </div>
