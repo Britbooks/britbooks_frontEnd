@@ -560,9 +560,15 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
     }
   };
 
-  const filteredThreads = threads.filter((t: any) =>
-    !threadSearch || (t.subject || "").toLowerCase().includes(threadSearch.toLowerCase())
-  );
+  const filteredThreads = threads
+    .filter((t: any) =>
+      !threadSearch || (t.subject || "").toLowerCase().includes(threadSearch.toLowerCase())
+    )
+    .sort((a: any, b: any) => {
+      const ta = new Date(a.lastMessageAt || a.createdAt || 0).getTime();
+      const tb = new Date(b.lastMessageAt || b.createdAt || 0).getTime();
+      return tb - ta;
+    });
 
   /* ── RIGHT PANEL CONTENT ── */
   const renderRight = () => {
@@ -1033,14 +1039,17 @@ function MobileChatWidget({ userId, token, onClose, newChatTrigger = 0, shared, 
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {threads.map((t: any) => (
+            {[...threads].sort((a: any, b: any) =>
+              new Date(b.lastMessageAt || b.createdAt || 0).getTime() -
+              new Date(a.lastMessageAt || a.createdAt || 0).getTime()
+            ).map((t: any) => (
               <button key={t._id} onClick={() => openThread(t._id)}
                 className="w-full text-left flex items-center gap-3 px-4 py-4 hover:bg-gray-100 transition-colors">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-xs font-black shrink-0">BB</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-0.5">
                     <p className="text-sm font-semibold text-gray-900 truncate">{t.subject || "New conversation"}</p>
-                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.createdAt)}</span>
+                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.lastMessageAt || t.createdAt)}</span>
                   </div>
                   <p className="text-xs text-gray-500 truncate">Tap to view messages</p>
                 </div>
