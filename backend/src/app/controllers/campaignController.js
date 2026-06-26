@@ -10,7 +10,9 @@ import {
   removeDiscountFromListings,
   claimGameReward,
 } from '../services/campaignService.js';
+import { sendNewArrivalsEmail } from '../services/nexcessService.js';
 import { MarketplaceListing } from '../models/MarketPlace.js';
+import User from '../models/User.js';
 
 // ─── Helper: build human-readable discount string ────────────
 function formatDiscount(type, value) {
@@ -377,5 +379,49 @@ export const redeem = async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// POST /api/campaigns/send-new-arrivals  — admin manual trigger
+export const triggerNewArrivalsEmail = async (req, res) => {
+  try {
+    const { limit = 8, audience = 'all' } = req.body;
+
+    // Fetch latest new arrival books
+    const books = await MarketplaceListing.find({
+      isPublished: true,
+      isArchived: { $ne: true },
+      stock: { $gt: 0 },
+    })
+      .sort({ listedAt: -1, _id: -1 })
+      .limit(Number(limit))
+      .select('title author price condition coverImageUrl slug listedAt')
+      .lean();
+
+    if (!books.length) {
+      return res.status(404).json({ success: false, error: 'No published listings found' });
+    }
+
+    // Fetch recipients
+    const userQuery = { isVerified: true, role: 'user', status: 'active' };
+    if (audience === 'test' && req.user?.email) {
+      // Send only to the triggering admin for preview
+      const adminUser = await User.findById(req.user.userId).select('fullName email').lean();
+      const result = await sendNewArrivalsEmail(adminUser ? [adminUser] : [], books);
+      return res.json({ success: true, message: 'Test email sent to admin', ...result });
+    }
+
+    const users = await User.find(userQuery).select('fullName email').lean();
+
+    const result = await sendNewArrivalsEmail(users, books);
+    res.json({
+      success: true,
+      message: `New arrivals email dispatched`,
+      books: books.length,
+      ...result,
+    });
+  } catch (err) {
+    console.error('New arrivals email trigger failed:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };

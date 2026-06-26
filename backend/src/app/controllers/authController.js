@@ -6,7 +6,7 @@ import { generateRandomPassword } from "../../lib/utils/utils.js"; // Import the
 import redis from '../../lib/config/redisClient.js';
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import { sendLoginCredentials, } from '../services/nexcessService.js';
+import { sendLoginCredentials, sendWelcomeEmail } from '../services/nexcessService.js';
 
 
 dotenv.config(); 
@@ -107,14 +107,15 @@ export const verifyRegistrationUser = async (req, res) => {
       }
   
       // Mark as verified for specific roles
-      if (
-        (user.role === 'user' || user.role === 'user') &&
-        !user.isVerified
-      ) {
+      if (user.role === 'user' && !user.isVerified) {
         user.isVerified = true;
         user.status = 'verified';
         await user.save();
         console.log(`🎉 ${user.role} ${user.email} verified during registration`);
+        // Send welcome email (non-blocking)
+        sendWelcomeEmail(user).catch((e) =>
+          console.error('Welcome email failed:', e.message)
+        );
       }
   
       // Ensure wallet exists

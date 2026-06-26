@@ -1,7 +1,12 @@
 import * as OrderService from '../services/orderService.js';
 import { getOrdersByUserIdService } from '../services/orderService.js';
-import {Order }from "../models/Order.js";
+import { Order } from "../models/Order.js";
+import User from "../models/User.js";
 import mongoose from "mongoose";
+import {
+  sendOrderConfirmationEmail,
+  sendOrderStatusEmail,
+} from '../services/nexcessService.js';
 
 const TRACKING_STEPS = [
   { key: "ordered", label: "Ordered", location: "Order placed online" },
@@ -51,6 +56,21 @@ export async function createOrder(req, res) {
       billingAddress,
       paymentMethod,
     });
+
+    // Send order confirmation email (non-blocking)
+    User.findById(userId).select('fullName email').lean().then((user) => {
+      if (user) {
+        const emailItems = (order.items || []).map((i) => ({
+          title: i.title || 'Book',
+          author: i.author || '',
+          quantity: i.quantity,
+          priceAtPurchase: i.priceAtPurchase,
+        }));
+        sendOrderConfirmationEmail({ user, order, items: emailItems }).catch((e) =>
+          console.error('Order confirmation email failed:', e.message)
+        );
+      }
+    }).catch(() => {});
 
     res.status(201).json({ success: true, order });
   } catch (error) {
@@ -155,6 +175,18 @@ export async function updateOrderStatus(req, res) {
     }
 
     const updated = await OrderService.updateOrderStatus(id, status);
+
+    // Send status notification email for key milestones (non-blocking)
+    if (['dispatched', 'delivered', 'cancelled'].includes(status)) {
+      User.findById(order.user).select('fullName email').lean().then((user) => {
+        if (user) {
+          sendOrderStatusEmail({ user, order: updated || order, status }).catch((e) =>
+            console.error('Order status email failed:', e.message)
+          );
+        }
+      }).catch(() => {});
+    }
+
     res.status(200).json({ success: true, order: updated });
   } catch (error) {
     console.error('Update order status failed:', error);

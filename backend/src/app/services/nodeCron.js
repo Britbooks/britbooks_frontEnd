@@ -5,10 +5,12 @@ import { uploadToSftp } from "../../lib/config/sftp/sftpClient.js";
 import { getAllListingsForAdmin } from "../services/marketPlaceService.js";
 import { MarketplaceListing } from "../models/MarketPlace.js";
 import Campaign from "../models/Campaign.js";
+import User from "../models/User.js";
 import mongoose from "mongoose";
 import pLimit from "p-limit";
 import axios from "axios";
 import { Resend } from "resend";
+import { sendNewArrivalsEmail } from "./nexcessService.js";
 
 
 const limit = pLimit(5); 
@@ -481,6 +483,46 @@ cron.schedule('0 */2 * * *', async () => {
     console.error('❌ Monitor cron error:', err.message);
   }
 });
+
+//
+// ────────────────────────────────────────────────────────────
+// 📬 AUTOMATED NEW ARRIVALS EMAIL — every Monday at 9:00 AM UK
+// Sends latest 8 books to all active verified users.
+// ────────────────────────────────────────────────────────────
+//
+cron.schedule('0 9 * * 1', async () => {
+  console.log('📬 New arrivals email campaign STARTED', new Date().toISOString());
+  try {
+    const books = await MarketplaceListing.find({
+      isPublished: true,
+      isArchived: { $ne: true },
+      stock: { $gt: 0 },
+    })
+      .sort({ listedAt: -1, _id: -1 })
+      .limit(8)
+      .select('title author price condition coverImageUrl slug listedAt')
+      .lean();
+
+    if (!books.length) {
+      console.log('📬 No published listings — skipping new arrivals email');
+      return;
+    }
+
+    const users = await User.find({ isVerified: true, role: 'user', status: 'active' })
+      .select('fullName email')
+      .lean();
+
+    if (!users.length) {
+      console.log('📬 No active verified users — skipping new arrivals email');
+      return;
+    }
+
+    const result = await sendNewArrivalsEmail(users, books);
+    console.log(`📬 New arrivals email COMPLETED — sent: ${result.sent}, skipped: ${result.skipped}`);
+  } catch (err) {
+    console.error('❌ New arrivals email cron FAILED:', err.message);
+  }
+}, { timezone: 'Europe/London' });
 
 //
 // ────────────────────────────────────────────────────────────
