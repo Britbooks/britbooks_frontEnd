@@ -1,29 +1,5 @@
 import mongoose from "mongoose";
 
-const cartItemSchema = new mongoose.Schema(
-  {
-    id:       { type: String, required: true },
-    img:      { type: String, default: '' },
-    title:    { type: String, required: true },
-    author:   { type: String, default: '' },
-    price:    { type: Number, required: true, min: 0 },
-    quantity: { type: Number, default: 1, min: 1 },
-    stock:    { type: Number, default: 0 },
-  },
-  { _id: false }
-);
-
-const wishlistItemSchema = new mongoose.Schema(
-  {
-    id:     { type: String, required: true },
-    img:    { type: String, default: '' },
-    title:  { type: String, required: true },
-    author: { type: String, default: '' },
-    price:  { type: Number, default: 0, min: 0 },
-  },
-  { _id: false }
-);
-
 const addressSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true },
@@ -84,10 +60,15 @@ const userSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false },
     otp: { type: String, default: null },
     otpExpiry: { type: Date, default: null },
-    settings: { type: settingsSchema, default: () => ({}) }, 
+    settings: { type: settingsSchema, default: () => ({}) },
     addresses: [addressSchema],
-    cart:      { type: [cartItemSchema],     default: [] },
-    wishlist:  { type: [wishlistItemSchema], default: [] },
+    totpSecret:  { type: String,  default: null  },
+    totpEnabled: { type: Boolean, default: false },
+    gameRewards: {
+      spin:    { type: Date, default: null },
+      scratch: { type: Date, default: null },
+      mystery: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );

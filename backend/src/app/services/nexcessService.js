@@ -473,7 +473,6 @@ export const sendTransferSuccessfulEmail = async ({
 };
 
 
-// Send Post-Support Review Request Email
 // ─── Shared email layout helpers ────────────────────────────
 const LOGO_URL = 'https://britbooksfrontend-production-bb2a.up.railway.app/logobrit.png';
 const SHOP_URL = 'https://britbooks.co.uk';

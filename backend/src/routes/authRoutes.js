@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser,verifyRegistrationUser, loginUser, verifyLoginUser, logoutUser , resendOtpHandler,changePasswordController,resetPasswordController,forgotPasswordController,generateLoginCredentials, addAdmin,googleAuthController,facebookAuthController} from '../app/controllers/authController.js';
+import { registerUser,verifyRegistrationUser, loginUser, verifyLoginUser, logoutUser , resendOtpHandler,changePasswordController,resetPasswordController,forgotPasswordController,generateLoginCredentials, addAdmin,googleAuthController,facebookAuthController, setup2FA, enable2FA, disable2FA, verifyTotpLogin} from '../app/controllers/authController.js';
 import authMiddleware from '../app/middleware/authMiddleware.js';
 import verifyTokenMiddleware from '../app/middleware/verifyTokenMiddleware.js';
 
@@ -19,6 +19,12 @@ router.post("/forgot-password", forgotPasswordController);
 router.post("/reset-password", resetPasswordController);
 router.post("/change-password",verifyTokenMiddleware,authMiddleware,changePasswordController);
 router.post('/add',verifyTokenMiddleware,authMiddleware, addAdmin);
+
+// TOTP 2FA
+router.post('/2fa/setup',   verifyTokenMiddleware, authMiddleware, setup2FA);
+router.post('/2fa/enable',  verifyTokenMiddleware, authMiddleware, enable2FA);
+router.post('/2fa/disable', verifyTokenMiddleware, authMiddleware, disable2FA);
+router.post('/2fa/login',   verifyTotpLogin);
 
 
 // Example of a protected route

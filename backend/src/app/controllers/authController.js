@@ -2,14 +2,17 @@ import { register, verifyRegistration, verifyLogin, login, resendOtp,forgotPassw
 import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import jwt from 'jsonwebtoken';
-import { generateRandomPassword } from "../../lib/utils/utils.js"; // Import the function
+import { generateRandomPassword } from "../../lib/utils/utils.js";
 import redis from '../../lib/config/redisClient.js';
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import { sendLoginCredentials, sendWelcomeEmail } from '../services/nexcessService.js';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
+import { generateToken } from '../../lib/utils/jwtUtils.js';
 
 
-dotenv.config(); 
+dotenv.config();
 
 export const registerUser = async (req, res) => {
   try {
@@ -107,15 +110,15 @@ export const verifyRegistrationUser = async (req, res) => {
       }
   
       // Mark as verified for specific roles
-      if (user.role === 'user' && !user.isVerified) {
+      if (
+        (user.role === 'user' || user.role === 'user') &&
+        !user.isVerified
+      ) {
         user.isVerified = true;
         user.status = 'verified';
         await user.save();
         console.log(`🎉 ${user.role} ${user.email} verified during registration`);
-        // Send welcome email (non-blocking)
-        sendWelcomeEmail(user).catch((e) =>
-          console.error('Welcome email failed:', e.message)
-        );
+        sendWelcomeEmail(user).catch((e) => console.error('Welcome email failed:', e.message));
       }
   
       // Ensure wallet exists
@@ -172,14 +175,24 @@ export const verifyRegistrationUser = async (req, res) => {
       if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
       }
-  
+
       const { userId } = await login(email, password);
-  
-      const user = await User.findById(userId).select('role phoneNumber email');
+
+      const user = await User.findById(userId).select('role phoneNumber email totpEnabled');
       if (!user) {
         return res.status(404).json({ message: 'User not found.' });
       }
-  
+
+      // If TOTP is enabled, skip email OTP and require authenticator code
+      if (user.totpEnabled) {
+        const pendingToken = jwt.sign(
+          { userId, pendingTotp: true },
+          process.env.JWT_SECRET,
+          { expiresIn: '10m' }
+        );
+        return res.status(200).json({ requiresTotp: true, token: pendingToken });
+      }
+
       const token = jwt.sign(
         {
           userId,
@@ -190,7 +203,7 @@ export const verifyRegistrationUser = async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: '1h' }
       );
-  
+
       res.status(200).json({ message: 'Verify your phone number.', token });
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -577,5 +590,165 @@ export const facebookAuthController = async (req, res) => {
   } catch (error) {
     console.error('❌ Facebook Auth Controller Error:', error.message);
     res.status(400).json({ message: error.message });
+  }
+};
+
+
+/* ─────────────────────────────────────────────────────────────────
+   TOTP 2FA CONTROLLERS
+───────────────────────────────────────────────────────────────── */
+
+export const setup2FA = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    const secret = speakeasy.generateSecret({
+      name: `BritBooks (${user.email})`,
+      issuer: 'BritBooks',
+      length: 20,
+    });
+
+    user.totpSecret = secret.base32;
+    await user.save();
+
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+    return res.json({ secret: secret.base32, qrCode });
+  } catch (error) {
+    console.error('❌ setup2FA error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const enable2FA = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: 'TOTP code is required.' });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (!user.totpSecret) return res.status(400).json({ message: 'Run setup first.' });
+
+    const valid = speakeasy.totp.verify({
+      secret: user.totpSecret,
+      encoding: 'base32',
+      token: code.toString().trim(),
+      window: 1,
+    });
+
+    if (!valid) return res.status(400).json({ message: 'Invalid TOTP code. Try again.' });
+
+    user.totpEnabled = true;
+    await user.save();
+
+    return res.json({ message: '2FA enabled successfully.' });
+  } catch (error) {
+    console.error('❌ enable2FA error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const disable2FA = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: 'TOTP code is required.' });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (!user.totpEnabled) return res.status(400).json({ message: '2FA is not enabled.' });
+
+    const valid = speakeasy.totp.verify({
+      secret: user.totpSecret,
+      encoding: 'base32',
+      token: code.toString().trim(),
+      window: 1,
+    });
+
+    if (!valid) return res.status(400).json({ message: 'Invalid TOTP code. Try again.' });
+
+    user.totpEnabled = false;
+    user.totpSecret = null;
+    await user.save();
+
+    return res.json({ message: '2FA disabled successfully.' });
+  } catch (error) {
+    console.error('❌ disable2FA error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const verifyTotpLogin = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    const { code } = req.body;
+
+    if (!token) return res.status(401).json({ message: 'Authorization token is missing.' });
+    if (!code) return res.status(400).json({ message: 'TOTP code is required.' });
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ message: 'Invalid or expired token.' });
+    }
+
+    if (!decoded.pendingTotp || !decoded.userId) {
+      return res.status(401).json({ message: 'Invalid token type.' });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (!user.totpEnabled || !user.totpSecret) {
+      return res.status(400).json({ message: '2FA is not enabled on this account.' });
+    }
+
+    const valid = speakeasy.totp.verify({
+      secret: user.totpSecret,
+      encoding: 'base32',
+      token: code.toString().trim(),
+      window: 1,
+    });
+
+    if (!valid) return res.status(400).json({ message: 'Invalid authenticator code.' });
+
+    const finalToken = generateToken({
+      userId: user._id,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+    });
+
+    let wallet;
+    if (user.role === 'admin') {
+      wallet = await Wallet.findOne({ type: 'admin' });
+      if (!wallet) return res.status(500).json({ message: 'Central wallet not found.' });
+    } else {
+      wallet = await Wallet.findOne({ userId: user._id });
+      if (!wallet) {
+        wallet = await Wallet.create({ userId: user._id, balance: 0, currency: 'GBP', type: 'user' });
+      }
+    }
+
+    return res.status(200).json({
+      message: 'Login successful.',
+      token: finalToken,
+      user: {
+        userId: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        isVerified: user.isVerified,
+        currency: 'GBP',
+      },
+      wallet,
+    });
+  } catch (error) {
+    console.error('❌ verifyTotpLogin error:', error.message);
+    res.status(500).json({ message: error.message });
   }
 };
