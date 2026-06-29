@@ -131,13 +131,9 @@ export const login = async (email, password) => {
   const user = await User.findOne({ email });
   if (!user) throw new Error('Invalid credentials.');
 
-  // Only block if the account has NO password (pure social sign-in)
-  if (!user.password && user.authProvider && user.authProvider !== 'local') {
-    const provider = user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1);
-    throw new Error(`This account was created with ${provider}. Please use the "${provider}" button to log in.`);
+  if (user.authProvider !== 'local') {
+    throw new Error(`Please login using ${user.authProvider}.`);
   }
-
-  if (!user.password) throw new Error('Invalid credentials.');
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) throw new Error('Invalid credentials.');

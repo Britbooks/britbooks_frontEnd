@@ -4,15 +4,6 @@ import { getIO } from "../../lib/socketInstance.js";
 import { callGeminiAI } from "../../lib/config/openAi.js";
 
 // -------------------------------------
-// Transfer-to-agent intent (user explicitly wants a human)
-// -------------------------------------
-const TRANSFER_REGEX = /\b(transfer|connect|speak|talk|chat|switch|escalate|handover|hand\s*over)\b.{0,30}\b(agent|staff|human|person|someone|support|representative|rep)\b|\b(real\s+person|human\s+agent|live\s+agent|live\s+support|live\s+chat|speak\s+to\s+someone|talk\s+to\s+someone|connect\s+me|get\s+me\s+(a|an)\s+(agent|human|person|staff)|talk\s+to\s+(your\s+)?(staff|team)|connect\s+with\s+(your\s+)?(staff|team|support))\b/i;
-
-function isTransferRequest(message) {
-  return TRANSFER_REGEX.test(message);
-}
-
-// -------------------------------------
 // Escalation Keywords (fallback safety)
 // -------------------------------------
 const ESCALATION_KEYWORDS = [
@@ -239,36 +230,6 @@ class ChatService {
 
       if (chat.aiProcessing) {
         console.log("AI already processing - skipping");
-        return chat;
-      }
-
-      // ── Transfer-to-agent: intercept before Gemini ──────────
-      if (isTransferRequest(trimmedMessage)) {
-        const transferMsg = {
-          senderId: "bot",
-          senderType: "bot",
-          receiverId: senderId,
-          message: "I'm transferring you to one of our support agents now. Please hold on — someone from our team will be with you shortly! 🙏",
-          status: "sent",
-          createdAt: new Date(),
-        };
-
-        chat = await Chat.findByIdAndUpdate(
-          chatId,
-          {
-            $push: { messages: transferMsg },
-            $set: {
-              lastMessage: transferMsg.message,
-              lastMessageAt: new Date(),
-              escalated: true,
-              pinned: true,
-            },
-          },
-          { new: true }
-        );
-
-        getIO()?.to(chatId.toString()).emit("newMessage", transferMsg);
-        getIO()?.emit("chatEscalated", { chatId: chatId.toString() });
         return chat;
       }
 

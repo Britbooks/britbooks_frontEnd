@@ -1,6 +1,7 @@
+// user routes
 import express from 'express';
 import * as userController from '../app/controllers/userController.js';
-import { createAdmin, updateAdminPermissions, updateUserAddress, removeUserAddress, handleSuspendUser, handleUnsuspendUser, handleDeleteUser } from "../app/controllers/userController.js";
+import { createAdmin, updateAdminPermissions, updateUserAddress, removeUserAddress, handleSuspendUser, handleUnsuspendUser, handleDeleteUser, getCart, setCart, getWishlist, setWishlist } from "../app/controllers/userController.js";
 import verifyTokenMiddleware from '../app/middleware/verifyTokenMiddleware.js';
 import authMiddleware from '../app/middleware/authMiddleware.js';
 
@@ -28,10 +29,16 @@ router.get('/:userId/address', verifyTokenMiddleware, authMiddleware, userContro
 router.put("/:userId/address/:addressId", verifyTokenMiddleware, authMiddleware, updateUserAddress);
 router.delete("/:userId/address/:addressId", verifyTokenMiddleware, authMiddleware, removeUserAddress);
 
+// Cart routes
+router.get('/:userId/cart',  verifyTokenMiddleware, authMiddleware, getCart);
+router.put('/:userId/cart',  verifyTokenMiddleware, authMiddleware, setCart);
 
-// ==========================
-// Dynamic user routes
-// ==========================
+// Wishlist routes
+router.get('/:userId/wishlist', verifyTokenMiddleware, authMiddleware, getWishlist);
+router.put('/:userId/wishlist', verifyTokenMiddleware, authMiddleware, setWishlist);
+
+
+
 
 // User settings update
 
@@ -52,3 +59,4 @@ router.get('/:userId', userController.getUserById);
 router.get('/', verifyTokenMiddleware, authMiddleware, userController.getAllUsers);
 
 export default router;
+
