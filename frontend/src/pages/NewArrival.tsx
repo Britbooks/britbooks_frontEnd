@@ -13,29 +13,11 @@ import GlobalSearchBar from "../components/GlobalSearchBar";
 
 const priceStr = (p: any) => (typeof p === "number" ? `£${p.toFixed(2)}` : p ?? "");
 
-/* ─────────────────────────────────────────────────────────────────
-   MARQUEE
-───────────────────────────────────────────────────────────────── */
-function Marquee({ items }: { items: string[] }) {
-  const text = items.length ? items : Array(12).fill("New Arrivals");
-  const rep  = [...text, ...text];
-  return (
-    <div className="overflow-hidden select-none">
-      <motion.div
-        className="flex items-center whitespace-nowrap"
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{ repeat: Infinity, duration: 32, ease: "linear" }}
-      >
-        {rep.map((t, i) => (
-          <span key={i} className="inline-flex items-center gap-3 text-[11px] font-bold text-white/35 uppercase tracking-widest px-5">
-            <span className="w-1 h-1 rounded-full bg-[#c9a84c]" />{t}
-          </span>
-        ))}
-      </motion.div>
-    </div>
-  );
-}
 
+
+/* ─────────────────────────────────────────────────────────────────
+   HIGHWAY BANNER — solid truck, daytime
+───────────────────────────────────────────────────────────────── */
 /* ─────────────────────────────────────────────────────────────────
    COUNTER
 ───────────────────────────────────────────────────────────────── */
@@ -482,6 +464,7 @@ const NewArrivalsPage: React.FC = () => {
   const [search, setSearch]           = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [searchOpen, setSearchOpen]   = useState(false);
+  const [heroBg]                      = useState(() => `https://picsum.photos/seed/${Math.floor(Math.random() * 10000)}/1600/900`);
   const gridRef  = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -489,7 +472,7 @@ const NewArrivalsPage: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetchBooks({ page, category, search, limit: 12, shelf: "newArrivals", sort: "listedAt", order: "desc" })
+    fetchBooks({ page, category, search, limit: 15, shelf: "newArrivals", sort: "listedAt", order: "desc" })
       .then(r => setBooks(r.listings || r.books || []))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -515,9 +498,7 @@ const NewArrivalsPage: React.FC = () => {
 
   const clearAll = () => { setSearch(""); setSearchInput(""); setCategory(null); setPage(1); };
 
-  const covers      = books.map(b => b.imageUrl).filter(Boolean);
-  const marqueeText = books.map(b => `${b.title}${b.author ? " — " + b.author : ""}`);
-  const featured    = books[0] ?? null;
+  const featured = books[0] ?? null;
   const gridBooks   = page === 1 && !search ? books.slice(1) : books;
 
   return (
@@ -549,10 +530,10 @@ const NewArrivalsPage: React.FC = () => {
             <p className="text-[11px] font-bold text-[#c9a84c] uppercase tracking-widest mb-1">BritBooks</p>
             <h1 className="text-[26px] font-black text-gray-900 tracking-tight leading-none">New Arrivals</h1>
           </div>
-          <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+          <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
             </span>
             <span className="text-[10px] font-bold text-emerald-600">Updated weekly</span>
           </div>
@@ -624,13 +605,13 @@ const NewArrivalsPage: React.FC = () => {
           <div className="flex items-center gap-2 px-4 overflow-x-auto no-sb pb-1">
             <button onClick={() => { setCategory(null); setPage(1); }}
               className={`flex-shrink-0 h-9 px-5 rounded-full text-xs font-black transition-all ${
-                !category ? "bg-[#0a1628] text-white shadow-sm" : "bg-gray-100 text-gray-500"
+                !category ? "bg-green-600 text-white shadow-sm" : "bg-gray-100 text-gray-500"
               }`}>All</button>
             {categories.map((c: any) => (
               <button key={c._id}
                 onClick={() => { setCategory(c.name); setPage(1); }}
                 className={`flex-shrink-0 h-9 px-5 rounded-full text-xs font-black transition-all ${
-                  category === c.name ? "bg-[#c9a84c] text-[#0a1628] shadow-sm" : "bg-gray-100 text-gray-500"
+                  category === c.name ? "bg-green-600 text-white shadow-sm" : "bg-gray-100 text-gray-500"
                 }`}>{c.name}</button>
             ))}
           </div>
@@ -668,7 +649,7 @@ const NewArrivalsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               {!loading && (
                 <span className="text-xs text-gray-400 font-medium">
-                  {books.length}{books.length >= 12 ? "+" : ""} books
+                  {books.length}{books.length >= 15 ? "+" : ""} books
                 </span>
               )}
               {(search || category) && (
@@ -713,7 +694,7 @@ const NewArrivalsPage: React.FC = () => {
                 <span className="w-11 h-11 rounded-2xl bg-[#0a1628] text-white flex items-center justify-center text-sm font-black shadow-lg">
                   {page}
                 </span>
-                <button disabled={books.length < 12}
+                <button disabled={books.length < 15}
                   onClick={() => { setPage(p => p + 1); gridRef.current?.scrollIntoView({ behavior: "smooth" }); }}
                   className="flex items-center gap-1.5 h-11 px-5 rounded-2xl bg-gray-100 text-sm font-bold text-gray-500 disabled:opacity-30">
                   Next <ChevronRight className="w-4 h-4" />
@@ -733,136 +714,51 @@ const NewArrivalsPage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════
           HERO
       ══════════════════════════════════════════════════════ */}
-      <section className="relative bg-[#0a1628] overflow-hidden">
-        {/* dot grid */}
-        <div className="absolute inset-0 opacity-[0.035]"
-          style={{ backgroundImage: "radial-gradient(#fff 1px,transparent 1px)", backgroundSize: "28px 28px" }} />
-        {/* gold top line */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent" />
-        {/* glows */}
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-[#c9a84c]/6 blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-blue-800/8 blur-3xl pointer-events-none" />
-
-        {/* breadcrumb — extreme right */}
-        <motion.nav
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}
-          className="hidden lg:flex absolute top-6 right-16 z-20 items-center gap-2 text-[10px] font-bold uppercase tracking-widest"
-        >
-          <a href="/" className="text-white/25 hover:text-white/55 transition-colors">Home</a>
-          <span className="text-white/15">/</span>
-          <span className="text-[#c9a84c]">New Arrivals</span>
-        </motion.nav>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-10 lg:px-16
-                        flex flex-col lg:flex-row lg:items-center gap-10 lg:gap-0
-                        pt-12 sm:pt-16 lg:pt-24 pb-20 sm:pb-24 lg:pb-28">
-
-          {/* ── LEFT ── */}
-          <div className="flex-1 lg:pr-16">
-            {/* badge */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 bg-[#c9a84c]/10 border border-[#c9a84c]/22 rounded-full px-4 py-1.5 mb-6">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c9a84c] opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#c9a84c]" />
+      <header
+        className="relative pt-14 pb-12 px-6 md:px-8 overflow-hidden"
+        style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-black/30" />
+        <div className="relative z-10 max-w-[1440px] mx-auto pb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
+            <div>
+              <span className="text-white font-black uppercase tracking-[0.3em] mb-2 block">
+                Fresh Off The Shelf
               </span>
-              <span className="text-[11px] font-bold text-[#c9a84c] tracking-widest uppercase">Updated every week</span>
-            </motion.div>
-
-            {/* headline */}
-            <div className="mb-5 overflow-hidden">
-              {["Fresh", "Off", "The", "Shelf."].map((word, i) => (
-                <motion.span key={word}
-                  initial={{ y: "115%" }}
-                  animate={{ y: 0 }}
-                  transition={{ duration: 0.65, delay: 0.18 + i * 0.09, ease: [0.22, 1, 0.36, 1] }}
-                  className={`inline-block mr-3 sm:mr-4 font-black tracking-[-0.03em] leading-[1.05]
-                    text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
-                    ${i === 3 ? "text-[#c9a84c]" : "text-white"}`}>
-                  {word}
-                </motion.span>
-              ))}
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter drop-shadow-xl">
+                New Arrivals
+              </h1>
             </div>
-
-            {/* subtext */}
-            <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.56 }}
-              className="text-white/40 text-sm sm:text-base lg:text-lg leading-relaxed max-w-lg mb-10">
-              Every week hundreds of new titles land on our shelves — from debut voices to returning favourites.
-              Discover what's just arrived.
-            </motion.p>
-
-            {/* stats */}
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.64 }}
-              className="flex items-center gap-8 lg:gap-12 mb-10 pb-10 border-b border-white/8">
-              {[
-                { icon: <BookOpen className="w-4 h-4" />, val: 1200, suf: "+", label: "New monthly" },
-                { icon: <TrendingUp className="w-4 h-4" />, val: 52, suf: "×", label: "Updates a year" },
-                { icon: <Sparkles className="w-4 h-4" />, val: 40, suf: "+", label: "Genres" },
-              ].map((s, i) => (
-                <div key={i} className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-[#c9a84c]">
-                    {s.icon}
-                    <span className="text-xl lg:text-2xl font-black text-white tabular-nums">
-                      <Counter target={s.val} suffix={s.suf} />
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-white/25 uppercase tracking-widest font-bold">{s.label}</span>
-                </div>
-              ))}
-            </motion.div>
-
-            {/* CTAs */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.72 }}
-              className="flex items-center gap-3 flex-wrap mb-5">
-              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={() => gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="flex items-center gap-2 bg-[#c9a84c] text-[#0a1628] font-black text-sm px-7 py-3.5 rounded-2xl shadow-xl shadow-[#c9a84c]/20">
-                Browse all <ArrowRight className="w-4 h-4" />
-              </motion.button>
-            </motion.div>
-
-            {/* Inline search bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-              className="max-w-md"
-            >
-              <GlobalSearchBar variant="dark" placeholder="Search titles, authors, genres…" />
-            </motion.div>
+            <div className="w-full md:w-auto md:min-w-[380px] max-w-md">
+              <GlobalSearchBar variant="light" placeholder="Search new arrivals…" />
+            </div>
           </div>
-
-          {/* ── RIGHT: floating books ── */}
-          <motion.div
-            initial={{ opacity: 0, x: 40, scale: 0.92 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ delay: 0.28, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="flex-shrink-0 flex justify-center lg:justify-end w-full lg:w-auto"
-          >
-            <DeliveryScene covers={covers} />
-          </motion.div>
         </div>
 
-        {/* bottom curve */}
-        <div className="absolute bottom-0 left-0 right-0 h-14 bg-[#f7f4ef]"
-          style={{ clipPath: "ellipse(58% 100% at 50% 100%)" }} />
-      </section>
+        {/* Road line */}
+        <div className="absolute bottom-8 left-0 right-0 z-10 h-[2px] bg-white/40" />
 
-      {/* ══════════════════════════════════════════════════════
-          MARQUEE
-      ══════════════════════════════════════════════════════ */}
-      <div className="bg-[#0a1628] border-y border-white/5 py-3 overflow-hidden">
-        <Marquee items={marqueeText} />
-      </div>
+        {/* Truck driving across the bottom of the hero */}
+        <motion.div
+          className="absolute bottom-8 left-0 select-none z-10"
+          style={{ fontSize: 26, lineHeight: 1 }}
+          animate={{ x: ["-60px", "calc(100vw + 60px)"] }}
+          transition={{ repeat: Infinity, duration: 6, ease: "linear" }}
+        >
+          <span style={{ display: "inline-block", transform: "scaleX(-1)" }}>🚚</span>
+        </motion.div>
+      </header>
 
       {/* ══════════════════════════════════════════════════════
           CONTENT
       ══════════════════════════════════════════════════════ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-10 lg:pt-14 pb-32">
+      <div className="w-full px-4 sm:px-6 lg:px-10 pt-10 lg:pt-14 pb-32">
 
         {/* ── desktop: 2-column (sidebar + main) ── */}
         <div className="flex gap-10 xl:gap-14 items-start">
 
           {/* ─────── SIDEBAR (desktop only) ─────── */}
-          <aside className="hidden lg:flex flex-col gap-2 w-52 xl:w-60 flex-shrink-0 sticky top-6">
+          <aside className="hidden lg:flex flex-col gap-2 w-52 xl:w-60 flex-shrink-0 sticky top-24">
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
               <SlidersHorizontal className="w-4 h-4 text-gray-400" />
@@ -874,7 +770,7 @@ const NewArrivalsPage: React.FC = () => {
               onClick={() => { setCategory(null); setPage(1); }}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold text-left transition-all ${
                 !category
-                  ? "bg-[#0a1628] text-white shadow-md"
+                  ? "bg-green-600 text-white shadow-md"
                   : "text-gray-500 hover:text-gray-800 hover:bg-white"
               }`}
             >
@@ -888,7 +784,7 @@ const NewArrivalsPage: React.FC = () => {
                 onClick={() => { setCategory(c.name); setPage(1); }}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold text-left transition-all ${
                   category === c.name
-                    ? "bg-[#c9a84c] text-[#0a1628] shadow-md"
+                    ? "bg-green-600 text-white shadow-md"
                     : "text-gray-500 hover:text-gray-800 hover:bg-white"
                 }`}
               >
@@ -910,8 +806,8 @@ const NewArrivalsPage: React.FC = () => {
             {/* Live indicator */}
             <div className="flex items-center gap-2 px-1">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
               </span>
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Live catalogue</span>
             </div>
@@ -938,7 +834,7 @@ const NewArrivalsPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button onClick={() => setSearchOpen(true)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-all ${
-                    search ? "bg-[#c9a84c] border-[#c9a84c] text-[#0a1628]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                    search ? "bg-green-600 border-green-600 text-white" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
                   }`}>
                   <Search className="w-4 h-4" />
                   <span className="hidden sm:inline">{search ? `"${search}"` : "Search"}</span>
@@ -957,14 +853,14 @@ const NewArrivalsPage: React.FC = () => {
               <div className="flex items-center gap-2 px-4 overflow-x-auto no-sb pb-1">
                 <button onClick={() => { setCategory(null); setPage(1); }}
                   className={`flex-shrink-0 h-9 px-4 rounded-2xl text-xs font-bold border transition-all ${
-                    !category ? "bg-[#0a1628] text-white border-[#0a1628]" : "bg-white text-gray-500 border-gray-200"
+                    !category ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-500 border-gray-200"
                   }`}>
                   All
                 </button>
                 {categories.map((c: any) => (
                   <button key={c._id} onClick={() => { setCategory(c.name); setPage(1); }}
                     className={`flex-shrink-0 h-9 px-4 rounded-2xl text-xs font-bold border transition-all ${
-                      category === c.name ? "bg-[#c9a84c] text-[#0a1628] border-[#c9a84c]" : "bg-white text-gray-500 border-gray-200"
+                      category === c.name ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-500 border-gray-200"
                     }`}>
                     {c.name}
                   </button>
@@ -988,7 +884,7 @@ const NewArrivalsPage: React.FC = () => {
 
             {/* Grid */}
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
                 {Array(page === 1 ? 11 : 12).fill(0).map((_, i) => <CardSkeleton key={i} />)}
               </div>
             ) : books.length === 0 ? (
@@ -1008,7 +904,7 @@ const NewArrivalsPage: React.FC = () => {
               </motion.div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
                   {gridBooks.map((book, i) => (
                     <AnimatedCard key={book._id || book.id} book={book} index={i} />
                   ))}
@@ -1030,7 +926,7 @@ const NewArrivalsPage: React.FC = () => {
                       {p}
                     </button>
                   ))}
-                  <button disabled={books.length < 12}
+                  <button disabled={books.length < 15}
                     onClick={() => { setPage(p => p + 1); gridRef.current?.scrollIntoView({ behavior: "smooth" }); }}
                     className="w-11 h-11 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-25 hover:border-gray-300 transition-all shadow-sm">
                     <ChevronRight className="w-5 h-5" />

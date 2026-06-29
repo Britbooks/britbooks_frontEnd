@@ -4,13 +4,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import SEOHead from "../components/SEOHead";
 import {
   ChevronLeft, ChevronRight, TrendingUp, X, Flame,
-  BookOpen, Star, Crown, Truck, Sparkles, ArrowRight
+  BookOpen, Star, Crown, Truck, Sparkles, ArrowRight,
+  SlidersHorizontal, Tag
 } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { fetchBooks, fetchCategories } from "../data/books";
 import BookCard from "../components/BookCard";
+import GlobalSearchBar from "../components/GlobalSearchBar";
 
 interface Book {
   _id?: string;
@@ -19,6 +21,7 @@ interface Book {
   author: string;
   price: number | string;
   imageUrl?: string;
+  category?: string;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -287,8 +290,9 @@ const BestsellersPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [recentBestsellers, setRecentBestsellers] = useState<Book[]>([]);
+  const [heroBg] = useState(() => `https://picsum.photos/seed/${Math.floor(Math.random() * 10000)}/1600/900`);
 
-  const BOOKS_PER_PAGE = 12;
+  const BOOKS_PER_PAGE = 15;
 
   useEffect(() => {
     const fetchBestsellers = async () => {
@@ -389,7 +393,7 @@ const BestsellersPage: React.FC = () => {
   const totalPages = Math.ceil(totalBooks / BOOKS_PER_PAGE);
 
   return (
-    <div className="min-h-screen font-sans" style={{ backgroundColor: "#f5f0e8" }}>
+    <div className="min-h-screen font-sans bg-[#f7f4ef]">
       <SEOHead
         title="Bestselling Books"
         description="Shop the bestselling books at BritBooks. The most popular titles chosen by thousands of readers — all at unbeatable prices with fast UK delivery."
@@ -398,239 +402,166 @@ const BestsellersPage: React.FC = () => {
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
       `}</style>
 
       <Toaster position="bottom-right" />
       <TopBar />
 
-      {/* ══════════════════════════════════════════════════════
-          HERO
-      ══════════════════════════════════════════════════════ */}
-      <header className="relative bg-[#0a1628] overflow-hidden">
-        {/* Subtle grid watermark */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 80px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 80px)",
-          }}
-        />
-        {/* Gold top line */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent" />
-
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20 text-center relative z-10">
-          {/* Breadcrumb */}
-          <nav className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest mb-10">
-            <Link to="/" className="text-white/55 hover:text-white/80 transition-colors">Home</Link>
-            <span className="text-white/20">/</span>
-            <span className="text-[#c9a84c]">Bestsellers</span>
-          </nav>
-
-          {/* Crown icon */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex justify-center mb-6"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-[#c9a84c]/10 border border-[#c9a84c]/20 flex items-center justify-center">
-              <Crown className="w-7 h-7 text-[#c9a84c]" />
+      {/* HERO */}
+      <header
+        className="relative pt-14 pb-12 px-6 md:px-8 overflow-hidden"
+        style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-black/30" />
+        <div className="relative z-10 max-w-[1440px] mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
+            <div>
+              <span className="text-white font-black uppercase tracking-[0.3em] mb-2 block">
+                Britain's Best
+              </span>
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter drop-shadow-xl">
+                Bestsellers
+              </h1>
             </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}>
-            <div className="inline-flex items-center gap-2 border border-[#c9a84c]/25 bg-[#c9a84c]/8 rounded-full px-4 py-1.5 mb-6">
-              <span className="text-base">🇬🇧</span>
-              <span className="text-xs text-[#c9a84c] font-semibold tracking-wide">Britain's best reads</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+            <div className="w-full md:w-auto md:min-w-[380px] max-w-md">
+              <GlobalSearchBar variant="light" placeholder="Search bestsellers…" />
             </div>
-
-            <h1 className="text-5xl sm:text-6xl xl:text-[72px] font-black text-white tracking-[-0.03em] leading-[1.02] mb-5">
-              The Nation's<br />
-              <span className="text-[#c9a84c]">Favourites.</span>
-            </h1>
-            <p className="text-white/70 text-base md:text-lg max-w-lg mx-auto">
-              Britain's most-loved books, ranked by real readers. Updated daily.
-            </p>
-          </motion.div>
-
-          {/* Stats row */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.55 }}
-            className="flex items-center justify-center gap-8 mt-12 pt-10 border-t border-white/8"
-          >
-            {[
-              { icon: <BookOpen className="w-3.5 h-3.5" />, val: "Daily", label: "new arrivals" },
-              { icon: <Star className="w-3.5 h-3.5" />, val: "4.8★", label: "avg. rating" },
-              { icon: <TrendingUp className="w-3.5 h-3.5" />, val: "Daily", label: "updated" },
-            ].map((s, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1.5 text-[#c9a84c]">
-                  {s.icon}
-                  <span className="text-sm font-black text-white">{s.val}</span>
-                </div>
-                <span className="text-[10px] text-white/60 uppercase tracking-widest font-semibold">{s.label}</span>
-              </div>
-            ))}
-          </motion.div>
+          </div>
         </div>
-
-        {/* Bottom curve into cream */}
-        <div className="absolute bottom-0 left-0 right-0 h-10" style={{ backgroundColor: "#f5f0e8", clipPath: "ellipse(55% 100% at 50% 100%)" }} />
       </header>
 
-      {/* ══════════════════════════════════════════════════════
-          CATEGORY FILTER
-      ══════════════════════════════════════════════════════ */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-10 pb-6">
-        <div className="sticky top-4 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-md rounded-2xl border border-[#e8e0d0] shadow-lg shadow-[#0a1628]/8 px-4 py-3">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-1">
+      {/* CONTENT */}
+      <div className="w-full px-4 sm:px-6 lg:px-10 pt-10 pb-32">
+        <div className="flex gap-8 xl:gap-12 items-start">
+
+          {/* SIDEBAR */}
+          <aside className="hidden lg:flex flex-col gap-2 w-52 xl:w-60 flex-shrink-0 sticky top-24">
+            <div className="flex items-center gap-2 mb-3">
+              <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Filter by genre</span>
+            </div>
+
             <button
               onClick={() => { setSelectedCategory(null); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-                !selectedCategory
-                  ? "bg-[#0a1628] text-white shadow-md"
-                  : "text-[#0a1628]/50 hover:text-[#0a1628] hover:bg-[#f5f0e8]"
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold text-left transition-all ${
+                !selectedCategory ? "bg-red-600 text-white shadow-md" : "text-gray-500 hover:text-gray-800 hover:bg-white"
               }`}
             >
+              <BookOpen className="w-4 h-4 flex-shrink-0" />
               All Genres
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => { setSelectedCategory(cat.name); setCurrentPage(1); }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-                  selectedCategory === cat.name
-                    ? "bg-[#c9a84c] text-[#0a1628] shadow-md"
-                    : "text-[#0a1628]/50 hover:text-[#0a1628] hover:bg-[#f5f0e8]"
-                }`}
-              >
-                {cat.name}
+
+            {categories.length === 0
+              ? Array(8).fill(0).map((_, i) => (
+                  <div key={i} className="h-10 rounded-2xl" style={{
+                    width: `${70 + (i % 3) * 10}%`,
+                    background: "linear-gradient(90deg,#f3f4f6 25%,#e9eaec 50%,#f3f4f6 75%)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer 1.4s ease infinite",
+                  }} />
+                ))
+              : categories.map((cat) => (
+                  <button key={cat.id}
+                    onClick={() => { setSelectedCategory(cat.name); setCurrentPage(1); }}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold text-left transition-all ${
+                      selectedCategory === cat.name ? "bg-red-600 text-white shadow-md" : "text-gray-500 hover:text-gray-800 hover:bg-white"
+                    }`}
+                  >
+                    <Tag className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{cat.name}</span>
+                  </button>
+                ))
+            }
+
+            {selectedCategory && (
+              <button onClick={() => { setSelectedCategory(null); setCurrentPage(1); }}
+                className="flex items-center gap-2 mt-2 px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-3.5 h-3.5" /> Clear filter
               </button>
-            ))}
+            )}
+          </aside>
+
+          {/* MAIN */}
+          <div className="flex-1 min-w-0">
+            {books.length === 0 && isLoading ? (
+              <div className="flex justify-center items-center py-32">
+                <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid #e5e7eb", borderTopColor: "#0a1628", animation: "spin 0.75s linear infinite" }} />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            ) : books.length === 0 ? (
+              <div className="py-24 flex flex-col items-center gap-4 text-center">
+                <Crown className="w-12 h-12 text-gray-200" />
+                <p className="font-black text-gray-700">No books found</p>
+                <button onClick={() => { setSelectedCategory(null); setCurrentPage(1); }}
+                  className="bg-[#0a1628] text-white font-bold text-sm px-6 py-3 rounded-2xl">Reset</button>
+              </div>
+            ) : (
+              <div style={{ opacity: isLoading ? 0.45 : 1, transition: "opacity 0.2s ease", pointerEvents: isLoading ? "none" : "auto" }}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
+                  {books.map((book, index) => {
+                    const rank = (currentPage - 1) * BOOKS_PER_PAGE + index + 1;
+                    const isTop3 = rank <= 3;
+                    return (
+                      <motion.div
+                        key={book.id || book._id}
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative group"
+                      >
+                        <div className={`absolute -top-3 -left-2 z-30 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black border shadow-sm transition-all duration-200 group-hover:scale-110 ${
+                          isTop3
+                            ? "bg-[#dc2626] text-white border-[#dc2626]"
+                            : "bg-white text-[#0a1628]/60 border-gray-200 group-hover:bg-[#0a1628] group-hover:text-white"
+                        }`}>
+                          #{rank}
+                        </div>
+                        {isTop3 && (
+                          <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20">
+                            <Crown className="w-3.5 h-3.5 text-[#dc2626] opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        )}
+                        <BookCard
+                          id={book._id || book.id || ""}
+                          img={book.imageUrl || ""}
+                          title={book.title}
+                          author={book.author}
+                          price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
+                          category={book.category}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!isLoading && totalPages > 1 && (
+              <div className="mt-16 flex justify-center gap-3">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => { setCurrentPage(p => p - 1); window.scrollTo(0, 0); }}
+                  className="flex items-center gap-1.5 h-11 px-5 rounded-2xl bg-gray-100 text-sm font-bold text-gray-500 disabled:opacity-30"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Prev
+                </button>
+                <span className="w-11 h-11 rounded-2xl bg-[#0a1628] text-white flex items-center justify-center text-sm font-black shadow-lg">
+                  {currentPage}
+                </span>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => { setCurrentPage(p => p + 1); window.scrollTo(0, 0); }}
+                  className="flex items-center gap-1.5 h-11 px-5 rounded-2xl bg-gray-100 text-sm font-bold text-gray-500 disabled:opacity-30"
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
-          {selectedCategory && (
-            <button
-              onClick={() => { setSelectedCategory(null); setCurrentPage(1); }}
-              className="shrink-0 flex items-center gap-1.5 text-xs text-[#0a1628]/40 hover:text-[#0a1628] transition-colors pl-3 border-l border-[#e8e0d0]"
-            >
-              <X size={13} /> Clear
-            </button>
-          )}
         </div>
       </div>
-
-      {/* ══════════════════════════════════════════════════════
-          BOOKS GRID
-      ══════════════════════════════════════════════════════ */}
-      <main className="max-w-7xl mx-auto px-6 lg:px-10 pb-28">
-        {/* Section header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="h-px flex-1 bg-[#0a1628]/10" />
-          <p className="text-[10px] font-bold text-[#0a1628]/60 uppercase tracking-[0.15em]">
-            {selectedCategory ? `${selectedCategory} · ` : ""}
-            {isLoading ? "Loading…" : selectedCategory || "All Best Sellers"}
-          </p>
-          <div className="h-px flex-1 bg-[#0a1628]/10" />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-10">
-          {isLoading
-            ? [...Array(12)].map((_, i) => <BookCardSkeleton key={i} />)
-            : books.map((book, index) => {
-                const rank = (currentPage - 1) * BOOKS_PER_PAGE + index + 1;
-                const isTop3 = rank <= 3;
-                return (
-                  <motion.div
-                    key={book.id || book._id}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
-                    className="relative group"
-                  >
-                    {/* Rank badge */}
-                    <div
-                      className={`absolute -top-3 -left-2 z-30 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black border shadow-sm transition-all duration-200 group-hover:scale-110 ${
-                        isTop3
-                          ? "bg-[#c9a84c] text-[#0a1628] border-[#c9a84c] shadow-[#c9a84c]/30"
-                          : "bg-white text-[#0a1628]/60 border-[#e8e0d0] group-hover:bg-[#0a1628] group-hover:text-white group-hover:border-[#0a1628]"
-                      }`}
-                    >
-                      #{rank}
-                    </div>
-                    {/* Top-3 crown indicator */}
-                    {isTop3 && (
-                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20">
-                        <Crown className="w-3.5 h-3.5 text-[#c9a84c] opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    )}
-                    <BookCard
-                      id={book._id || book.id || ""}
-                      img={book.imageUrl || ""}
-                      title={book.title}
-                      author={book.author}
-                      price={typeof book.price === "number" ? `£${book.price.toFixed(2)}` : book.price}
-                      category={book.category}
-                    />
-                  </motion.div>
-                );
-              })}
-        </div>
-
-        {/* ══════════════════════════════════════════════════════
-            PAGINATION
-        ══════════════════════════════════════════════════════ */}
-        {!isLoading && totalPages > 1 && (
-          <div className="mt-20 flex justify-center">
-            <nav className="inline-flex items-center gap-1 p-1.5 bg-white border border-[#e8e0d0] rounded-2xl shadow-md shadow-[#0a1628]/8">
-              <button
-                onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); window.scrollTo(0, 0); }}
-                disabled={currentPage === 1}
-                className="p-2.5 rounded-xl hover:bg-[#f5f0e8] disabled:opacity-20 transition-all text-[#0a1628]"
-              >
-                <ChevronLeft size={18} />
-              </button>
-
-              <div className="flex items-center gap-1 px-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                  .reduce<(number | "…")[]>((acc, p, idx, arr) => {
-                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push("…");
-                    acc.push(p);
-                    return acc;
-                  }, [])
-                  .map((item, i) =>
-                    item === "…" ? (
-                      <span key={`ellipsis-${i}`} className="w-8 text-center text-xs text-[#0a1628]/30 font-bold">…</span>
-                    ) : (
-                      <button
-                        key={item}
-                        onClick={() => { setCurrentPage(item as number); window.scrollTo(0, 0); }}
-                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
-                          currentPage === item
-                            ? "bg-[#0a1628] text-white shadow-sm"
-                            : "text-[#0a1628]/50 hover:bg-[#f5f0e8] hover:text-[#0a1628]"
-                        }`}
-                      >
-                        {item}
-                      </button>
-                    )
-                  )}
-              </div>
-
-              <button
-                onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); window.scrollTo(0, 0); }}
-                disabled={currentPage === totalPages}
-                className="p-2.5 rounded-xl hover:bg-[#f5f0e8] disabled:opacity-20 transition-all text-[#0a1628]"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </nav>
-          </div>
-        )}
-      </main>
 
       <Footer />
     </div>
