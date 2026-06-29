@@ -11,6 +11,7 @@ import {
   claimGameReward,
 } from '../services/campaignService.js';
 import { sendNewArrivalsEmail } from '../services/nexcessService.js';
+import { sendAIMarketingEmail } from '../services/marketingService.js';
 import { MarketplaceListing } from '../models/MarketPlace.js';
 import User from '../models/User.js';
 
@@ -382,6 +383,29 @@ export const redeem = async (req, res) => {
   }
 };
 
+// POST /api/campaigns/send-ai-marketing  — AI-generated ad email blast
+export const triggerAIMarketingEmail = async (req, res) => {
+  try {
+    const { campaignId, bookIds, audience = 'all', preview = false } = req.body;
+
+    const result = await sendAIMarketingEmail({ campaignId, bookIds, audience, preview });
+
+    res.json({
+      success: true,
+      message: preview
+        ? 'AI marketing preview sent to admin inbox'
+        : `AI marketing email sent to ${result.sent} users`,
+      subject: result.subject,
+      sent: result.sent,
+      skipped: result.skipped,
+      ...(preview && { html: result.html }),
+    });
+  } catch (err) {
+    console.error('AI marketing email failed:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // POST /api/campaigns/send-new-arrivals  — admin manual trigger
 export const triggerNewArrivalsEmail = async (req, res) => {
   try {
@@ -403,7 +427,7 @@ export const triggerNewArrivalsEmail = async (req, res) => {
     }
 
     // Fetch recipients
-    const userQuery = { isVerified: true, role: 'user', status: 'active' };
+    const userQuery = { role: 'user', status: { $ne: 'suspended' } };
     if (audience === 'test' && req.user?.email) {
       // Send only to the triggering admin for preview
       const adminUser = await User.findById(req.user.userId).select('fullName email').lean();
