@@ -72,11 +72,9 @@ class ChatService {
         ? `Subject: ${subject}\nDescription: ${description || "No description provided"}`
         : "Hello, I need help.";
 
-      // Only return an existing chat when no subject is given (i.e. not an intentional new ticket)
-      if (!subject) {
-        const existing = await Chat.findOne({ participants: userId, type: "support", status: "open" });
-        if (existing) return existing;
-      }
+      // Return existing open chat for this user if one exists
+      const existing = await Chat.findOne({ participants: userId, type: "support", status: "open" });
+      if (existing) return existing;
 
       const userMessage = {
         senderId: userId,

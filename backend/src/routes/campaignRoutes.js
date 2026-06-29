@@ -16,7 +16,6 @@ import {
   getCampaignListings,
   endClearanceCampaign,
   triggerNewArrivalsEmail,
-  triggerAIMarketingEmail,
 } from '../app/controllers/campaignController.js';
 import verifyTokenMiddleware from '../app/middleware/verifyTokenMiddleware.js';
 import authMiddleware from '../app/middleware/authMiddleware.js';
@@ -35,7 +34,6 @@ router.post('/generate-code', verifyTokenMiddleware, authMiddleware, authorizeAd
 router.get('/clearance/suggestions', verifyTokenMiddleware, authMiddleware, authorizeAdmin, clearanceSuggestions);
 router.post('/clearance', verifyTokenMiddleware, authMiddleware, authorizeAdmin, createClearance);
 router.post('/send-new-arrivals', verifyTokenMiddleware, authMiddleware, authorizeAdmin, triggerNewArrivalsEmail);
-router.post('/send-ai-marketing', verifyTokenMiddleware, authMiddleware, authorizeAdmin, triggerAIMarketingEmail);
 
 // Admin — CRUD
 router.get('/', verifyTokenMiddleware, authMiddleware, authorizeAdmin, getCampaigns);
