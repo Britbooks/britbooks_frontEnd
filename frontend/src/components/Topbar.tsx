@@ -261,67 +261,71 @@ const TopBar = () => {
     <header className="sticky top-0 z-50">
 
       {/* ═══════════════════════════════════════════════
-          MOBILE TOPBAR — navy bar + popover menu
+          MOBILE TOPBAR — modern bottom-sheet menu
       ═══════════════════════════════════════════════ */}
       <div className="sm:hidden">
 
         {/* ── Main bar ── */}
         <div
-          className="relative bg-white flex items-center px-4 py-2.5"
-          style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05)' }}
+          className="relative flex items-center h-14 px-4"
+          style={{
+            background: 'rgba(10,22,40,0.18)',
+            backdropFilter: 'blur(20px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+          }}
         >
-          {/* Left: menu button */}
+          {/* Left: animated hamburger */}
           <motion.button
-            whileTap={{ scale: 0.82 }}
+            whileTap={{ scale: 0.85 }}
             onClick={toggleMobileMenu}
-            className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: isMobileMenuOpen ? '#0a1628' : '#f3f4f6' }}
+            className="w-9 h-9 flex flex-col items-center justify-center gap-[5px] flex-shrink-0 rounded-xl"
+            style={{ background: isMobileMenuOpen ? 'rgba(255,255,255,0.12)' : 'transparent' }}
+            aria-label="Menu"
           >
-            <AnimatePresence mode="wait">
-              {isMobileMenuOpen ? (
-                <motion.span key="x"
-                  initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.13 }}
-                  className="flex items-center justify-center"
-                >
-                  <XIcon className="h-4 w-4 text-white" />
-                </motion.span>
-              ) : (
-                <motion.span key="menu"
-                  initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.13 }}
-                  className="flex items-center justify-center"
-                >
-                  <MenuIcon className="h-4 w-4 text-gray-700" />
-                </motion.span>
-              )}
-            </AnimatePresence>
+            <motion.span
+              animate={isMobileMenuOpen ? { rotate: 45, y: 5 } : { rotate: 0, y: 0 }}
+              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+              className="block h-[2px] w-5 bg-white rounded-full origin-center"
+            />
+            <motion.span
+              animate={isMobileMenuOpen ? { opacity: 0, scaleX: 0 } : { opacity: 1, scaleX: 1 }}
+              transition={{ duration: 0.15 }}
+              className="block h-[2px] w-3.5 bg-white/70 rounded-full self-start"
+            />
+            <motion.span
+              animate={isMobileMenuOpen ? { rotate: -45, y: -5 } : { rotate: 0, y: 0 }}
+              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+              className="block h-[2px] w-5 bg-white rounded-full origin-center"
+            />
           </motion.button>
 
-          {/* Centre: logo — truly centred with flex */}
-          <div className="flex-1 flex justify-center">
-            <Link to="/">
-              <img src="/logobrit.png" alt="BritBooks" className="h-9 w-auto object-contain" />
+          {/* Centre: logo — absolutely centred, never displaced by icon widths */}
+          <div className="absolute left-0 right-0 flex justify-center pointer-events-none">
+            <Link to="/" className="pointer-events-auto">
+              <img src="/logobrit.png" alt="BritBooks" className="h-9 w-auto object-contain"
+                style={{ filter: 'brightness(0) invert(1)' }} />
             </Link>
           </div>
 
           {/* Right: search + cart */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="ml-auto flex items-center gap-0.5">
             <motion.button
-              whileTap={{ scale: 0.82 }}
+              whileTap={{ scale: 0.85 }}
               onClick={() => setMobileSearchOpen(v => !v)}
-              className="w-9 h-9 rounded-2xl bg-gray-100 flex items-center justify-center"
+              className="w-9 h-9 flex items-center justify-center rounded-xl"
+              style={{ background: mobileSearchOpen ? 'rgba(255,255,255,0.15)' : 'transparent' }}
+              aria-label="Search"
             >
-              <SearchIcon className="h-4 w-4 text-gray-600" />
+              <SearchIcon className="h-[18px] w-[18px] text-white" />
             </motion.button>
 
-            <motion.div whileTap={{ scale: 0.82 }} className="relative">
-              <Link to="/checkout"
-                className="w-9 h-9 rounded-2xl bg-gray-100 flex items-center justify-center">
-                <ShoppingBag className="h-4 w-4 text-gray-700" />
+            <motion.div whileTap={{ scale: 0.85 }} className="relative">
+              <Link to="/checkout" className="w-9 h-9 flex items-center justify-center rounded-xl" aria-label="Basket">
+                <ShoppingBag className="h-[18px] w-[18px] text-white" />
               </Link>
               {cartCount > 0 && (
-                <span className="pointer-events-none absolute -top-1 -right-1 min-w-[17px] h-[17px] px-0.5 rounded-full bg-[#c9a84c] text-black text-[9px] font-black flex items-center justify-center">
+                <span className="pointer-events-none absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[#c9a84c] text-black text-[9px] font-black flex items-center justify-center leading-none">
                   {cartCount}
                 </span>
               )}
@@ -337,24 +341,31 @@ const TopBar = () => {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              className="overflow-hidden bg-white border-b border-gray-100"
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+              style={{
+                background: 'rgba(10,22,40,0.22)',
+                backdropFilter: 'blur(20px) saturate(1.6)',
+                WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+              }}
               ref={searchRef}
             >
               <div className="px-4 py-3">
-                <div className="flex items-center bg-gray-100 rounded-2xl px-4 py-3 gap-2">
-                  <SearchIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <div className="flex items-center rounded-full px-4 py-2.5 gap-2"
+                  style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <SearchIcon className="w-4 h-4 text-white/60 flex-shrink-0" />
                   <input
                     type="text"
                     placeholder="Search books, authors…"
                     autoFocus
-                    className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                    className="flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none"
                     value={searchQuery}
                     onChange={handleInputChange}
                   />
                   {searchQuery && (
                     <button onClick={clearSearch}>
-                      <XIcon className="h-3.5 w-3.5 text-gray-400" />
+                      <XIcon className="h-3.5 w-3.5 text-white/50" />
                     </button>
                   )}
                 </div>
@@ -386,43 +397,45 @@ const TopBar = () => {
           )}
         </AnimatePresence>
 
-        {/* ── POPOVER MENU — pops from the menu button (top-right origin) ── */}
+        {/* ── BOTTOM SHEET MENU ── */}
         <AnimatePresence>
           {isMobileMenuOpen && (
             <>
-              {/* Tap-away backdrop */}
+              {/* Backdrop */}
               <motion.div
-                key="pop-backdrop"
+                key="sheet-backdrop"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: 0.22 }}
                 className="fixed inset-0 z-40"
+                style={{ background: 'rgba(10,22,40,0.5)', backdropFilter: 'blur(3px)' }}
                 onClick={toggleMobileMenu}
               />
 
-              {/* Popover card — scales from top-right (menu button corner) */}
+              {/* Sheet panel */}
               <motion.div
-                key="pop-menu"
-                initial={{ opacity: 0, scale: 0.72, y: -8 }}
-                animate={{ opacity: 1, scale: 1,    y: 0  }}
-                exit={{   opacity: 0, scale: 0.72, y: -8  }}
-                transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-                style={{
-                  transformOrigin: 'top right',
-                  boxShadow: '0 20px 60px rgba(10,22,40,0.28), 0 4px 16px rgba(10,22,40,0.12)',
-                }}
-                className="fixed top-[58px] left-3 right-3 z-50 bg-white rounded-3xl overflow-hidden"
+                key="sheet-panel"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[28px] overflow-hidden"
+                style={{ maxHeight: '90vh', boxShadow: '0 -8px 40px rgba(10,22,40,0.18)' }}
               >
-                {/* Scrollable inner */}
-                <div className="overflow-y-auto" style={{ maxHeight: '82vh' }}>
+                {/* Drag handle */}
+                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                  <div className="w-9 h-1 bg-gray-200 rounded-full" />
+                </div>
 
-                  {/* User strip */}
-                  <div className="bg-[#0a1628] px-4 py-4 flex items-center gap-3">
+                <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(90vh - 28px)' }}>
+
+                  {/* User card */}
+                  <div className="mx-4 mt-2 mb-3 rounded-2xl overflow-hidden" style={{ background: '#0a1628' }}>
                     {user ? (
-                      <>
-                        <div className="w-10 h-10 rounded-full bg-[#c9a84c] flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#0a1628] font-black text-sm">
+                      <div className="flex items-center gap-3 px-4 py-4">
+                        <div className="w-11 h-11 rounded-full bg-[#c9a84c] flex items-center justify-center flex-shrink-0">
+                          <span className="text-[#0a1628] font-black text-base">
                             {user.fullName?.charAt(0)?.toUpperCase() || 'U'}
                           </span>
                         </div>
@@ -432,27 +445,30 @@ const TopBar = () => {
                         </div>
                         <button
                           onClick={() => { logout?.(); toggleMobileMenu(); }}
-                          className="flex items-center gap-1.5 bg-white/10 text-white text-xs font-bold px-3 py-1.5 rounded-xl"
+                          className="flex items-center gap-1 bg-white/10 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex-shrink-0"
                         >
                           <LogOut size={11} /> Sign out
                         </button>
-                      </>
+                      </div>
                     ) : (
-                      <div className="flex gap-2 w-full">
-                        <Link to="/login" onClick={toggleMobileMenu}
-                          className="flex-1 flex items-center justify-center gap-1.5 bg-[#c9a84c] text-black font-black text-sm py-2.5 rounded-xl">
-                          <LogIn size={14} /> Sign In
-                        </Link>
-                        <Link to="/signup" onClick={toggleMobileMenu}
-                          className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 text-green font-bold text-sm py-2.5 rounded-xl border border-white/20">
-                          <UserPlus size={14} /> Register
-                        </Link>
+                      <div className="px-4 py-4">
+                        <p className="text-white/50 text-xs mb-3 font-medium">Join BritBooks for exclusive deals</p>
+                        <div className="flex gap-2">
+                          <Link to="/login" onClick={toggleMobileMenu}
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-[#c9a84c] text-black font-black text-sm py-2.5 rounded-xl">
+                            <LogIn size={14} /> Sign In
+                          </Link>
+                          <Link to="/signup" onClick={toggleMobileMenu}
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 text-white font-bold text-sm py-2.5 rounded-xl border border-white/15">
+                            <UserPlus size={14} /> Register
+                          </Link>
+                        </div>
                       </div>
                     )}
                   </div>
 
                   {/* Flash sale banner */}
-                  <div className="p-3">
+                  <div className="mx-4 mb-4">
                     <Link to="/special-offers" onClick={toggleMobileMenu}
                       className="flex items-center gap-3 px-4 py-3 rounded-2xl"
                       style={{ background: 'linear-gradient(135deg,#c9a84c,#e8c96a)' }}>
@@ -461,47 +477,49 @@ const TopBar = () => {
                       </div>
                       <div className="flex-1">
                         <p className="text-black font-black text-xs">Special Offers — Great Deals</p>
-                        <p className="text-black/60 text-[10px] font-medium mt-0.5">Spin, scratch &amp; win discount codes.</p>
+                        <p className="text-black/60 text-[10px] mt-0.5">Spin, scratch &amp; win discount codes.</p>
                       </div>
                       <ChevronRight size={14} className="text-black/40 flex-shrink-0" />
                     </Link>
                   </div>
 
-                  {/* Quick nav — 3-column icon grid */}
-                  <div className="px-3 pb-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Quick Access</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { to: '/',              icon: Home,          label: 'Home',         bg: '#eef2ff', color: '#6366f1' },
-                        { to: '/popular-books', icon: TrendingUp,    label: 'Popular',      bg: '#ecfdf5', color: '#10b981' },
-                        { to: '/new-arrivals',  icon: Sparkles,      label: 'New In',       bg: '#fffbeb', color: '#f59e0b' },
-                        { to: '/bestsellers',   icon: Trophy,        label: 'Best Sellers', bg: '#fef2f2', color: '#ef4444' },
-                        { to: '/special-offers', icon: Tag,           label: 'Offers',       bg: '#f5f3ff', color: '#8b5cf6' },
-                        { to: '/category',      icon: Grid3X3,       label: 'Categories',   bg: '#fff7ed', color: '#f97316' },
-                        { to: '/wishlist',      icon: HeartIcon,     label: 'Wishlist',     bg: '#fdf2f8', color: '#ec4899' },
-                        { to: '/checkout',      icon: Package,       label: 'Basket',       bg: '#f0fdf4', color: '#22c55e' },
-                        { to: '/help',          icon: MessageCircle, label: 'Support',      bg: '#f0f9ff', color: '#0ea5e9' },
-                      ].map((item) => (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          onClick={toggleMobileMenu}
-                          className="flex flex-col items-center gap-1.5 py-3 rounded-2xl active:opacity-70 transition-opacity"
-                          style={{ background: item.bg }}
-                        >
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                            style={{ background: `${item.color}22` }}>
-                            <item.icon size={15} style={{ color: item.color }} />
-                          </div>
-                          <span className="text-[10px] font-bold text-gray-700 text-center leading-tight">{item.label}</span>
-                        </Link>
-                      ))}
+                  {/* Quick nav — horizontal scroll pills */}
+                  <div className="mb-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 px-4">Quick Access</p>
+                    <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+                      <div className="flex gap-2.5 px-4 pb-1" style={{ width: 'max-content' }}>
+                        {[
+                          { to: '/',               icon: Home,          label: 'Home',         bg: '#eef2ff', color: '#6366f1' },
+                          { to: '/popular-books',  icon: TrendingUp,    label: 'Popular',      bg: '#ecfdf5', color: '#10b981' },
+                          { to: '/new-arrivals',   icon: Sparkles,      label: 'New In',       bg: '#fffbeb', color: '#f59e0b' },
+                          { to: '/bestsellers',    icon: Trophy,        label: 'Best Sellers', bg: '#fef2f2', color: '#ef4444' },
+                          { to: '/special-offers', icon: Tag,           label: 'Offers',       bg: '#f5f3ff', color: '#8b5cf6' },
+                          { to: '/category',       icon: Grid3X3,       label: 'Categories',   bg: '#fff7ed', color: '#f97316' },
+                          { to: '/wishlist',       icon: HeartIcon,     label: 'Wishlist',     bg: '#fdf2f8', color: '#ec4899' },
+                          { to: '/checkout',       icon: Package,       label: 'Basket',       bg: '#f0fdf4', color: '#22c55e' },
+                          { to: '/help',           icon: MessageCircle, label: 'Support',      bg: '#f0f9ff', color: '#0ea5e9' },
+                        ].map((item) => (
+                          <Link
+                            key={item.to}
+                            to={item.to}
+                            onClick={toggleMobileMenu}
+                            className="flex flex-col items-center gap-1.5 py-3 rounded-2xl active:opacity-70 transition-opacity flex-shrink-0"
+                            style={{ background: item.bg, minWidth: 70, paddingLeft: 10, paddingRight: 10 }}
+                          >
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                              style={{ background: `${item.color}20` }}>
+                              <item.icon size={17} style={{ color: item.color }} />
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-700 text-center leading-tight">{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   {/* Shop by Category list */}
-                  <div className="px-3 pt-3 pb-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Shop by Category</p>
+                  <div className="mx-4 mb-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5">Shop by Category</p>
                     <div className="bg-gray-50 rounded-2xl overflow-hidden divide-y divide-gray-100">
                       {categories.slice(0, 7).map((cat) => (
                         <Link
@@ -524,7 +542,7 @@ const TopBar = () => {
                   </div>
 
                   {/* Footer */}
-                  <div className="px-4 py-3 flex items-center justify-between border-t border-gray-100 mt-2">
+                  <div className="mx-4 pb-8 pt-1 flex items-center justify-between border-t border-gray-100">
                     <a href="mailto:customercare@britbooks.co.uk"
                       className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
                       <Mail size={11} /> customercare@britbooks.co.uk
