@@ -783,118 +783,111 @@ const Homepage = () => {
   };
 
   const CategoryModal = () => {
-    if (!modalOpen) return null;
-  
-    const categorySlug =
-      selectedCategory === "All Books"
-        ? "all"
-        : selectedCategory
-            ?.toLowerCase()
-            .replace(/\s+/g, "-")
-            .replace(/[^a-z0-9-]/g, "") || "";
-  
+    const heroBg = selectedCategory ? getCategoryPlaceholderImage(selectedCategory) : '';
+
     return (
-      // Overlay – does NOT scroll, captures clicks to close
-      <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-10 sm:pt-16 px-4 overflow-y-auto"
-        onClick={() => setModalOpen(false)}
-      >
-        {/* Modal card */}
-        <div
-          className="
-            bg-white rounded-2xl shadow-2xl
-            w-full max-w-4xl
-            max-h-[85vh]
-            flex flex-col
-            my-4 sm:my-8               // breathing room top/bottom
-          "
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header – fixed / non-scrolling */}
-          <div className="shrink-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white relative rounded-t-2xl">
-            <div className="px-5 py-5 sm:py-6 text-center">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                {selectedCategory}
-              </h1>
-              <p className="text-sm sm:text-base opacity-90 mt-1">
-                Quality used books • Quick preview
-              </p>
-  
-              <button
-                onClick={() => setModalOpen(false)}
-                className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-white/25 hover:bg-white/40 rounded-full p-2 transition"
-                aria-label="Close modal"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-  
-          {/* Scrollable books/content area */}
-          <div className="flex-1 overflow-y-auto overscroll-contain bg-gray-50">
-            <div className="p-5 sm:p-6">
-              {modalLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 sm:gap-6">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-gray-200 rounded-xl aspect-[3/4] animate-pulse shadow-sm"
-                    />
-                  ))}
-                </div>
-              ) : modalBooks.length > 0 ? (
-                <div className="space-y-8 sm:space-y-10">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 sm:gap-6">
-                    {modalBooks.slice(0, 12).map((book) => (
-                      <BookCard key={book.id} {...book} />
-                    ))}
-                  </div>
-  
-                  <div className="text-center pb-4 sm:pb-6">
-  <Link
-    to={`/category?category=${encodeURIComponent(selectedCategory || '')}`}
-    onClick={() => setModalOpen(false)}
-    className="
-      inline-block px-7 sm:px-8 py-3 
-      bg-gradient-to-r from-purple-600 to-pink-600 
-      text-white text-base font-bold 
-      rounded-full hover:shadow-xl hover:scale-105 
-      transition duration-300
-    "
-  >
-    View Full Collection →
-  </Link>
-</div>
-                </div>
-              ) : (
-                <div className="text-center py-12 sm:py-16">
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
-                    Nothing here yet in {selectedCategory}
-                  </h3>
-                  <button
-                    onClick={() => setModalOpen(false)}
-                    className="px-8 py-3 bg-gray-800 text-white text-base font-bold rounded-full hover:bg-gray-900 transition"
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-  
-          {/* Mobile-only bottom bar */}
-          <div className="shrink-0 p-4 bg-white border-t md:hidden">
-            <button
+      <AnimatePresence>
+        {modalOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="fixed inset-0 z-50"
+              style={{ background: "rgba(10,22,40,0.55)", backdropFilter: "blur(4px)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setModalOpen(false)}
-              className="w-full py-3.5 bg-black text-white text-base font-bold rounded-xl hover:bg-gray-900 transition"
+            />
+
+            {/* Right drawer panel */}
+            <motion.div
+              className="fixed inset-y-0 right-0 z-50 flex flex-col"
+              style={{ width: "min(680px, 100vw)", background: "#fff" }}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 32, stiffness: 320 }}
             >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
+              {/* Hero header with category photo */}
+              <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 220 }}>
+                <img
+                  src={heroBg}
+                  alt={selectedCategory || ''}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to top, #0a1628 0%, rgba(10,22,40,0.65) 55%, rgba(10,22,40,0.25) 100%)" }}
+                />
+
+                {/* Back / close */}
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="absolute top-4 left-5 flex items-center gap-1.5 text-white/80 hover:text-white transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span className="text-sm font-semibold tracking-wide">Close</span>
+                </button>
+
+                {/* Category label */}
+                <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
+                  <p className="text-white/50 text-[10px] font-bold tracking-[0.25em] uppercase mb-1">
+                    Shop by Category
+                  </p>
+                  <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-none">
+                    {selectedCategory}
+                  </h2>
+                </div>
+              </div>
+
+              {/* Book grid — scrollable */}
+              <div className="flex-1 overflow-y-auto overscroll-contain" style={{ background: "#f7f4ef" }}>
+                <div className="p-5 sm:p-6">
+                  {modalLoading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="rounded-xl animate-pulse" style={{ background: "#e5e1db", aspectRatio: "3/4" }} />
+                      ))}
+                    </div>
+                  ) : modalBooks.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {modalBooks.slice(0, 12).map((book) => (
+                        <BookCard key={book.id} {...book} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                      <span className="text-5xl mb-4">📚</span>
+                      <h3 className="text-lg font-bold mb-1" style={{ color: "#0a1628" }}>
+                        Nothing here yet
+                      </h3>
+                      <p className="text-sm text-gray-500">No books in {selectedCategory} right now</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sticky footer CTA */}
+              <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-4">
+                <Link
+                  to={`/category?category=${encodeURIComponent(selectedCategory || '')}`}
+                  onClick={() => setModalOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full py-4 text-white text-sm font-black tracking-widest uppercase rounded-xl transition hover:opacity-90 active:scale-[0.98]"
+                  style={{ background: "#dc2626" }}
+                >
+                  View Full Collection
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     );
   };
   
