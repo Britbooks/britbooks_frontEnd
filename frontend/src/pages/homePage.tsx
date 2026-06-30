@@ -1332,37 +1332,34 @@ const Homepage = () => {
         <Footer />
       </div>
 
-      {/* ── Category Modal ── */}
+      {/* ── Category Drawer ── */}
       <AnimatePresence>
         {modalOpen && (
-          <motion.div
-            key="cat-overlay"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-            style={{ background: "rgba(10,22,40,0.7)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={() => setModalOpen(false)}
-          >
+          <>
+            {/* Backdrop */}
             <motion.div
-              key="cat-card"
-              className="relative flex flex-col w-full overflow-hidden"
-              style={{
-                maxWidth: 860,
-                maxHeight: "90vh",
-                background: "#fff",
-                borderRadius: 20,
-                boxShadow: "0 32px 80px rgba(10,22,40,0.35)",
-              }}
-              initial={{ opacity: 0, scale: 0.94, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 16 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              onClick={(e) => e.stopPropagation()}
+              key="cat-backdrop"
+              className="fixed inset-0 z-50"
+              style={{ background: "rgba(10,22,40,0.6)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setModalOpen(false)}
+            />
+
+            {/* Right drawer */}
+            <motion.div
+              key="cat-drawer"
+              className="fixed top-0 right-0 bottom-0 z-[51] flex flex-col bg-white shadow-2xl"
+              style={{ width: "min(680px, 100vw)" }}
+              initial={{ x: "100%" }}
+              animate={{ x: "0%" }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             >
               {/* Hero header */}
-              <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 180 }}>
+              <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 200 }}>
                 <img
                   src={categoryHeroBg}
                   alt={selectedCategory || ''}
@@ -1370,9 +1367,8 @@ const Homepage = () => {
                 />
                 <div
                   className="absolute inset-0"
-                  style={{ background: "linear-gradient(to top, #0a1628 0%, rgba(10,22,40,0.6) 60%, rgba(10,22,40,0.2) 100%)" }}
+                  style={{ background: "linear-gradient(to top, #0a1628 0%, rgba(10,22,40,0.65) 55%, rgba(10,22,40,0.2) 100%)" }}
                 />
-                {/* Close */}
                 <button
                   onClick={() => setModalOpen(false)}
                   className="absolute top-4 right-4 flex items-center justify-center w-9 h-9 rounded-full transition"
@@ -1396,13 +1392,13 @@ const Homepage = () => {
               <div className="flex-1 overflow-y-auto overscroll-contain" style={{ background: "#f7f4ef" }}>
                 <div className="p-5 sm:p-6">
                   {modalLoading ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {[...Array(8)].map((_, i) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {[...Array(6)].map((_, i) => (
                         <div key={i} className="rounded-xl animate-pulse" style={{ background: "#e5e1db", aspectRatio: "3/4.5" }} />
                       ))}
                     </div>
                   ) : modalBooks.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {modalBooks.slice(0, 12).map((book) => (
                         <BookCard key={book.id} {...book} />
                       ))}
@@ -1418,7 +1414,7 @@ const Homepage = () => {
               </div>
 
               {/* Footer CTA */}
-              <div className="flex-shrink-0 border-t px-6 py-4" style={{ background: "#fff", borderColor: "#ede9e0" }}>
+              <div className="flex-shrink-0 border-t px-6 py-4 bg-white" style={{ borderColor: "#ede9e0" }}>
                 <Link
                   to={`/category?category=${encodeURIComponent(selectedCategory || '')}`}
                   onClick={() => setModalOpen(false)}
@@ -1432,7 +1428,7 @@ const Homepage = () => {
                 </Link>
               </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
