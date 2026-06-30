@@ -1335,28 +1335,29 @@ const Homepage = () => {
       {/* ── Category Drawer ── */}
       <AnimatePresence>
         {modalOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              key="cat-backdrop"
-              className="fixed inset-0 z-50"
-              style={{ background: "rgba(10,22,40,0.6)" }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+          <motion.div
+            key="cat-root"
+            className="fixed inset-0 z-50 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Backdrop — click to close */}
+            <div
+              className="absolute inset-0"
+              style={{ background: "rgba(10,22,40,0.55)" }}
               onClick={() => setModalOpen(false)}
             />
 
-            {/* Right drawer */}
+            {/* Drawer panel — slides in from right */}
             <motion.div
-              key="cat-drawer"
-              className="fixed top-0 right-0 bottom-0 z-[51] flex flex-col bg-white shadow-2xl"
-              style={{ width: "min(680px, 100vw)" }}
+              className="absolute top-0 right-0 bottom-0 flex flex-col bg-white"
+              style={{ width: "min(680px, 100vw)", boxShadow: "-8px 0 40px rgba(10,22,40,0.2)" }}
               initial={{ x: "100%" }}
-              animate={{ x: "0%" }}
+              animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "tween", duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+              transition={{ type: "tween", duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
             >
               {/* Hero header */}
               <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 200 }}>
@@ -1428,7 +1429,7 @@ const Homepage = () => {
                 </Link>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
