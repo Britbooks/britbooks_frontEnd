@@ -1332,32 +1332,37 @@ const Homepage = () => {
         <Footer />
       </div>
 
-      {/* ── Category Drawer ── */}
+      {/* ── Category Modal ── */}
       <AnimatePresence>
         {modalOpen && (
-          <>
+          <motion.div
+            key="cat-overlay"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+            style={{ background: "rgba(10,22,40,0.7)" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setModalOpen(false)}
+          >
             <motion.div
-              key="cat-backdrop"
-              className="fixed inset-0 z-50"
-              style={{ background: "rgba(10,22,40,0.55)", backdropFilter: "blur(4px)" }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setModalOpen(false)}
-            />
-
-            <motion.div
-              key="cat-drawer"
-              className="fixed inset-y-0 right-0 z-[51] flex flex-col"
-              style={{ width: "min(680px, 100vw)", background: "#fff" }}
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 32, stiffness: 320 }}
+              key="cat-card"
+              className="relative flex flex-col w-full overflow-hidden"
+              style={{
+                maxWidth: 860,
+                maxHeight: "90vh",
+                background: "#fff",
+                borderRadius: 20,
+                boxShadow: "0 32px 80px rgba(10,22,40,0.35)",
+              }}
+              initial={{ opacity: 0, scale: 0.94, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Hero header */}
-              <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 220 }}>
+              <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 180 }}>
                 <img
                   src={categoryHeroBg}
                   alt={selectedCategory || ''}
@@ -1365,19 +1370,20 @@ const Homepage = () => {
                 />
                 <div
                   className="absolute inset-0"
-                  style={{ background: "linear-gradient(to top, #0a1628 0%, rgba(10,22,40,0.65) 55%, rgba(10,22,40,0.25) 100%)" }}
+                  style={{ background: "linear-gradient(to top, #0a1628 0%, rgba(10,22,40,0.6) 60%, rgba(10,22,40,0.2) 100%)" }}
                 />
+                {/* Close */}
                 <button
                   onClick={() => setModalOpen(false)}
-                  className="absolute top-4 left-5 flex items-center gap-1.5 text-white/80 hover:text-white transition"
+                  className="absolute top-4 right-4 flex items-center justify-center w-9 h-9 rounded-full transition"
+                  style={{ background: "rgba(255,255,255,0.15)" }}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <span className="text-sm font-semibold tracking-wide">Close</span>
                 </button>
                 <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
-                  <p className="text-white/50 text-[10px] font-bold tracking-[0.25em] uppercase mb-1">
+                  <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, fontWeight: 700, letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 4 }}>
                     Shop by Category
                   </p>
                   <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-none">
@@ -1386,27 +1392,25 @@ const Homepage = () => {
                 </div>
               </div>
 
-              {/* Book grid */}
+              {/* Book grid — scrollable */}
               <div className="flex-1 overflow-y-auto overscroll-contain" style={{ background: "#f7f4ef" }}>
                 <div className="p-5 sm:p-6">
                   {modalLoading ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {[...Array(6)].map((_, i) => (
-                        <div key={i} className="rounded-xl animate-pulse" style={{ background: "#e5e1db", aspectRatio: "3/4" }} />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {[...Array(8)].map((_, i) => (
+                        <div key={i} className="rounded-xl animate-pulse" style={{ background: "#e5e1db", aspectRatio: "3/4.5" }} />
                       ))}
                     </div>
                   ) : modalBooks.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {modalBooks.slice(0, 12).map((book) => (
                         <BookCard key={book.id} {...book} />
                       ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
                       <span className="text-5xl mb-4">📚</span>
-                      <h3 className="text-lg font-bold mb-1" style={{ color: "#0a1628" }}>
-                        Nothing here yet
-                      </h3>
+                      <h3 className="text-lg font-bold mb-1" style={{ color: "#0a1628" }}>Nothing here yet</h3>
                       <p className="text-sm text-gray-500">No books in {selectedCategory} right now</p>
                     </div>
                   )}
@@ -1414,11 +1418,11 @@ const Homepage = () => {
               </div>
 
               {/* Footer CTA */}
-              <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-4">
+              <div className="flex-shrink-0 border-t px-6 py-4" style={{ background: "#fff", borderColor: "#ede9e0" }}>
                 <Link
                   to={`/category?category=${encodeURIComponent(selectedCategory || '')}`}
                   onClick={() => setModalOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full py-4 text-white text-sm font-black tracking-widest uppercase rounded-xl transition hover:opacity-90 active:scale-[0.98]"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 text-white text-sm font-black tracking-widest uppercase rounded-xl transition hover:opacity-90"
                   style={{ background: "#dc2626" }}
                 >
                   View Full Collection
@@ -1428,7 +1432,7 @@ const Homepage = () => {
                 </Link>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
