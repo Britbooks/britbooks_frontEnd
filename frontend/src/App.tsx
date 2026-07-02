@@ -34,7 +34,8 @@ import CreditSlipsPage from './pages/CreditSlips';
 import NotFoundPage from './pages/NotFound';
 import ForgotPasswordPage from './pages/ForgotPassword';
 
-import { AuthProvider } from './context/authContext'; 
+import NotificationModal from './components/NotificationModal';
+import { AuthProvider } from './context/authContext';
 import { CartProvider } from './context/cartContext';
 import { RecentlyViewedProvider } from './context/viewManager';
 import { WishlistProvider } from './context/wishlistContext';
@@ -56,6 +57,7 @@ const App: React.FC = () => {
           <WishlistProvider>
             
             <ScrollToTop />
+            <NotificationModal />
             <Routes>
               <Route path="/" element={<Homepage />} />
               <Route path="/explore" element={<ExplorePage />} />
