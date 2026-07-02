@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'https://britbooks-api-production-8ebd.up.railway.app';
 const SESSION_KEY = 'britbooks_notif_seen';
@@ -10,6 +12,7 @@ interface Notification {
   ctaText?: string;
   ctaLink?: string;
   imageUrl?: string;
+  isActive: boolean;
 }
 
 const NotificationModal: React.FC = () => {
@@ -46,109 +49,175 @@ const NotificationModal: React.FC = () => {
     }
   };
 
-  if (!visible || !notif) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '20px',
-      }}
-      onClick={dismiss}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#fff',
-          borderRadius: '16px',
-          maxWidth: '480px',
-          width: '100%',
-          overflow: 'hidden',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
-          position: 'relative',
-          animation: 'notifSlideUp 0.3s ease',
-        }}
-      >
-        <style>{`
-          @keyframes notifSlideUp {
-            from { opacity: 0; transform: translateY(24px) scale(0.97); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-          }
-        `}</style>
-
-        {/* Close button */}
-        <button
-          onClick={dismiss}
+    <AnimatePresence>
+      {visible && notif && (
+        <div
           style={{
-            position: 'absolute', top: '14px', right: '14px',
-            background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: '50%',
-            width: '32px', height: '32px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '18px', color: '#555', lineHeight: 1, zIndex: 1,
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(10,22,40,0.7)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
           }}
-          aria-label="Close"
+          onClick={dismiss}
         >
-          ×
-        </button>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 20 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '500px',
+              width: '100%',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              background: '#fff',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.3)',
+              position: 'relative',
+            }}
+          >
+            {/* Top red band */}
+            <div style={{ background: '#dc2626', height: '6px', width: '100%' }} />
 
-        {/* Optional image */}
-        {notif.imageUrl && (
-          <img
-            src={notif.imageUrl}
-            alt=""
-            style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-          />
-        )}
-
-        {/* Content */}
-        <div style={{ padding: notif.imageUrl ? '24px 28px 28px' : '40px 28px 28px' }}>
-          {/* Red accent bar */}
-          <div style={{ width: '40px', height: '4px', background: '#dc2626', borderRadius: '2px', marginBottom: '14px' }} />
-
-          <h2 style={{
-            fontSize: '22px', fontWeight: 900, color: '#1a1a2e',
-            margin: '0 0 10px', fontFamily: "Georgia, 'Times New Roman', serif", lineHeight: 1.25,
-          }}>
-            {notif.title}
-          </h2>
-
-          <p style={{
-            fontSize: '14px', color: '#555', lineHeight: 1.7,
-            margin: '0 0 24px', whiteSpace: 'pre-line',
-          }}>
-            {notif.message}
-          </p>
-
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {notif.ctaText && notif.ctaLink && (
-              <button
-                onClick={handleCta}
-                style={{
-                  background: '#dc2626', color: '#fff', border: 'none',
-                  borderRadius: '8px', padding: '12px 28px',
-                  fontSize: '13px', fontWeight: 800, cursor: 'pointer',
-                  letterSpacing: '0.3px',
-                }}
-              >
-                {notif.ctaText}
-              </button>
-            )}
+            {/* Close button */}
             <button
               onClick={dismiss}
+              aria-label="Close"
               style={{
-                background: 'transparent', color: '#888', border: '1px solid #e5e7eb',
-                borderRadius: '8px', padding: '12px 20px',
-                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                position: 'absolute',
+                top: '18px',
+                right: '18px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,0.06)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1,
               }}
             >
-              Dismiss
+              <X size={16} color="#555" />
             </button>
-          </div>
+
+            {/* Optional image */}
+            {notif.imageUrl && (
+              <img
+                src={notif.imageUrl}
+                alt=""
+                style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }}
+              />
+            )}
+
+            {/* Content */}
+            <div
+              style={{
+                padding: notif.imageUrl ? '28px 32px 24px' : '32px 32px 28px',
+              }}
+            >
+              {/* BritBooks wordmark */}
+              <p
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 900,
+                  letterSpacing: '4px',
+                  color: '#dc2626',
+                  margin: '0 0 12px',
+                }}
+              >
+                BRITBOOKS
+              </p>
+
+              {/* Title */}
+              <h2
+                style={{
+                  fontSize: '26px',
+                  fontWeight: 900,
+                  color: '#1a1a2e',
+                  margin: '0 0 10px',
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                  lineHeight: 1.25,
+                }}
+              >
+                {notif.title}
+              </h2>
+
+              {/* Message */}
+              <p
+                style={{
+                  fontSize: '14px',
+                  color: '#555',
+                  lineHeight: 1.75,
+                  margin: '0 0 26px',
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {notif.message}
+              </p>
+
+              {/* Button row */}
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {notif.ctaText && notif.ctaLink && (
+                  <button
+                    onClick={handleCta}
+                    style={{
+                      background: '#dc2626',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '13px 28px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      letterSpacing: '0.3px',
+                    }}
+                  >
+                    {notif.ctaText}
+                  </button>
+                )}
+                <button
+                  onClick={dismiss}
+                  style={{
+                    background: 'transparent',
+                    color: '#999',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '10px',
+                    padding: '13px 20px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+
+              {/* Footer */}
+              <div
+                style={{
+                  marginTop: '20px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid #f3f4f6',
+                  textAlign: 'center',
+                  fontSize: '11px',
+                  color: '#bbb',
+                }}
+              >
+                You won't see this again this session
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
 
