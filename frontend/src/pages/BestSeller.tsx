@@ -13,6 +13,7 @@ import Footer from "../components/footer";
 import { fetchBooks, fetchCategories } from "../data/books";
 import BookCard from "../components/BookCard";
 import GlobalSearchBar from "../components/GlobalSearchBar";
+import HeroSearchBar from "../components/HeroSearchBar";
 
 interface Book {
   _id?: string;
@@ -424,8 +425,8 @@ const BestsellersPage: React.FC = () => {
                 Bestsellers
               </h1>
             </div>
-            <div className="w-full md:w-auto md:min-w-[380px] max-w-md">
-              <GlobalSearchBar variant="light" placeholder="Search bestsellers…" />
+            <div className="w-full md:w-auto">
+              <HeroSearchBar placeholder="Search bestsellers…" accent="red" />
             </div>
           </div>
         </div>

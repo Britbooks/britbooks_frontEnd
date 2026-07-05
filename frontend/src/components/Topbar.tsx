@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../context/authContext';
@@ -107,45 +108,77 @@ const StarIcon = ({ filled, rating }) => (
 // --- Search Result Card --- //
 const SearchResultCard = ({ id, imageUrl, title, author, price, rating, onSelect }) => {
   const { addToCart } = useCart();
-  const navigate = useNavigate();
-  const numericPrice = typeof price === "string" ? parseFloat(price.replace("£", "")) : price;
+  const navigate      = useNavigate();
+  const numericPrice  = typeof price === "string" ? parseFloat(price.replace("£", "")) : Number(price) || 0;
+  const [added, setAdded] = React.useState(false);
 
   const handleAddToCart = (e) => {
+    e.preventDefault();
     e.stopPropagation();
-    addToCart({
-      id,
-      imageUrl,
-      title,
-      author,
-      price: `£${numericPrice.toFixed(2)}`,
-      quantity: 1,
-    });
-    toast.success(`${title} added to your basket!`);
+    addToCart({ id, img: imageUrl, title, author, price: `£${numericPrice.toFixed(2)}`, quantity: 1 });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+    toast.success(`${title} added to basket!`, { duration: 2000 });
   };
 
-  const handleClick = () => {
-    if (id && id !== 'unknown') {
-      navigate(`/browse/${id}`);
-      onSelect();
-    }
+  const handleNav = (e) => {
+    e.preventDefault();
+    if (id && id !== 'unknown') { navigate(`/browse/${id}`); onSelect(); }
   };
 
   return (
-    <div className="flex items-center p-2 border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onClick={handleClick}>
-      <img src={imageUrl || "https://via.placeholder.com/150"} alt={title} className="w-12 h-16 object-cover rounded-md mr-3" />
-      <div className="flex-1">
-        <h3 className="text-sm font-semibold truncate">{title}</h3>
-        <p className="text-xs text-gray-500">{author}</p>
-        <div className="flex items-center text-gray-300">
-          {[...Array(5)].map((_, i) => (
-            <StarIcon key={i} filled={i < Math.round(rating)} rating={rating} />
-          ))}
-        </div>
-        <p className="text-sm font-bold text-gray-900">£{numericPrice.toFixed(2)}</p>
+    <div
+      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors group"
+      onMouseDown={handleNav}
+    >
+      {/* Cover */}
+      <div className="flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 shadow-sm"
+        style={{ width: 44, height: 62 }}>
+        <img
+          src={imageUrl || "https://via.placeholder.com/120x180?text=📚"}
+          alt={title}
+          className="w-full h-full object-cover"
+          onError={e => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/120x180?text=📚"; }}
+        />
       </div>
-      <button onClick={handleAddToCart} className="bg-red-600 text-white font-medium px-2 py-1 rounded-md text-xs hover:bg-red-700">
-        Add to Basket
-      </button>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-1 group-hover:text-red-600 transition-colors">
+          {title}
+        </p>
+        <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">by {author}</p>
+        <div className="flex items-center gap-1 mt-1">
+          {[...Array(5)].map((_, i) => (
+            <svg key={i} width="10" height="10" viewBox="0 0 24 24"
+              fill={i < Math.round(rating) ? "#fbbf24" : "none"}
+              stroke={i < Math.round(rating) ? "#fbbf24" : "#d1d5db"}
+              strokeWidth="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          ))}
+          <span className="text-[10px] text-gray-400 ml-0.5">{Number(rating || 0).toFixed(1)}</span>
+        </div>
+      </div>
+
+      {/* Price + Add */}
+      <div className="flex-shrink-0 flex flex-col items-end gap-2">
+        <span className="text-[14px] font-black text-gray-900">£{numericPrice.toFixed(2)}</span>
+        <button
+          onMouseDown={handleAddToCart}
+          title={added ? 'Added!' : 'Add to basket'}
+          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+          style={added
+            ? { background: '#16a34a', color: 'white' }
+            : { background: '#dc2626', color: 'white' }
+          }
+        >
+          {added
+            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            : <ShoppingBag size={14} />
+          }
+        </button>
+      </div>
     </div>
   );
 };
@@ -171,7 +204,31 @@ const TopBar = () => {
   const [hoveredMainCat, setHoveredMainCat] = useState<CategoryNode | null>(null);
   const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
 
-  const searchRef = useRef(null);
+  const searchRef     = useRef(null);
+  const searchPillRef = useRef<HTMLDivElement>(null);
+  const [searchFocused, setSearchFocused]   = useState(false);
+  const [searchDropPos, setSearchDropPos]   = useState<{ top: number; left: number; width: number } | null>(null);
+
+  const repositionDrop = useCallback(() => {
+    if (!searchPillRef.current) return;
+    const r = searchPillRef.current.getBoundingClientRect();
+    setSearchDropPos({ top: r.bottom + 6, left: r.left, width: r.width });
+  }, []);
+
+  useEffect(() => {
+    if (searchFocused && searchQuery.trim()) repositionDrop();
+  }, [searchFocused, searchQuery, repositionDrop]);
+
+  useEffect(() => {
+    if (!searchFocused) return;
+    window.addEventListener('scroll', repositionDrop, true);
+    window.addEventListener('resize', repositionDrop);
+    return () => {
+      window.removeEventListener('scroll', repositionDrop, true);
+      window.removeEventListener('resize', repositionDrop);
+    };
+  }, [searchFocused, repositionDrop]);
+
   const isActive = (path) => location.pathname === path;
 
   const toggleMobileMenu = () => {
@@ -202,8 +259,11 @@ const TopBar = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+      const insidePill   = searchRef.current?.contains(event.target);
+      const insidePortal = document.getElementById('topbar-search-portal')?.contains(event.target);
+      if (!insidePill && !insidePortal) {
         clearSearch();
+        setSearchFocused(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -267,7 +327,7 @@ const TopBar = () => {
 
         {/* ── Main bar ── */}
         <div
-          className="relative bg-white flex items-center px-4 py-2.5"
+          className="relative bg-white flex items-center px-4 h-14"
           style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05)' }}
         >
           {/* Left: menu button */}
@@ -301,7 +361,7 @@ const TopBar = () => {
           {/* Centre: logo — truly centred with flex */}
           <div className="flex-1 flex justify-center">
             <Link to="/">
-              <img src="/logobrit.png" alt="BritBooks" className="h-9 w-auto object-contain" />
+              <img src="/logobrit.png" alt="BritBooks" className="h-12 w-auto object-contain" />
             </Link>
           </div>
 
@@ -583,31 +643,65 @@ const TopBar = () => {
             </Link>
           </div>
           <div className="hidden sm:block h-24 sm:h-24 w-44 sm:w-60 flex-shrink-0"></div>
-          <div className="hidden sm:block w-full sm:max-w-lg mx-0 sm:mx-4 mt-2 sm:mt-0 relative" ref={searchRef}>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search For Books"
-                className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                value={searchQuery}
-                onChange={handleInputChange}
-              />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                <SearchIcon className="h-5 w-5 -mt-2" />
-              </button>
-            </div>
-            {searchQuery.trim() && (
-              <div className="absolute left-0 right-0 top-full bg-white border border-gray-200 shadow-lg max-h-96 overflow-y-auto z-50 mt-2">
-                {isLoading && <p className="p-4 text-gray-500 text-center">Loading...</p>}
-                {error && <p className="p-4 text-red-500 text-center">{error}</p>}
-                {!isLoading && !error && searchResults.length === 0 && (
-                  <p className="p-4 text-gray-500 text-center">No results found.</p>
+          {/* ── Animated desktop search ── */}
+          <div className="hidden sm:flex items-center justify-center flex-1 mx-4 mt-2 sm:mt-0" ref={searchRef}>
+            <motion.div
+              ref={searchPillRef}
+              animate={{ width: searchFocused ? 560 : 380 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+              style={{ position: 'relative' }}
+            >
+              <div
+                className="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 cursor-text transition-shadow duration-200"
+                style={searchFocused ? {
+                  background: '#fff',
+                  border: '1.5px solid #dc2626',
+                  boxShadow: '0 0 0 3px rgba(220,38,38,0.10), 0 4px 20px rgba(0,0,0,0.08)',
+                } : {
+                  background: '#f3f4f6',
+                  border: '1.5px solid transparent',
+                  boxShadow: 'none',
+                }}
+                onClick={() => { setSearchFocused(true); (searchRef.current as any)?.querySelector('input')?.focus(); }}
+              >
+                <motion.div animate={{ scale: searchFocused ? 1 : 0.9 }} transition={{ duration: 0.15 }}>
+                  <SearchIcon
+                    className="h-4 w-4 flex-shrink-0 transition-colors duration-200"
+                    style={{ color: searchFocused ? '#dc2626' : '#9ca3af' }}
+                  />
+                </motion.div>
+                <input
+                  type="text"
+                  placeholder="Search books, authors, genres…"
+                  className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none min-w-0"
+                  value={searchQuery}
+                  onChange={handleInputChange}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setSearchFocused(false), 180)}
+                />
+                <AnimatePresence>
+                  {searchQuery && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 0.12 }}
+                      onClick={e => { e.stopPropagation(); clearSearch(); }}
+                      className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
+                    >
+                      <XIcon className="h-3 w-3 text-gray-500" />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+                {isLoading && (
+                  <motion.div
+                    className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-red-500 flex-shrink-0"
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 0.7, ease: 'linear' }}
+                  />
                 )}
-                {searchResults.map((book) => (
-                  <SearchResultCard key={book.id} {...book} price={`£${book.price.toFixed(2)}`} onSelect={clearSearch} />
-                ))}
               </div>
-            )}
+            </motion.div>
           </div>
           <div className="hidden sm:block text-blue-600 font-bold text-lg mt-2 sm:mt-0 flex items-center gap-2">
   📧 customercare@britbooks.co.uk  
@@ -735,6 +829,105 @@ const TopBar = () => {
 
         </div>
       </div>
+      {/* ── Desktop search results portal ── */}
+      {searchFocused && searchQuery.trim() && searchDropPos && ReactDOM.createPortal(
+        <AnimatePresence>
+          <motion.div
+            id="topbar-search-portal"
+            key="topbar-drop"
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            style={{
+              position: 'fixed',
+              top: searchDropPos.top,
+              left: Math.max(12, searchDropPos.left + searchDropPos.width / 2 - 260),
+              width: 520,
+              zIndex: 99999,
+              borderRadius: 20,
+              background: '#fff',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.16), 0 8px 24px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: 'calc(100vh - ' + (searchDropPos.top + 16) + 'px)',
+            }}
+          >
+            {/* Header */}
+            <div className="flex-shrink-0 px-5 pt-4 pb-2 flex items-center justify-between border-b border-gray-100" style={{ borderRadius: '20px 20px 0 0', background: '#fff' }}>
+              <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                {isLoading ? 'Searching…' : `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}`}
+              </p>
+              <span className="text-[10px] text-gray-300 font-medium">britbooks.co.uk</span>
+            </div>
+
+            {/* Body */}
+            {isLoading && searchResults.length === 0 ? (
+              <div className="px-5 py-3 space-y-1">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-3 py-2">
+                    <div className="rounded-xl bg-gray-100 animate-pulse flex-shrink-0" style={{ width: 44, height: 62 }} />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-gray-100 rounded-lg animate-pulse w-3/4" />
+                      <div className="h-2.5 bg-gray-100 rounded-lg animate-pulse w-1/2" />
+                      <div className="h-2.5 bg-gray-100 rounded-lg animate-pulse w-1/3" />
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="h-4 w-12 bg-gray-100 rounded-lg animate-pulse" />
+                      <div className="h-7 w-16 bg-gray-100 rounded-xl animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="px-5 py-8 text-center">
+                <p className="text-red-500 text-sm font-semibold">Something went wrong</p>
+                <p className="text-gray-400 text-xs mt-1">Please try again</p>
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="px-5 py-10 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <SearchIcon className="h-5 w-5 text-gray-300" />
+                </div>
+                <p className="text-gray-700 text-sm font-bold">No results for "{searchQuery}"</p>
+                <p className="text-gray-400 text-xs mt-1">Try a different title, author or ISBN</p>
+              </div>
+            ) : (
+              <ul style={{ overflowY: 'auto', flex: 1, minHeight: 0 }} className="divide-y divide-gray-50">
+                {searchResults.map((book, i) => (
+                  <motion.li
+                    key={book.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.045, duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <SearchResultCard
+                      {...book}
+                      price={`£${Number(book.price).toFixed(2)}`}
+                      onSelect={() => { clearSearch(); setSearchFocused(false); }}
+                    />
+                  </motion.li>
+                ))}
+              </ul>
+            )}
+
+            {/* Footer */}
+            {!isLoading && searchResults.length > 0 && (
+              <div className="flex-shrink-0 px-5 py-3 border-t border-gray-100 flex items-center justify-between" style={{ borderRadius: '0 0 20px 20px', background: '#fff' }}>
+                <p className="text-[10px] text-gray-400">Click a title to view full details</p>
+                <button
+                  onMouseDown={() => { clearSearch(); setSearchFocused(false); navigate(`/category?search=${encodeURIComponent(searchQuery)}`); }}
+                  className="text-[11px] font-bold text-red-600 hover:text-red-700 transition-colors"
+                >
+                  See all results →
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
     </header>
   );
 };

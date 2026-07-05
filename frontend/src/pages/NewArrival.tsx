@@ -10,6 +10,7 @@ import { fetchBooks, fetchCategories } from "../data/books";
 import BookCard from "../components/BookCard";
 import SEOHead from "../components/SEOHead";
 import GlobalSearchBar from "../components/GlobalSearchBar";
+import HeroSearchBar from "../components/HeroSearchBar";
 
 const priceStr = (p: any) => (typeof p === "number" ? `£${p.toFixed(2)}` : p ?? "");
 
@@ -729,8 +730,8 @@ const NewArrivalsPage: React.FC = () => {
                 New Arrivals
               </h1>
             </div>
-            <div className="w-full md:w-auto md:min-w-[380px] max-w-md">
-              <GlobalSearchBar variant="light" placeholder="Search new arrivals…" />
+            <div className="w-full md:w-auto">
+              <HeroSearchBar placeholder="Search new arrivals…" accent="green" />
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import GlobalSearchBar from "../components/GlobalSearchBar";
+import HeroSearchBar from "../components/HeroSearchBar";
 import { Link, useSearchParams } from "react-router-dom";
 import SEOHead from "../components/SEOHead";
 import {
@@ -267,7 +268,7 @@ export default function BrowsePage() {
           </div>
 
           {/* Search bar */}
-          <GlobalSearchBar variant="light" placeholder="Search titles, authors…" />
+          <HeroSearchBar placeholder="Search titles, authors…" accent="blue" />
         </div>
 
         {/* ── Category chip rail ── */}
@@ -450,8 +451,8 @@ export default function BrowsePage() {
                   {selectedSubcategory || selectedCategory || "All Books"}
                 </h1>
               </div>
-              <div className="w-full md:w-auto md:min-w-[380px] max-w-md">
-                <GlobalSearchBar variant="light" placeholder="Search titles, authors…" />
+              <div className="w-full md:w-auto">
+                <HeroSearchBar placeholder="Search titles, authors…" accent="blue" />
               </div>
             </div>
           </div>

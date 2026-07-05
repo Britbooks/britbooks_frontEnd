@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import GlobalSearchBar from "../components/GlobalSearchBar";
+import HeroSearchBar from "../components/HeroSearchBar";
 import { Link, useNavigate } from "react-router-dom";
 import SEOHead from "../components/SEOHead";
 import {
@@ -175,8 +176,8 @@ const DesktopHero: React.FC<{ heroBg: string }> = ({ heroBg }) => (
             Popular Books
           </h1>
         </div>
-        <div className="w-full md:w-auto md:min-w-[380px] max-w-md">
-          <GlobalSearchBar variant="light" placeholder="Search titles, authors…" />
+        <div className="w-full md:w-auto">
+          <HeroSearchBar placeholder="Search popular books…" accent="red" />
         </div>
       </div>
     </div>
