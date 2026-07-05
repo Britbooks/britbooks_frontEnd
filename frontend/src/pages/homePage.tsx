@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import Footer from '../components/footer';
@@ -28,6 +28,7 @@ interface BookCardProps {
 interface BookShelfProps {
   title: string;
   fetchParams?: any;
+  viewAllLink?: string;
 }
 
 // Convert API books to homepage format
@@ -146,16 +147,20 @@ const CategoryCard = ({
   );
 };
 
-const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
+const MAX_SHELF_PAGES = 5;
+
+const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }) => {
+  const navigate = useNavigate();
   const [books, setBooks] = useState<BookCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalBooks, setTotalBooks] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(true);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const pageCache = useRef<Map<number, BookCardProps[]>>(new Map());
+  const hasNextPageCache = useRef<Map<number, boolean>>(new Map());
 
   // Responsive items per page
   const getItemsPerPage = () => {
@@ -172,7 +177,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize(); // run once on mount
+    handleResize();
 
     return () => window.removeEventListener('resize', handleResize);
   }, [itemsPerPage]);
@@ -180,9 +185,10 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
   // Reset when itemsPerPage or fetchParams change
   useEffect(() => {
     pageCache.current.clear();
+    hasNextPageCache.current.clear();
     setCurrentPage(1);
     setBooks([]);
-    setTotalBooks(0);
+    setHasNextPage(true);
     setError(null);
     loadPage(1);
   }, [itemsPerPage, fetchParams]);
@@ -191,6 +197,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
     async (pageNum: number) => {
       if (pageCache.current.has(pageNum)) {
         setBooks(pageCache.current.get(pageNum)!);
+        setHasNextPage(hasNextPageCache.current.get(pageNum) ?? false);
         setCurrentPage(pageNum);
         return;
       }
@@ -199,18 +206,21 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
       setLoading(true);
 
       try {
-        const { listings: fetchedBooks, meta } = await fetchBooks({
+        const { listings: fetchedBooks } = await fetchBooks({
           page: pageNum,
           limit: itemsPerPage,
           ...fetchParams,
         });
 
         const formatted = formatBooksForHomepage(fetchedBooks || []);
+        // A full page means there are likely more books
+        const moreAvailable = formatted.length >= itemsPerPage;
 
         pageCache.current.set(pageNum, formatted);
+        hasNextPageCache.current.set(pageNum, moreAvailable);
 
         setBooks(formatted);
-        setTotalBooks(meta?.count || 0);
+        setHasNextPage(moreAvailable);
         setCurrentPage(pageNum);
         setError(null);
       } catch (err) {
@@ -223,7 +233,17 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
     [fetchParams, itemsPerPage, title]
   );
 
-  const totalPages = Math.ceil(totalBooks / itemsPerPage) || 1;
+  const isAtCap = currentPage >= MAX_SHELF_PAGES;
+  const canGoNext = hasNextPage && !isAtCap;
+  const shouldViewAll = hasNextPage && isAtCap;
+
+  const handleNext = () => {
+    if (shouldViewAll && viewAllLink) {
+      navigate(viewAllLink);
+    } else if (canGoNext) {
+      loadPage(currentPage + 1);
+    }
+  };
 
   // Fill with placeholders to maintain grid shape
   const displayedBooks = [...books];
@@ -299,8 +319,8 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
             onClick={() => currentPage > 1 && loadPage(currentPage - 1)}
             disabled={currentPage === 1 || isLoadingMore}
             className={`
-              p-3 bg-white border border-gray-300 rounded-full shadow-sm 
-              hover:shadow-lg hover:scale-110 active:scale-95 
+              p-3 bg-white border border-gray-300 rounded-full shadow-sm
+              hover:shadow-lg hover:scale-110 active:scale-95
               disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed
               transition-all duration-300
             `}
@@ -310,19 +330,21 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams }) => {
           </button>
 
           <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
-            Page {currentPage} of {totalPages}
+            Page {currentPage}{hasNextPage ? '+' : ''}
           </span>
 
           <button
-            onClick={() => currentPage < totalPages && loadPage(currentPage + 1)}
-            disabled={currentPage >= totalPages || isLoadingMore}
+            onClick={handleNext}
+            disabled={(!canGoNext && !shouldViewAll) || isLoadingMore}
             className={`
-              p-3 bg-white border border-gray-300 rounded-full shadow-sm 
-              hover:shadow-lg hover:scale-110 active:scale-95 
+              p-3 border rounded-full shadow-sm
+              hover:shadow-lg hover:scale-110 active:scale-95
               disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed
               transition-all duration-300
+              ${shouldViewAll ? 'bg-[#0a1628] border-[#0a1628] text-white' : 'bg-white border-gray-300'}
             `}
-            aria-label="Next page"
+            aria-label={shouldViewAll ? `View all ${title}` : 'Next page'}
+            title={shouldViewAll ? `View all ${title}` : undefined}
           >
             <ChevronRight size={24} className="transition-transform duration-300" />
           </button>
@@ -1264,8 +1286,8 @@ const Homepage = () => {
 
           <div className="w-full mx-auto px-4 sm:px-8">
             {/* Book Shelves */}
-            <BookShelf title="New Arrivals" fetchParams={shelfFetchParams.newArrivals} />
-            <BookShelf title="Popular Books" fetchParams={shelfFetchParams.popularBooks} />
+            <BookShelf title="New Arrivals" fetchParams={shelfFetchParams.newArrivals} viewAllLink="/new-arrivals" />
+            <BookShelf title="Popular Books" fetchParams={shelfFetchParams.popularBooks} viewAllLink="/popular-books" />
             <div className="py-8 sm:py-12 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
               {[
                 { title: "Top 10 Best Sellers", image: "https://cdn-icons-png.flaticon.com/512/2331/2331970.png", link: "/bestsellers" },
@@ -1295,9 +1317,9 @@ const Homepage = () => {
                 </div>
               ))}
             </div>
-            <BookShelf title="Best Sellers" fetchParams={shelfFetchParams.bestSellers} />
-            <BookShelf title="Children's Books" fetchParams={shelfFetchParams.childrensBooks} />
-            <BookShelf title="Clearance Items" fetchParams={shelfFetchParams.clearanceItems} />
+            <BookShelf title="Best Sellers" fetchParams={shelfFetchParams.bestSellers} viewAllLink="/bestsellers" />
+            <BookShelf title="Children's Books" fetchParams={shelfFetchParams.childrensBooks} viewAllLink="/category?category=Children%27s%20Books" />
+            <BookShelf title="Clearance Items" fetchParams={shelfFetchParams.clearanceItems} viewAllLink="/special-offers" />
             <RecentlyViewedShelf />
 
           
