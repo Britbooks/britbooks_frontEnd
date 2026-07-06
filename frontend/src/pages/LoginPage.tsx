@@ -25,7 +25,8 @@ import { AuthContext } from "../context/authContext";
 import { LoginFormData, JwtPayload } from "../types/auth";
 import toast, { Toaster } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, BookOpen, Star, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, BookOpen, ShieldCheck } from "lucide-react";
+import AuthBrandPanel from "../components/AuthBrandPanel";
 import { motion, AnimatePresence } from "framer-motion";
 
 const GoogleIcon = () => (
@@ -43,8 +44,9 @@ const FacebookIcon = () => (
   </svg>
 );
 
+
 /* ── OTP digit input ─────────────────────────────── */
-function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function OtpInput({ value, onChange, onComplete }: { value: string; onChange: (v: string) => void; onComplete?: () => void }) {
   const [digits, setDigits] = useState(Array(6).fill(""));
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -55,6 +57,9 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
     setDigits(d);
     onChange(d.join(""));
     if (v && i < 5) refs.current[i + 1]?.focus();
+    if (v && i === 5 && d.every(Boolean)) {
+      setTimeout(() => onComplete?.(), 300);
+    }
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
@@ -72,27 +77,35 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
     onChange(d.join(""));
     refs.current[Math.min(pasted.length, 5)]?.focus();
     e.preventDefault();
+    if (pasted.length === 6) {
+      setTimeout(() => onComplete?.(), 300);
+    }
   };
 
   return (
-    <div className="flex gap-2.5 justify-center">
+    <div className="flex gap-3 justify-center my-2">
       {digits.map((digit, i) => (
-        <input
+        <motion.div
           key={i}
-          ref={(el) => { refs.current[i] = el; }}
-          type="text"
-          inputMode="numeric"
-          maxLength={1}
-          value={digit}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(i, e)}
-          onPaste={handlePaste}
-          className={`w-11 h-12 text-center text-lg font-black rounded-xl border-2 outline-none transition-all ${
-            digit
-              ? "border-[#c9a84c] bg-[#c9a84c]/5 text-gray-900"
-              : "border-gray-200 bg-gray-50 text-gray-900 focus:border-[#c9a84c]"
-          }`}
-        />
+          animate={digit ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+          transition={{ duration: 0.18 }}
+        >
+          <input
+            ref={(el) => { refs.current[i] = el; }}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleChange(i, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(i, e)}
+            onPaste={handlePaste}
+            className={`w-12 h-16 text-center text-2xl font-black rounded-2xl border-2 outline-none transition-all duration-200 ${
+              digit
+                ? 'border-[#c9a84c] bg-[#c9a84c] text-[#0a1628] shadow-lg shadow-[#c9a84c]/30'
+                : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-[#c9a84c] focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,168,76,0.15)]'
+            }`}
+          />
+        </motion.div>
       ))}
     </div>
   );
@@ -276,81 +289,10 @@ const LoginPage = () => {
     <div className="min-h-screen flex font-sans">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
 
-      {/* ── LEFT BRAND PANEL ─────────────────────────────── */}
-      <div
-        className="hidden lg:flex lg:w-[46%] xl:w-[42%] flex-col relative overflow-hidden"
-        style={{ background: "linear-gradient(155deg, #0a1628 0%, #0f2040 55%, #0a1628 100%)" }}
-      >
-        {/* Decorative blobs */}
-        <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-[0.07]" style={{ background: "#c9a84c", filter: "blur(80px)", transform: "translate(30%, -30%)" }} />
-        <div className="absolute bottom-0 left-0 w-56 h-56 rounded-full opacity-[0.05]" style={{ background: "#c9a84c", filter: "blur(60px)", transform: "translate(-30%, 30%)" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full opacity-[0.03]" style={{ border: "1px solid #c9a84c" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.02]" style={{ border: "1px solid #c9a84c" }} />
+      <AuthBrandPanel />
 
-        {/* Back link */}
-        <div className="relative z-10 p-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-white hover:text-white/70 text-xs font-semibold transition-colors">
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to BritBooks
-          </Link>
-        </div>
-
-        {/* Main content */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center px-12 xl:px-16 -mt-8">
-          {/* Logo */}
-          <Link to="/">
-            <img src="/logobrit3.png" alt="BritBooks" className="h-10 object-contain mb-12 brightness-0 invert" />
-          </Link>
-
-          <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight mb-4">
-            Your next<br />chapter awaits.
-          </h1>
-          <p className="text-white text-base leading-relaxed mb-12 max-w-xs">
-            Sign in to access your orders, wishlist, and thousands of books waiting for you.
-          </p>
-
-          {/* Trust stats */}
-          <div className="grid grid-cols-3 gap-4 mb-12">
-            {[
-              { stat: "2M+", label: "Readers" },
-              { stat: "500K+", label: "Books" },
-              { stat: "4.9★", label: "Rating" },
-            ].map((s, i) => (
-              <div key={i} className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <p className="text-xl font-black" style={{ color: "#c9a84c" }}>{s.stat}</p>
-                <p className="text-[11px] text-white font-medium mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Testimonial */}
-          <div className="rounded-2xl p-5" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <div className="flex gap-0.5 mb-3">
-              {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-[#c9a84c] text-white" />)}
-            </div>
-            <p className="text-white text-sm leading-relaxed mb-4">
-              "BritBooks has completely changed how I find books. The prices are incredible and delivery is always fast."
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                <span className="text-black text-xs font-black">SH</span>
-              </div>
-              <div>
-                <p className="text-white text-xs font-bold">Sarah H.</p>
-                <p className="text-white text-[10px]">Verified customer</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom */}
-        <div className="relative z-10 p-8 flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-white" />
-          <span className="text-[11px] text-white">Secured with 256-bit SSL encryption</span>
-        </div>
-      </div>
-
-      {/* ── RIGHT FORM PANEL ─────────────────────────────── */}
-      <div className="flex-1 flex flex-col bg-white">
+      {/* ── RIGHT FORM PANEL (30%) ───────────────────────── */}
+      <div className="flex-1 lg:flex-none lg:w-[30%] flex flex-col bg-white border-l border-gray-100">
 
         {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between px-6 pt-6 pb-4">
@@ -363,12 +305,12 @@ const LoginPage = () => {
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-6 py-10 lg:py-0">
+        <div className="flex-1 flex items-center justify-center px-8 py-10 lg:py-0">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="w-full max-w-[400px]"
+            className="w-full"
           >
             {/* Heading */}
             <div className="mb-8">
@@ -391,9 +333,15 @@ const LoginPage = () => {
             </AnimatePresence>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <motion.form
+              initial="hidden"
+              animate="show"
+              variants={{ show: { transition: { staggerChildren: 0.09, delayChildren: 0.15 } } }}
+              onSubmit={handleSubmit}
+              className="space-y-4"
+            >
               {/* Email */}
-              <div>
+              <motion.div variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.38 } } }}>
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -403,10 +351,10 @@ const LoginPage = () => {
                     className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/10 transition-all"
                   />
                 </div>
-              </div>
+              </motion.div>
 
               {/* Password */}
-              <div>
+              <motion.div variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.38 } } }}>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
                   <Link to="/forgot-password" className="text-[11px] font-semibold" style={{ color: "#c9a84c" }}>
@@ -425,22 +373,31 @@ const LoginPage = () => {
                     {passwordVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Submit */}
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-xl font-black text-sm flex items-center justify-center gap-2 mt-2 transition-all disabled:opacity-60"
-                style={{ background: loading ? "#d4b860" : "#c9a84c", color: "#0a1628" }}
-              >
-                {loading
-                  ? <><div className="w-4 h-4 border-2 border-[#0a1628]/20 border-t-[#0a1628] rounded-full animate-spin" /> Signing in…</>
-                  : <>Sign In <ArrowRight className="w-4 h-4" /></>
-                }
-              </motion.button>
-            </form>
+              <motion.div variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.38 } } }}>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  whileHover="hover"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 mt-2 transition-all disabled:opacity-60 relative overflow-hidden"
+                  style={{ background: loading ? '#d4b860' : 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#0a1628' }}
+                >
+                  <motion.div
+                    className="absolute inset-0 -skew-x-12 pointer-events-none"
+                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)' }}
+                    variants={{ hover: { x: ['-100%', '200%'] } }}
+                    transition={{ duration: 0.55 }}
+                  />
+                  {loading
+                    ? <><div className="w-4 h-4 border-2 border-[#0a1628]/20 border-t-[#0a1628] rounded-full animate-spin" /> Signing in…</>
+                    : <>Sign In <ArrowRight className="w-4 h-4" /></>
+                  }
+                </motion.button>
+              </motion.div>
+            </motion.form>
 
             {/* Divider */}
             <div className="flex items-center gap-3 my-6">
@@ -495,7 +452,7 @@ const LoginPage = () => {
         {auth.pendingTotp && (
           <>
             <motion.div key="totp-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" />
 
             {/* Mobile sheet */}
             <motion.div key="totp-mobile"
@@ -511,7 +468,7 @@ const LoginPage = () => {
               initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
               className="hidden sm:flex fixed inset-0 z-50 items-center justify-center p-4">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10">
                 <TotpContent totpCode={totpCode} setTotpCode={setTotpCode} handleTotpSubmit={handleTotpSubmit} loading={loading} />
               </div>
             </motion.div>
@@ -526,7 +483,7 @@ const LoginPage = () => {
             <motion.div
               key="overlay"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
               onClick={handleCloseModal}
             />
 
@@ -557,7 +514,7 @@ const LoginPage = () => {
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
               className="hidden sm:flex fixed inset-0 z-50 items-center justify-center p-4"
             >
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10">
                 <VerifyContent
                   emailDisplay={emailDisplay}
                   verifyCode={verifyCode}
@@ -577,46 +534,68 @@ const LoginPage = () => {
 
 /* ── Shared verify content ───────────────────────── */
 function VerifyContent({ emailDisplay, verifyCode, setVerifyCode, handleVerifySubmit, handleCloseModal, loading }: any) {
+  const [resendTimer, setResendTimer] = React.useState(60);
+  const [canResend, setCanResend] = React.useState(false);
+
+  React.useEffect(() => {
+    if (resendTimer <= 0) { setCanResend(true); return; }
+    const t = setTimeout(() => setResendTimer(v => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendTimer]);
+
   return (
-    <>
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="w-12 h-12 rounded-2xl bg-[#c9a84c]/10 flex items-center justify-center mb-4">
-            <BookOpen className="w-6 h-6 text-[#c9a84c]" />
-          </div>
-          <h2 className="text-xl font-black text-gray-900">Check your email</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            We sent a 6-digit code to<br />
-            <span className="font-bold text-gray-700">{emailDisplay}</span>
-          </p>
-        </div>
+    <div>
+      {/* Top row: close button */}
+      <div className="flex justify-end mb-4">
         <button onClick={handleCloseModal}
           className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
           <span className="text-gray-500 text-sm font-bold">✕</span>
         </button>
       </div>
 
+      {/* Icon */}
+      <div className="text-center mb-6">
+        <motion.div
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="inline-flex w-20 h-20 rounded-3xl items-center justify-center mb-4"
+          style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05))' }}
+        >
+          <Mail className="w-9 h-9 text-[#c9a84c]" />
+        </motion.div>
+        <h2 className="text-2xl font-black text-gray-900">Check your inbox</h2>
+        <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+          We sent a 6-digit code to<br />
+          <span className="font-bold text-gray-800">{emailDisplay}</span>
+        </p>
+      </div>
+
       <form onSubmit={handleVerifySubmit} className="space-y-5">
-        <OtpInput value={verifyCode} onChange={setVerifyCode} />
+        <OtpInput value={verifyCode} onChange={setVerifyCode} onComplete={() => !loading && handleVerifySubmit({ preventDefault: () => {} } as any)} />
 
         <motion.button
           whileTap={{ scale: 0.98 }}
           type="submit"
           disabled={loading || verifyCode.length < 6}
-          className="w-full py-3.5 rounded-xl font-black text-sm transition-all disabled:opacity-50"
-          style={{ background: "#c9a84c", color: "#0a1628" }}
+          className="w-full py-4 rounded-2xl font-black text-sm transition-all disabled:opacity-50 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#0a1628' }}
         >
-          {loading ? "Verifying…" : "Confirm & Sign In"}
+          {loading
+            ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-[#0a1628]/20 border-t-[#0a1628] rounded-full animate-spin" />Verifying…</span>
+            : 'Confirm & Sign In'
+          }
         </motion.button>
       </form>
 
-      <p className="text-center text-xs text-gray-400 mt-4">
-        Didn't receive the code?{" "}
-        <button type="button" className="font-bold text-gray-700 hover:text-[#c9a84c] transition-colors">
-          Resend
-        </button>
-      </p>
-    </>
+      <div className="flex items-center justify-center gap-1.5 mt-5 text-xs">
+        <span className="text-gray-400">Didn't receive it?</span>
+        {canResend
+          ? <button type="button" onClick={() => { setResendTimer(60); setCanResend(false); }}
+              className="font-bold text-[#c9a84c] hover:underline">Resend now</button>
+          : <span className="text-gray-400">Resend in <span className="font-bold text-gray-700">{resendTimer}s</span></span>
+        }
+      </div>
+    </div>
   );
 }
 
@@ -628,30 +607,37 @@ function TotpContent({ totpCode, setTotpCode, handleTotpSubmit, loading }: {
   loading: boolean;
 }) {
   return (
-    <>
-      <div className="mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-          <ShieldCheck className="w-6 h-6 text-emerald-500" />
-        </div>
-        <h2 className="text-xl font-black text-gray-900">Authenticator code</h2>
-        <p className="text-sm text-gray-400 mt-1">
-          Open your authenticator app and enter the 6-digit code for BritBooks.
+    <div>
+      <div className="text-center mb-6">
+        <motion.div
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="inline-flex w-20 h-20 rounded-3xl items-center justify-center mb-4"
+          style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' }}
+        >
+          <ShieldCheck className="w-9 h-9 text-emerald-500" />
+        </motion.div>
+        <h2 className="text-2xl font-black text-gray-900">Authenticator code</h2>
+        <p className="text-sm text-gray-400 mt-2">
+          Open your authenticator app and enter<br />the 6-digit code for BritBooks.
         </p>
       </div>
-
       <form onSubmit={handleTotpSubmit} className="space-y-5">
         <OtpInput value={totpCode} onChange={setTotpCode} />
         <motion.button
           whileTap={{ scale: 0.98 }}
           type="submit"
           disabled={loading || totpCode.length < 6}
-          className="w-full py-3.5 rounded-xl font-black text-sm transition-all disabled:opacity-50"
-          style={{ background: "#c9a84c", color: "#0a1628" }}
+          className="w-full py-4 rounded-2xl font-black text-sm transition-all disabled:opacity-50"
+          style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#0a1628' }}
         >
-          {loading ? "Verifying…" : "Confirm & Sign In"}
+          {loading
+            ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-[#0a1628]/20 border-t-[#0a1628] rounded-full animate-spin" />Verifying…</span>
+            : 'Confirm & Sign In'
+          }
         </motion.button>
       </form>
-    </>
+    </div>
   );
 }
 
