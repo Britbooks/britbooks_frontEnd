@@ -286,7 +286,7 @@ const LoginPage = () => {
   })();
 
   return (
-    <div className="min-h-screen w-full flex font-sans">
+    <div className="h-screen w-full flex font-sans overflow-hidden">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
 
       <AuthBrandPanel />
@@ -304,18 +304,18 @@ const LoginPage = () => {
           </Link>
         </div>
 
-        {/* Form area — fills full panel height */}
-        <div className="flex-1 flex flex-col justify-center px-6 py-10">
+        {/* Form fills the full 30% panel — no centering */}
+        <div className="flex-1 flex flex-col px-8 py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="w-full"
+            className="w-full flex-1 flex flex-col"
           >
             {/* Heading */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-black text-gray-900 mb-2">Welcome back</h2>
-              <p className="text-gray-400 text-sm">Sign in to your BritBooks account</p>
+            <div className="mb-10">
+              <h2 className="text-4xl font-black text-gray-900 mb-2">Welcome back</h2>
+              <p className="text-gray-500 text-base">Sign in to your BritBooks account</p>
             </div>
 
             {/* Error */}
@@ -338,26 +338,26 @@ const LoginPage = () => {
               animate="show"
               variants={{ show: { transition: { staggerChildren: 0.09, delayChildren: 0.15 } } }}
               onSubmit={handleSubmit}
-              className="space-y-4"
+              className="space-y-5"
             >
               {/* Email */}
               <motion.div variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.38 } } }}>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Email</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="email" name="email" placeholder="you@example.com"
                     value={formData.email} onChange={handleChange} required disabled={loading}
-                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/10 transition-all"
+                    className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-base text-gray-900 placeholder-gray-400 outline-none focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/10 transition-all"
                   />
                 </div>
               </motion.div>
 
               {/* Password */}
               <motion.div variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.38 } } }}>
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
-                  <Link to="/forgot-password" className="text-[11px] font-semibold" style={{ color: "#c9a84c" }}>
+                  <Link to="/forgot-password" className="text-xs font-semibold" style={{ color: "#c9a84c" }}>
                     Forgot password?
                   </Link>
                 </div>
@@ -366,7 +366,7 @@ const LoginPage = () => {
                   <input
                     type={passwordVisible ? "text" : "password"} name="password" placeholder="••••••••"
                     value={formData.password} onChange={handleChange} required disabled={loading}
-                    className="w-full pl-11 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/10 transition-all"
+                    className="w-full pl-11 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-base text-gray-900 placeholder-gray-400 outline-none focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/10 transition-all"
                   />
                   <button type="button" onClick={() => setPasswordVisible(v => !v)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -382,7 +382,7 @@ const LoginPage = () => {
                   whileHover="hover"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 mt-2 transition-all disabled:opacity-60 relative overflow-hidden"
+                  className="w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 mt-2 transition-all disabled:opacity-60 relative overflow-hidden"
                   style={{ background: loading ? '#d4b860' : 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#0a1628' }}
                 >
                   <motion.div
@@ -399,50 +399,53 @@ const LoginPage = () => {
               </motion.div>
             </motion.form>
 
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-gray-100" />
-              <span className="text-[11px] text-gray-400 font-medium">or continue with</span>
-              <div className="flex-1 h-px bg-gray-100" />
-            </div>
+            {/* Bottom section pushed to end */}
+            <div className="mt-auto pt-8">
+              {/* Divider */}
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-[11px] text-gray-400 font-medium">or continue with</span>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
 
-            {/* Social */}
-            <div className="grid grid-cols-2 gap-3">
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                disabled={!!socialLoading || loading}
-                onClick={handleGoogleLogin}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors disabled:opacity-60"
-              >
-                {socialLoading === 'google'
-                  ? <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                  : <GoogleIcon />
-                }
-                Google
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                disabled={!!socialLoading || loading}
-                onClick={handleFacebookLogin}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors disabled:opacity-60"
-              >
-                {socialLoading === 'facebook'
-                  ? <div className="w-4 h-4 border-2 border-gray-300 border-t-[#1877F2] rounded-full animate-spin" />
-                  : <FacebookIcon />
-                }
-                Facebook
-              </motion.button>
-            </div>
+              {/* Social */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  type="button"
+                  disabled={!!socialLoading || loading}
+                  onClick={handleGoogleLogin}
+                  className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors disabled:opacity-60"
+                >
+                  {socialLoading === 'google'
+                    ? <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                    : <GoogleIcon />
+                  }
+                  Google
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  type="button"
+                  disabled={!!socialLoading || loading}
+                  onClick={handleFacebookLogin}
+                  className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors disabled:opacity-60"
+                >
+                  {socialLoading === 'facebook'
+                    ? <div className="w-4 h-4 border-2 border-gray-300 border-t-[#1877F2] rounded-full animate-spin" />
+                    : <FacebookIcon />
+                  }
+                  Facebook
+                </motion.button>
+              </div>
 
-            {/* Link to signup */}
-            <p className="text-center text-sm text-gray-400 mt-7">
-              Don't have an account?{" "}
-              <Link to="/signup" className="font-black text-gray-900 hover:text-[#c9a84c] transition-colors">
-                Create one free
-              </Link>
-            </p>
+              {/* Link to signup */}
+              <p className="text-center text-base text-gray-400">
+                Don't have an account?{" "}
+                <Link to="/signup" className="font-black text-gray-900 hover:text-[#c9a84c] transition-colors">
+                  Create one free
+                </Link>
+              </p>
+            </div>
           </motion.div>
         </div>
       </div>
