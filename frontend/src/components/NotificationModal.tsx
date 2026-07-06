@@ -60,9 +60,9 @@ const NotificationModal: React.FC = () => {
             background: 'rgba(10,22,40,0.7)',
             backdropFilter: 'blur(6px)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: '20px',
+            padding: '80px 20px 20px',
           }}
           onClick={dismiss}
         >

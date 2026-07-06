@@ -74,6 +74,9 @@ function fastCacheKey(body: any): string {
     body.order        ?? "",
     String(body.page  ?? 1),
     String(body.limit ?? 20),
+    body.condition    ?? "",
+    String(body.priceMin ?? ""),
+    String(body.priceMax ?? ""),
     JSON.stringify(body.filters ?? {}),
   ].join("|");
 }

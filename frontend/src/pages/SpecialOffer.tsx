@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Gift, Star, Flame, Sparkles,
   ShoppingCart, ChevronRight, RotateCcw, Trophy, X, Check,
-  ArrowRight, Lock, Loader2, LogIn, ChevronLeft,
-  BookOpen, Heart, Globe, Tag,
+  ArrowRight, Lock, Loader2, LogIn,
+  BookOpen, Heart, Globe, Tag, Timer,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import axios from "axios";
@@ -427,7 +427,7 @@ const ScratchCard = () => {
   );
 };
 
-// ─── MysteryBox (UNCHANGED logic, minor style) ───────────────────────────────
+// ─── MysteryBox (UNCHANGED) ──────────────────────────────────────────────────
 const MYSTERY_KEY = "bb_mystery_ts";
 
 const MysteryBox = ({ books }: { books: any[] }) => {
@@ -528,16 +528,14 @@ const shimmer = {
   animation: "shimmer 1.4s ease infinite",
 } as React.CSSProperties;
 
-// ─── Deal Card (REDESIGNED) ───────────────────────────────────────────────────
+// ─── Deal Card ────────────────────────────────────────────────────────────────
 const DealCard = ({ book, timer }: { book: any; timer: number }) => {
   const { addToCart }     = useCart();
   const navigate          = useNavigate();
   const was               = fakeWas(book.price);
   const saving            = pct(book.price, was);
   const [added, setAdded] = useState(false);
-  const h = Math.floor(timer / 3600);
-  const m = Math.floor((timer % 3600) / 60);
-  const urgent = timer > 0 && timer < 600;
+  const urgent            = timer > 0 && timer < 600;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -549,51 +547,49 @@ const DealCard = ({ book, timer }: { book: any; timer: number }) => {
 
   return (
     <motion.div
-      whileHover={{ y: -3, transition: { duration: 0.18 } }}
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
       onClick={() => navigate(`/browse/${book.id}`)}
-      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer flex flex-col"
     >
-      {/* Image */}
       <div className="relative overflow-hidden" style={{ paddingBottom: "133%" }}>
         <img
           src={book.imageUrl}
           alt={book.title}
-          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-400"
         />
-        {/* Badges */}
-        <div className="absolute top-2 left-2">
-          <span className="flex items-center gap-0.5 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-            <Zap size={9} fill="currentColor" /> -{saving}%
+        {/* Savings badge */}
+        <div className="absolute top-2.5 left-2.5">
+          <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+            -{saving}%
           </span>
         </div>
-        {/* Timer */}
-        {timer > 0 && (
-          <div className={`absolute bottom-2 right-2 flex items-center gap-1 font-mono text-[10px] font-black px-2 py-0.5 rounded-full ${urgent ? "bg-red-600 text-white animate-pulse" : "bg-black/60 backdrop-blur-sm text-white"}`}>
-            {pad(h)}:{pad(m)}
+        {/* Timer — only when urgent */}
+        {urgent && (
+          <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 bg-red-600 text-white font-mono text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse">
+            <Timer size={8} /> {pad(Math.floor(timer / 60))}m
           </div>
         )}
-        {/* Add to cart overlay */}
-        <div className="absolute inset-x-2 bottom-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Cart hover button */}
+        <div className="absolute inset-x-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           <button
             onClick={handleAdd}
-            className={`w-full py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-lg ${added ? "bg-emerald-500 text-white" : "bg-[#0a1628] hover:bg-red-600 text-white"}`}
+            className={`w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg transition-colors ${
+              added ? "bg-emerald-500 text-white" : "bg-[#0a1628] hover:bg-red-600 text-white"
+            }`}
           >
             {added ? <><Check size={12} /> Added!</> : <><ShoppingCart size={12} /> Add to Basket</>}
           </button>
         </div>
       </div>
 
-      {/* Info */}
       <div className="p-3 flex-1 flex flex-col justify-between">
         <div>
-          <p className="text-[12px] font-bold text-gray-900 line-clamp-2 leading-snug mb-1">{book.title}</p>
+          <p className="text-[12px] font-bold text-gray-900 line-clamp-2 leading-snug mb-0.5">{book.title}</p>
           <p className="text-[10px] text-gray-400 truncate">{book.author}</p>
         </div>
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-black text-gray-900 text-sm">£{book.price.toFixed(2)}</span>
-            <span className="text-[10px] text-gray-400 line-through">£{was.toFixed(2)}</span>
-          </div>
+        <div className="flex items-baseline gap-1.5 mt-2">
+          <span className="font-black text-gray-900 text-sm">£{book.price.toFixed(2)}</span>
+          <span className="text-[10px] text-gray-400 line-through">£{was.toFixed(2)}</span>
         </div>
       </div>
     </motion.div>
@@ -613,7 +609,7 @@ const DealCardSkeleton = () => (
   </div>
 );
 
-// ─── Mobile hero deal card ────────────────────────────────────────────────────
+// ─── Mobile snap-scroll deal card ─────────────────────────────────────────────
 const MobileHeroDealCard = ({ book, timer }: { book: any; timer: number }) => {
   const { addToCart } = useCart();
   const navigate      = useNavigate();
@@ -623,24 +619,14 @@ const MobileHeroDealCard = ({ book, timer }: { book: any; timer: number }) => {
   return (
     <div
       className="snap-start flex-shrink-0 w-[72vw] relative rounded-3xl overflow-hidden cursor-pointer active:scale-95 transition-transform"
-      style={{ height: 260 }}
+      style={{ height: 240 }}
       onClick={() => navigate(`/browse/${book.id}`)}
     >
       <img src={book.imageUrl} alt={book.title} className="w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-
-      {/* Save badge */}
-      <div className="absolute top-3 left-3 flex items-center gap-1 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">
-        <Zap size={9} fill="currentColor" /> -{saving}%
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+      <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+        -{saving}%
       </div>
-
-      {/* Timer */}
-      {timer > 0 && (
-        <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white font-mono text-[10px] font-black px-2 py-0.5 rounded-full">
-          {pad(Math.floor(timer / 3600))}:{pad(Math.floor((timer % 3600) / 60))}
-        </div>
-      )}
-
       <div className="absolute bottom-0 left-0 right-0 p-4">
         <p className="text-white font-bold text-sm line-clamp-2 leading-tight mb-0.5">{book.title}</p>
         <p className="text-white/50 text-xs mb-2">{book.author}</p>
@@ -651,7 +637,7 @@ const MobileHeroDealCard = ({ book, timer }: { book: any; timer: number }) => {
           </div>
           <button
             onClick={e => { e.stopPropagation(); addToCart({ id: book.id, img: book.imageUrl, title: book.title, author: book.author, price: `£${book.price.toFixed(2)}`, quantity: 1 }); toast.success("Added!"); }}
-            className="p-2 bg-[#c9a84c] hover:bg-[#d4b860] text-[#0a1628] rounded-xl active:scale-90 transition-all"
+            className="p-2 bg-white text-[#0a1628] rounded-xl active:scale-90 transition-all"
           >
             <ShoppingCart size={14} />
           </button>
@@ -661,27 +647,28 @@ const MobileHeroDealCard = ({ book, timer }: { book: any; timer: number }) => {
   );
 };
 
-// ─── Category icon helper ─────────────────────────────────────────────────────
 const getCatIcon = (name: string) => {
   const n = name.toLowerCase();
-  if (n.includes("fiction") || n.includes("novel")) return <BookOpen size={14} />;
-  if (n.includes("romance") || n.includes("love"))  return <Heart size={14} />;
-  if (n.includes("history") || n.includes("world")) return <Globe size={14} />;
-  return <Tag size={14} />;
+  if (n.includes("fiction") || n.includes("novel")) return <BookOpen size={13} />;
+  if (n.includes("romance") || n.includes("love"))  return <Heart size={13} />;
+  if (n.includes("history") || n.includes("world")) return <Globe size={13} />;
+  return <Tag size={13} />;
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const SpecialOffersPage = () => {
-  const [books, setBooks]           = useState<any[]>([]);
-  const [flashBooks, setFlashBooks] = useState<any[]>([]);
-  const [heroBook, setHeroBook]     = useState<any | null>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [books, setBooks]             = useState<any[]>([]);
+  const [flashBooks, setFlashBooks]   = useState<any[]>([]);
+  const [heroBook, setHeroBook]       = useState<any | null>(null);
+  const [categories, setCategories]   = useState<any[]>([]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
-  const [timers, setTimers]         = useState<number[]>([]);
-  const [heroTimer, setHeroTimer]   = useState(7200);
-  const [loading, setLoading]       = useState(true);
-  const [activeGame, setActiveGame] = useState<"wheel" | "scratch" | "mystery" | null>(null);
-  const { addToCart }               = useCart();
+  const [timers, setTimers]           = useState<number[]>([]);
+  const [heroTimer, setHeroTimer]     = useState(7200);
+  const [loading, setLoading]         = useState(true);
+  const [activeGame, setActiveGame]   = useState<"wheel" | "scratch" | "mystery" | null>(null);
+  const [rewardsOpen, setRewardsOpen] = useState(false);
+  const [heroBg]                      = useState(() => `https://picsum.photos/seed/${Math.floor(Math.random() * 10000)}/1600/900`);
+  const { addToCart }                 = useCart();
 
   useEffect(() => {
     const load = async () => {
@@ -719,25 +706,25 @@ const SpecialOffersPage = () => {
     : allDealBooks;
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a1628]">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-white/20 border-t-[#c9a84c] rounded-full animate-spin" />
-        <p className="text-sm font-semibold text-white/50 uppercase tracking-widest">Loading deals…</p>
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 text-gray-300 animate-spin" />
+        <p className="text-sm text-gray-400">Loading deals…</p>
       </div>
     </div>
   );
 
   const GAME_TABS = [
-    { key: "wheel",   icon: RotateCcw, label: "Spin & Win"  },
-    { key: "scratch", icon: Sparkles,  label: "Scratch Card" },
-    { key: "mystery", icon: Gift,      label: "Mystery Box"  },
+    { key: "wheel",   icon: RotateCcw, label: "Spin & Win",   desc: "Spin the wheel for a discount code" },
+    { key: "scratch", icon: Sparkles,  label: "Scratch Card",  desc: "Scratch to reveal a surprise reward" },
+    { key: "mystery", icon: Gift,      label: "Mystery Box",   desc: "Pick a box for a hidden book deal"  },
   ] as const;
 
   return (
-    <div className="min-h-screen bg-[#f7f4ef] font-sans">
+    <div className="min-h-screen bg-white font-sans">
       <SEOHead
         title="Special Offers & Flash Sales"
-        description="Win books, spin the wheel, scratch to reveal — BritBooks special offers with real savings on quality used books."
+        description="Save on quality used books at BritBooks — clearance deals, flash sales and daily discount rewards."
         canonical="/special-offers"
       />
       <Toaster position="bottom-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
@@ -748,82 +735,127 @@ const SpecialOffersPage = () => {
       <div className="sm:hidden flex flex-col min-h-screen bg-[#f8f8fb]">
         <TopBar />
 
-        {/* Sticky dark header */}
-        <div className="sticky top-0 z-40 bg-[#0a1628] px-4 pb-0 pt-4 shadow-xl">
+        {/* Sticky header */}
+        <div className="sticky top-0 z-40 bg-[#0d1b3e] px-4 pb-0 pt-4 shadow-xl">
           <div className="flex items-start justify-between mb-3">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
-                <Flame size={12} className="text-red-400" fill="currentColor" />
+                <Flame size={11} className="text-red-400" fill="currentColor" />
                 <span className="text-red-400 text-[10px] font-black uppercase tracking-widest">Flash Sale</span>
               </div>
               <h1 className="text-white font-black text-2xl tracking-tight">
-                Special <span className="text-[#c9a84c]">Deals</span>
+                Special <span className="text-amber-400">Offers</span>
               </h1>
             </div>
             <div className="text-right mt-1">
-              <p className="text-white/30 text-[8px] font-medium uppercase tracking-widest mb-1">Ends in</p>
+              <p className="text-white/30 text-[8px] font-medium uppercase tracking-widest mb-1">Resets in</p>
               <Countdown seconds={heroTimer} />
             </div>
           </div>
 
-          {/* Game pills */}
+          {/* Category pills */}
           <div className="flex gap-2 pb-3 overflow-x-auto no-scrollbar">
-            {GAME_TABS.map(({ key, icon: Icon, label }) => (
-              <button key={key}
-                onClick={() => setActiveGame(activeGame === key ? null : key)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${
-                  activeGame === key ? "bg-[#c9a84c] text-[#0a1628]" : "bg-white/10 text-white/70 hover:bg-white/20"
-                }`}>
-                <Icon size={11} /> {label}
+            <button
+              onClick={() => setSelectedCat(null)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${!selectedCat ? "bg-red-600 text-white" : "bg-white/10 text-white/70"}`}
+            >
+              All
+            </button>
+            {categories.slice(0, 10).map(cat => (
+              <button key={cat.id}
+                onClick={() => setSelectedCat(selectedCat === cat.name ? null : cat.name)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold capitalize transition-all ${selectedCat === cat.name ? "bg-red-600 text-white" : "bg-white/10 text-white/70"}`}
+              >
+                {cat.name}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Game panel */}
-        <AnimatePresence>
-          {activeGame && (
-            <motion.div key={activeGame}
-              initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden bg-white border-b border-gray-100 shadow-md">
-              <div className="p-6 max-w-sm mx-auto">
-                {activeGame === "wheel"   && <SpinWheel />}
-                {activeGame === "scratch" && <ScratchCard />}
-                {activeGame === "mystery" && <MysteryBox books={flashBooks} />}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Featured deals horizontal scroll */}
         <div className="px-4 mt-5">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-1 h-5 bg-red-600 rounded-full" />
+            <div className="w-1 h-4 bg-red-600 rounded-full" />
             <span className="font-black text-sm text-gray-900">Featured Deals</span>
           </div>
           <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2">
-            {loading
-              ? Array(4).fill(0).map((_, i) => <div key={i} className="snap-start flex-shrink-0 w-[72vw] h-[260px] rounded-3xl bg-gray-200 animate-pulse" />)
-              : [heroBook, ...books.slice(0, 5)].filter(Boolean).map((book, i) => (
-                  <MobileHeroDealCard key={book.id} book={book} timer={i === 0 ? heroTimer : timers[i] ?? 3600} />
-                ))
-            }
+            {[heroBook, ...books.slice(0, 5)].filter(Boolean).map((book, i) => (
+              <MobileHeroDealCard key={book.id} book={book} timer={i === 0 ? heroTimer : timers[i] ?? 3600} />
+            ))}
           </div>
         </div>
 
+        {/* Win Rewards accordion */}
+        <div className="px-4 mt-5">
+          <button
+            onClick={() => setRewardsOpen(v => !v)}
+            className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-4 py-3.5 shadow-sm"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center">
+                <Gift size={16} className="text-amber-500" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black text-gray-900">Win a Reward</p>
+                <p className="text-[10px] text-gray-400">Spin · Scratch · Mystery Box</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className={`text-gray-400 transition-transform ${rewardsOpen ? "rotate-90" : ""}`} />
+          </button>
+
+          <AnimatePresence>
+            {rewardsOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-white border border-t-0 border-gray-200 rounded-b-2xl px-4 pb-5 pt-4">
+                  {/* Game selector */}
+                  <div className="flex gap-2 mb-4">
+                    {GAME_TABS.map(({ key, icon: Icon, label }) => (
+                      <button key={key}
+                        onClick={() => setActiveGame(activeGame === key ? null : key)}
+                        className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl text-[10px] font-bold transition-all border ${
+                          activeGame === key
+                            ? "border-amber-400 bg-amber-50 text-amber-700"
+                            : "border-gray-100 bg-gray-50 text-gray-500"
+                        }`}
+                      >
+                        <Icon size={16} />
+                        {label.split(" ")[0]}
+                      </button>
+                    ))}
+                  </div>
+                  <AnimatePresence mode="wait">
+                    {activeGame && (
+                      <motion.div key={activeGame} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        {activeGame === "wheel"   && <SpinWheel />}
+                        {activeGame === "scratch" && <ScratchCard />}
+                        {activeGame === "mystery" && <MysteryBox books={flashBooks} />}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  {!activeGame && (
+                    <p className="text-center text-xs text-gray-400 py-2">Select a game above to win a discount code</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* All deals grid */}
-        <div className="px-4 mt-6">
+        <div className="px-4 mt-6 pb-28">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-1 h-5 bg-[#c9a84c] rounded-full" />
-            <span className="font-black text-sm text-gray-900">All Deals</span>
+            <div className="w-1 h-4 bg-amber-400 rounded-full" />
+            <span className="font-black text-sm text-gray-900">
+              {selectedCat ? selectedCat : "All Deals"}
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-3 pb-32">
-            {loading
-              ? Array(8).fill(0).map((_, i) => <DealCardSkeleton key={i} />)
-              : allDealBooks.slice(0, 20).map((book, i) => (
-                  <DealCard key={book.id} book={book} timer={i === 0 ? heroTimer : timers[i] ?? 3600} />
-                ))
-            }
+          <div className="grid grid-cols-2 gap-3">
+            {filteredBooks.slice(0, 20).map((book, i) => (
+              <DealCard key={book.id} book={book} timer={i === 0 ? heroTimer : timers[i] ?? 3600} />
+            ))}
           </div>
         </div>
       </div>
@@ -834,170 +866,141 @@ const SpecialOffersPage = () => {
       <div className="hidden sm:block min-h-screen">
         <TopBar />
 
-        {/* ── Cinematic Hero ── */}
-        {heroBook && (
-          <section className="relative overflow-hidden" style={{ minHeight: 520 }}>
-            {/* Blurred book cover as background */}
-            <div className="absolute inset-0">
-              <img
-                src={heroBook.imageUrl}
-                alt=""
-                className="w-full h-full object-cover scale-110"
-                style={{ filter: "blur(24px) brightness(0.25) saturate(1.4)" }}
-              />
-            </div>
-            {/* Gradient overlays */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0a1628]/95 via-[#0a1628]/70 to-[#0a1628]/20" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a1628] via-transparent to-transparent" style={{ top: "60%" }} />
-
-            <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 flex items-center gap-16">
-              {/* Left copy */}
-              <div className="flex-1 min-w-0">
-                <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-500/30 text-red-400 px-4 py-1.5 rounded-full text-[11px] font-black mb-6 uppercase tracking-wider">
-                  <Flame size={12} fill="currentColor" /> Flash Sale · Ends in
-                  <Countdown seconds={heroTimer} />
-                </div>
-                <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-none mb-4">
-                  Today's<br />
-                  <span className="text-[#c9a84c]">Top Deal</span>
-                </h1>
-                <p className="text-white/80 text-xl mb-1 line-clamp-1">{heroBook.title}</p>
-                <p className="text-white/40 text-sm mb-8">by {heroBook.author}</p>
-                <div className="flex items-baseline gap-4 mb-8">
-                  <span className="text-5xl font-black text-white">£{heroBook.price.toFixed(2)}</span>
-                  <span className="text-2xl text-white/30 line-through">£{fakeWas(heroBook.price).toFixed(2)}</span>
-                  <span className="bg-red-600 text-white text-sm font-black px-3 py-1.5 rounded-full">
-                    SAVE {pct(heroBook.price, fakeWas(heroBook.price))}%
+        {/* ── Hero ── */}
+        <header
+          className="relative pt-14 pb-12 px-6 md:px-8 overflow-hidden bg-[#0d1b3e]"
+          style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-black/40" />
+          <div className="relative z-10 max-w-[1440px] mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Flame size={13} className="text-red-400" fill="currentColor" />
+                  <span className="text-white font-black uppercase tracking-[0.3em] block text-sm">
+                    Flash Sale · Up to 55% Off
                   </span>
                 </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => { addToCart({ id: heroBook.id, img: heroBook.imageUrl, title: heroBook.title, author: heroBook.author, price: `£${heroBook.price.toFixed(2)}`, quantity: 1 }); toast.success("Added to basket!"); }}
-                    className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4b860] text-[#0a1628] font-black px-8 py-4 rounded-2xl transition-all active:scale-95 shadow-lg"
-                  >
-                    <ShoppingCart size={18} /> Add to Basket
-                  </button>
-                  <Link to={`/browse/${heroBook.id}`}
-                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold px-8 py-4 rounded-2xl transition-all">
-                    View Book <ArrowRight size={16} />
-                  </Link>
-                </div>
+                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter drop-shadow-xl">
+                  Special Offers
+                </h1>
+                <p className="text-white/50 text-sm mt-2">Clearance deals · New arrivals · Daily rewards</p>
               </div>
-
-              {/* Book cover */}
-              <div className="relative w-52 lg:w-64 flex-shrink-0 hidden md:block">
-                <div className="absolute -inset-8 bg-[#c9a84c]/15 rounded-full blur-3xl" />
-                <img
-                  src={heroBook.imageUrl}
-                  alt={heroBook.title}
-                  className="relative w-full rounded-3xl shadow-2xl ring-1 ring-white/10"
-                />
-                <div className="absolute -top-4 -right-4 w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-xl ring-4 ring-red-600/20">
+              <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
+                <div className="flex items-center gap-4 text-white">
                   <div className="text-center">
-                    <p className="text-white font-black text-[8px] uppercase leading-none">SAVE</p>
-                    <p className="text-white font-black text-sm">{pct(heroBook.price, fakeWas(heroBook.price))}%</p>
+                    <p className="text-2xl font-black">{allDealBooks.length}+</p>
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider">Books on sale</p>
+                  </div>
+                  <div className="w-px h-8 bg-white/15" />
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-red-400">Free</p>
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider">UK delivery £15+</p>
                   </div>
                 </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ── Games Panel (overlapping hero) ── */}
-        <section className="max-w-6xl mx-auto px-4 -mt-10 relative z-10 pb-10">
-          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="px-6 pt-5 pb-0 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <Gift size={16} className="text-[#c9a84c]" />
-                  <span className="text-xs font-black uppercase tracking-widest text-gray-900">Win Rewards</span>
+                <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+                  <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest">Sale resets in</p>
+                  <Countdown seconds={heroTimer} />
                 </div>
-                <p className="text-[11px] text-gray-400">Spin, scratch or pick a mystery box to get a discount code</p>
               </div>
-              <div className="flex items-center gap-1 text-[10px] font-black text-emerald-500 bg-emerald-50 px-2.5 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse inline-block" />
-                Daily Reset
+            </div>
+          </div>
+        </header>
+
+        {/* ── Win Rewards strip ── */}
+        <div className="bg-gray-50 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-6 py-5">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 shrink-0 mr-2">
+                <Gift size={16} className="text-amber-500" />
+                <span className="text-sm font-black text-gray-900">Win a Reward</span>
+                <span className="text-[10px] font-semibold text-gray-400 ml-1">· resets daily</span>
+              </div>
+              <div className="flex gap-3 flex-1">
+                {GAME_TABS.map(({ key, icon: Icon, label, desc }) => (
+                  <button key={key}
+                    onClick={() => setActiveGame(activeGame === key ? null : key)}
+                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all flex-1 justify-center ${
+                      activeGame === key
+                        ? "bg-white border-amber-300 text-amber-700 shadow-sm"
+                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900"
+                    }`}
+                  >
+                    <Icon size={15} />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-3 border-b border-gray-100 mt-4">
-              {GAME_TABS.map(({ key, icon: Icon, label }) => (
-                <button key={key}
-                  onClick={() => setActiveGame(activeGame === key ? null : key)}
-                  className={`flex items-center justify-center gap-2 py-3.5 px-3 text-sm font-bold transition-all border-b-2 ${
-                    activeGame === key
-                      ? "border-[#c9a84c] text-[#c9a84c] bg-[#c9a84c]/5"
-                      : "border-transparent text-gray-400 hover:text-gray-700 hover:bg-gray-50"
-                  }`}>
-                  <Icon size={17} />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-
-            <AnimatePresence mode="wait">
-              {activeGame ? (
-                <motion.div key={activeGame}
-                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden">
-                  <div className="p-8 max-w-sm mx-auto">
+            {/* Active game panel */}
+            <AnimatePresence>
+              {activeGame && (
+                <motion.div
+                  key={activeGame}
+                  initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-auto shadow-sm">
                     {activeGame === "wheel"   && <SpinWheel />}
                     {activeGame === "scratch" && <ScratchCard />}
                     {activeGame === "mystery" && <MysteryBox books={flashBooks} />}
                   </div>
                 </motion.div>
-              ) : (
-                <div className="py-8 text-center text-gray-400 text-sm">
-                  <Sparkles size={28} className="mx-auto mb-2 text-gray-200" />
-                  Pick a game above to win discount codes &amp; book deals
-                </div>
               )}
             </AnimatePresence>
           </div>
-        </section>
+        </div>
 
-        {/* ── Flash Deals Strip ── */}
-        <section className="max-w-6xl mx-auto px-4 pb-12">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Zap size={15} className="text-red-500" fill="currentColor" />
-                <span className="text-xs font-black uppercase tracking-widest text-red-500">Flash Deals</span>
+        {/* ── Flash Deals (new arrivals) ── */}
+        {flashBooks.length > 0 && (
+          <section className="max-w-6xl mx-auto px-6 py-10">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap size={13} className="text-red-500" fill="currentColor" />
+                  <span className="text-xs font-black uppercase tracking-widest text-red-500">New Arrivals</span>
+                </div>
+                <h2 className="text-xl font-black text-gray-900">Latest Deals</h2>
               </div>
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight">New Arrivals on Sale</h2>
+              <Link to="/new-arrivals" className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-700 font-semibold transition-colors">
+                See all <ChevronRight size={14} />
+              </Link>
             </div>
-            <Link to="/new-arrivals" className="flex items-center gap-1 text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors">
-              See all <ChevronRight size={14} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-4 gap-4">
-            {flashBooks.map((book, i) => (
-              <DealCard key={book.id} book={book} timer={timers[i] ?? 3600} />
-            ))}
-          </div>
-        </section>
+            <div className="grid grid-cols-4 xl:grid-cols-5 gap-4">
+              {flashBooks.map((book, i) => (
+                <DealCard key={book.id} book={book} timer={timers[i] ?? 3600} />
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* ── All Deals: Sidebar + Grid ── */}
-        <section className="max-w-6xl mx-auto px-4 pb-16">
+        {/* ── Divider ── */}
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="border-t border-gray-100" />
+        </div>
+
+        {/* ── All Deals: sidebar + grid ── */}
+        <section className="max-w-6xl mx-auto px-6 py-10 pb-16">
           <div className="flex gap-8 items-start">
 
             {/* Sidebar */}
-            <aside className="w-52 flex-shrink-0 hidden lg:block">
-              <div className="sticky top-24">
-                <h4 className="text-xs font-black uppercase tracking-widest text-gray-900 mb-3">Filter by Genre</h4>
+            <aside className="w-48 flex-shrink-0 hidden lg:block">
+              <div className="sticky top-6">
+                <h4 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-3">Filter by Genre</h4>
                 <div className="space-y-0.5">
                   <button
                     onClick={() => setSelectedCat(null)}
-                    className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                    style={!selectedCat ? { background: "#dc2626", color: "white" } : { color: "#374151" }}
+                    className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${!selectedCat ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-100"}`}
                   >
-                    All Deals
+                    <Star size={13} /> All Deals
                   </button>
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => setSelectedCat(selectedCat === cat.name ? null : cat.name)}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-left transition-all capitalize"
-                      style={selectedCat === cat.name ? { background: "#dc2626", color: "white" } : { color: "#374151" }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-left transition-all capitalize ${
+                        selectedCat === cat.name ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-100"
+                      }`}
                     >
                       {getCatIcon(cat.name)} {cat.name}
                     </button>
@@ -1006,56 +1009,49 @@ const SpecialOffersPage = () => {
               </div>
             </aside>
 
-            {/* Grid */}
+            {/* Main grid */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
                 <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <Star size={15} className="text-[#c9a84c]" fill="currentColor" />
-                    <span className="text-xs font-black uppercase tracking-widest text-[#c9a84c]">All Deals</span>
-                  </div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                  <h2 className="text-xl font-black text-gray-900">
                     {selectedCat ? selectedCat : "Clearance & Popular Picks"}
                   </h2>
+                  <p className="text-sm text-gray-400 mt-0.5">{filteredBooks.length} books on sale</p>
                 </div>
-                <span className="text-xs text-gray-400 font-medium">{filteredBooks.length} books</span>
               </div>
 
               <div className="grid grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredBooks.slice(0, 20).map((book, i) => (
-                  <DealCard key={book.id} book={book} timer={i === 0 ? heroTimer : timers[i] ?? 3600} />
-                ))}
+                {loading
+                  ? Array(8).fill(0).map((_, i) => <DealCardSkeleton key={i} />)
+                  : filteredBooks.slice(0, 20).map((book, i) => (
+                      <DealCard key={book.id} book={book} timer={i === 0 ? heroTimer : timers[i + 1] ?? 3600} />
+                    ))
+                }
               </div>
 
               <div className="text-center mt-10">
                 <Link to="/clearance"
-                  className="inline-flex items-center gap-2 bg-[#0a1628] hover:bg-red-600 text-white font-bold px-8 py-4 rounded-2xl transition-all shadow-md">
-                  View All Clearance <ArrowRight size={16} />
+                  className="inline-flex items-center gap-2 border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white font-bold px-8 py-3 rounded-2xl transition-all text-sm">
+                  Browse All Clearance <ArrowRight size={15} />
                 </Link>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Promo Banner ── */}
-        <section className="max-w-6xl mx-auto px-4 pb-16">
-          <div className="relative overflow-hidden bg-[#0a1628] rounded-3xl p-8 sm:p-12 flex flex-col sm:flex-row items-center justify-between gap-6">
-            {/* Background texture */}
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, #c9a84c 0%, transparent 50%), radial-gradient(circle at 80% 20%, #dc2626 0%, transparent 40%)" }} />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-2">
-                <Lock size={14} className="text-[#c9a84c]" />
-                <span className="text-xs font-bold text-[#c9a84c] uppercase tracking-widest">Members Only</span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-white mb-2">Free UK Delivery</h3>
-              <p className="text-white/40 text-sm">On all orders over £15 — no code needed</p>
+        {/* ── Delivery banner ── */}
+        <div className="bg-gray-50 border-t border-gray-100">
+          <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <p className="font-black text-gray-900 text-lg">Free UK Delivery on orders over £15</p>
+              <p className="text-gray-400 text-sm mt-0.5">No code needed — applied automatically at checkout</p>
             </div>
             <Link to="/signup"
-              className="relative shrink-0 flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4b860] text-[#0a1628] font-black px-8 py-4 rounded-2xl transition-all whitespace-nowrap shadow-lg">
-              Join Free <ArrowRight size={16} />
+              className="shrink-0 flex items-center gap-2 bg-gray-900 hover:bg-red-600 text-white font-bold px-6 py-3 rounded-2xl transition-all text-sm whitespace-nowrap">
+              Join BritBooks <ArrowRight size={15} />
             </Link>
           </div>
-        </section>
+        </div>
 
         <Footer />
       </div>
