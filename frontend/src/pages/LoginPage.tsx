@@ -124,7 +124,7 @@ const LoginPage = () => {
   const location = useLocation();
 
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
-  const { auth, login, verifyLogin, verifyTotp, loginWithSocial } = context;
+  const { auth, login, verifyLogin, verifyTotp, loginWithSocial, resendOtp } = context;
   const { loading, error, token } = auth;
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
   const googleTokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
@@ -264,6 +264,17 @@ const LoginPage = () => {
   };
 
   const handleCloseModal = () => { setShowVerificationModal(false); setVerifyCode(""); localStorage.removeItem("loginEmail"); };
+
+  const handleResendCode = async () => {
+    try {
+      await resendOtp();
+      toast.success("New verification code sent.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || "Couldn't resend the code. Please try again.";
+      toast.error(msg);
+      throw err;
+    }
+  };
 
   const handleTotpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -505,6 +516,7 @@ const LoginPage = () => {
                 handleVerifySubmit={handleVerifySubmit}
                 handleCloseModal={handleCloseModal}
                 loading={loading}
+                onResend={handleResendCode}
               />
             </motion.div>
 
@@ -525,6 +537,7 @@ const LoginPage = () => {
                   handleVerifySubmit={handleVerifySubmit}
                   handleCloseModal={handleCloseModal}
                   loading={loading}
+                  onResend={handleResendCode}
                 />
               </div>
             </motion.div>
@@ -536,15 +549,30 @@ const LoginPage = () => {
 };
 
 /* ── Shared verify content ───────────────────────── */
-function VerifyContent({ emailDisplay, verifyCode, setVerifyCode, handleVerifySubmit, handleCloseModal, loading }: any) {
+function VerifyContent({ emailDisplay, verifyCode, setVerifyCode, handleVerifySubmit, handleCloseModal, loading, onResend }: any) {
   const [resendTimer, setResendTimer] = React.useState(60);
   const [canResend, setCanResend] = React.useState(false);
+  const [resending, setResending] = React.useState(false);
 
   React.useEffect(() => {
     if (resendTimer <= 0) { setCanResend(true); return; }
     const t = setTimeout(() => setResendTimer(v => v - 1), 1000);
     return () => clearTimeout(t);
   }, [resendTimer]);
+
+  const handleResendClick = async () => {
+    if (!onResend || resending) return;
+    setResending(true);
+    try {
+      await onResend();
+      setResendTimer(60);
+      setCanResend(false);
+    } catch {
+      // toast handled by caller; keep the button available for retry
+    } finally {
+      setResending(false);
+    }
+  };
 
   return (
     <div>
@@ -593,8 +621,10 @@ function VerifyContent({ emailDisplay, verifyCode, setVerifyCode, handleVerifySu
       <div className="flex items-center justify-center gap-1.5 mt-5 text-xs">
         <span className="text-gray-400">Didn't receive it?</span>
         {canResend
-          ? <button type="button" onClick={() => { setResendTimer(60); setCanResend(false); }}
-              className="font-bold text-[#c9a84c] hover:underline">Resend now</button>
+          ? <button type="button" onClick={handleResendClick} disabled={resending}
+              className="font-bold text-[#c9a84c] hover:underline disabled:opacity-60">
+              {resending ? 'Sending…' : 'Resend now'}
+            </button>
           : <span className="text-gray-400">Resend in <span className="font-bold text-gray-700">{resendTimer}s</span></span>
         }
       </div>

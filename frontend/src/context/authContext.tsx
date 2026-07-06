@@ -79,6 +79,7 @@ interface AuthContextType {
   verifyLogin: (formData: VerifyFormData) => Promise<void>;
   verifyTotp: (code: string) => Promise<void>;
   loginWithSocial: (provider: 'google' | 'facebook', token: string) => Promise<void>;
+  resendOtp: () => Promise<void>;
   logout: () => void;
 }
 
@@ -373,6 +374,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const resendOtp = async () => {
+    if (!auth.token) {
+      throw new Error('No auth token available to resend the verification code.');
+    }
+    await axios.post(
+      `${API_BASE_URL}/resend-otp`,
+      {},
+      { headers: { Authorization: `Bearer ${auth.token}` } }
+    );
+  };
+
   const loginWithSocial = async (provider: 'google' | 'facebook', token: string) => {
     setAuth((prev) => ({ ...prev, loading: true, error: null }));
     try {
@@ -427,7 +439,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   logoutRef.current = logout;
 
   return (
-    <AuthContext.Provider value={{ auth, registerUser, login, verifyRegistration, verifyLogin, verifyTotp, loginWithSocial, logout }}>
+    <AuthContext.Provider value={{ auth, registerUser, login, verifyRegistration, verifyLogin, verifyTotp, loginWithSocial, resendOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );
