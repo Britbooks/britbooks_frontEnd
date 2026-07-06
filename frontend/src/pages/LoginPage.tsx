@@ -286,13 +286,13 @@ const LoginPage = () => {
   })();
 
   return (
-    <div className="min-h-screen flex font-sans">
+    <div className="min-h-screen w-full flex font-sans">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
 
       <AuthBrandPanel />
 
       {/* ── RIGHT FORM PANEL (30%) ───────────────────────── */}
-      <div className="flex-1 lg:flex-none lg:w-[30%] flex flex-col bg-white border-l border-gray-100">
+      <div className="flex-1 lg:flex-none lg:w-[30%] flex flex-col bg-white border-l border-gray-100 overflow-y-auto">
 
         {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between px-6 pt-6 pb-4">
@@ -304,8 +304,8 @@ const LoginPage = () => {
           </Link>
         </div>
 
-        {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-8 py-10 lg:py-0">
+        {/* Form area — fills full panel height */}
+        <div className="flex-1 flex flex-col justify-center px-6 py-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

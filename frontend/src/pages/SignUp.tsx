@@ -409,7 +409,7 @@ const SignupPage = () => {
     `w-full ${pl} pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/10 transition-all`;
 
   return (
-    <div className="min-h-screen flex font-sans">
+    <div className="min-h-screen w-full flex font-sans">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
 
       <AuthBrandPanel />
@@ -425,7 +425,8 @@ const SignupPage = () => {
           </Link>
         </div>
 
-        <div className="flex-1 flex items-start lg:items-center justify-center px-8 py-8 lg:py-10">
+        {/* Form area — fills full panel height */}
+        <div className="flex-1 flex flex-col justify-center px-6 py-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
