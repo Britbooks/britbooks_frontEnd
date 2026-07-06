@@ -7,42 +7,102 @@ import { ShieldCheck, ChevronLeft } from 'lucide-react';
 const NAVY = '#0a1628';
 const RED  = '#c42b1c';
 
-const SLIDES = [
+type Slide = {
+  emoji:    string;
+  tag:      string;
+  headline: [string, string];
+  sub:      string;
+  stat:     { value: string; label: string };
+  bg:       string;
+  accent:   string;
+  image:    string;
+};
+
+const img = (seed: string) => `https://picsum.photos/seed/${seed}/1200/1600`;
+
+const LOGIN_SLIDES: Slide[] = [
   {
-    emoji:    '📚',
-    tag:      'New Arrivals',
-    headline: ['Fresh reads,', 'every week.'],
-    sub:      'Discover the latest titles across every genre — debut novels, chart-toppers, and hidden gems added daily.',
-    stat:     { value: '2,000+', label: 'New titles added every week' },
+    emoji:    '👋',
+    tag:      'Welcome back',
+    headline: ['Your shelf,', 'still warm.'],
+    sub:      'Pick up where you left off — your wishlist, orders, and recommendations are waiting.',
+    stat:     { value: '2M+', label: 'Readers signed in this month' },
     bg:       'linear-gradient(150deg, #fdf8f0 0%, #faf3e8 55%, #f3ece0 100%)',
     accent:   NAVY,
+    image:    img('britbooks-login-cozy'),
   },
   {
-    emoji:    '🏷️',
-    tag:      'Special Offers',
-    headline: ['Up to 60%', 'off today.'],
-    sub:      'Clearance deals on thousands of titles — plus spin our prize wheel to unlock extra discount codes.',
-    stat:     { value: '60% off', label: 'On selected clearance titles' },
+    emoji:    '⚡',
+    tag:      'Faster Checkout',
+    headline: ['One click', 'to reorder.'],
+    sub:      'Saved addresses, saved cards, saved time. Reorder a favourite in seconds.',
+    stat:     { value: '30s', label: 'Average checkout time' },
+    bg:       'linear-gradient(150deg, #fdf8f0 0%, #eef3fd 55%, #e2ecfe 100%)',
+    accent:   NAVY,
+    image:    img('britbooks-login-desk'),
+  },
+  {
+    emoji:    '📦',
+    tag:      'Track Orders',
+    headline: ['Every parcel,', 'in one place.'],
+    sub:      'See exactly where your books are — from our warehouse to your doorstep.',
+    stat:     { value: 'Live', label: 'Order tracking on every dispatch' },
+    bg:       'linear-gradient(150deg, #fdf8f0 0%, #fdf2f5 55%, #fde0e8 100%)',
+    accent:   RED,
+    image:    img('britbooks-login-tracking'),
+  },
+  {
+    emoji:    '🌱',
+    tag:      'Read Sustainably',
+    headline: ['Loved books,', 'looped again.'],
+    sub:      'Every second-hand book you buy keeps a story circulating and paper out of landfill.',
+    stat:     { value: '4.9 ★', label: 'Average customer rating' },
+    bg:       'linear-gradient(150deg, #fdf8f0 0%, #f2fbf4 55%, #e5f6e9 100%)',
+    accent:   NAVY,
+    image:    img('britbooks-login-sustain'),
+  },
+];
+
+const SIGNUP_SLIDES: Slide[] = [
+  {
+    emoji:    '🎁',
+    tag:      'Welcome Gift',
+    headline: ['Get £5 off', 'your first order.'],
+    sub:      'Sign up in seconds and we\'ll drop a £5 credit into your account — no strings attached.',
+    stat:     { value: '£5', label: 'Welcome credit for new members' },
     bg:       'linear-gradient(150deg, #fdf8f0 0%, #fff5f3 55%, #fde8e5 100%)',
     accent:   RED,
+    image:    img('britbooks-signup-gift'),
+  },
+  {
+    emoji:    '📚',
+    tag:      '500,000+ Titles',
+    headline: ['Half a million', 'books to explore.'],
+    sub:      'From rare first editions to this week\'s bestsellers — build a library you\'re proud of.',
+    stat:     { value: '500k+', label: 'Titles ready to ship' },
+    bg:       'linear-gradient(150deg, #fdf8f0 0%, #faf3e8 55%, #f3ece0 100%)',
+    accent:   NAVY,
+    image:    img('britbooks-signup-library'),
   },
   {
     emoji:    '🚚',
     tag:      'Free UK Delivery',
-    headline: ['Free delivery', 'on every order.'],
-    sub:      'Orders over £10 ship free across the UK. Fast dispatch, tracked delivery — books at your door in days.',
-    stat:     { value: '£10', label: 'Minimum order for free shipping' },
+    headline: ['Free delivery', 'over £10.'],
+    sub:      'Fast, tracked UK shipping on every eligible order. Books at your door in days.',
+    stat:     { value: '£10', label: 'Order minimum for free shipping' },
     bg:       'linear-gradient(150deg, #fdf8f0 0%, #eef3fd 55%, #e2ecfe 100%)',
     accent:   NAVY,
+    image:    img('britbooks-signup-delivery'),
   },
   {
-    emoji:    '🏆',
-    tag:      '500,000+ Titles',
-    headline: ['Half a million', 'books in stock.'],
-    sub:      'From rare first editions to today\'s bestsellers — whatever you\'re looking for, BritBooks has it.',
-    stat:     { value: '4.9 ★', label: 'Average customer rating' },
+    emoji:    '💛',
+    tag:      'Join The Club',
+    headline: ['2M+ readers.', 'One good shelf.'],
+    sub:      'Personalised picks, early access to sales, and a community of book lovers cheering you on.',
+    stat:     { value: '4.9 ★', label: 'Rated by 2M+ readers' },
     bg:       'linear-gradient(150deg, #fdf8f0 0%, #fdf2f5 55%, #fde0e8 100%)',
     accent:   RED,
+    image:    img('britbooks-signup-community'),
   },
 ];
 
@@ -55,25 +115,39 @@ const SPARKS = [
   { x: '87%', dur: 15, delay: 9   },
 ];
 
-const AuthBrandPanel: React.FC = () => {
+type Props = { variant?: 'login' | 'signup' };
+
+const AuthBrandPanel: React.FC<Props> = ({ variant = 'login' }) => {
+  const SLIDES = variant === 'signup' ? SIGNUP_SLIDES : LOGIN_SLIDES;
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setCurrent(c => (c + 1) % SLIDES.length), 4500);
     return () => clearInterval(id);
-  }, []);
+  }, [SLIDES.length]);
 
   const slide = SLIDES[current];
   const isRed = slide.accent === RED;
 
   return (
-    <div className="hidden lg:flex lg:w-[70%] flex-col relative overflow-hidden select-none"
-      style={{ background: '#fdf8f0' }}>
+    <div className="hidden lg:flex flex-col relative overflow-hidden select-none"
+      style={{ background: '#fdf8f0', width: '70%', flexShrink: 0 }}>
 
-      {/* Slide background */}
+      {/* Slide image (behind the cream tint) */}
+      <AnimatePresence mode="wait">
+        <motion.div key={`img-${current}`}
+          initial={{ opacity: 0, scale: 1.06 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.02 }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 pointer-events-none bg-cover bg-center"
+          style={{ backgroundImage: `url(${slide.image})` }} />
+      </AnimatePresence>
+
+      {/* Cream tint on top so text stays readable */}
       <AnimatePresence mode="wait">
         <motion.div key={`bg-${current}`}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          initial={{ opacity: 0 }} animate={{ opacity: 0.88 }} exit={{ opacity: 0 }}
           transition={{ duration: 0.9 }}
           className="absolute inset-0 pointer-events-none"
           style={{ background: slide.bg }} />
@@ -124,7 +198,7 @@ const AuthBrandPanel: React.FC = () => {
       {/* ── TOP BAR ── */}
       <div className="relative z-10 flex items-center justify-between px-12 pt-10">
         <Link to="/" className="block">
-          <img src="/logobrit.png" alt="BritBooks" className="h-14 w-auto object-contain" />
+          <img src="/logobrit.png" alt="BritBooks" className="h-36 w-auto object-contain" />
         </Link>
         <Link to="/"
           className="inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"

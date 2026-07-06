@@ -412,26 +412,26 @@ const SignupPage = () => {
     <div className="h-screen w-full flex font-sans overflow-hidden">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
 
-      <AuthBrandPanel />
+      <AuthBrandPanel variant="signup" />
 
       {/* ── RIGHT FORM PANEL ─────────────────────────────── */}
-      <div className="flex-1 lg:flex-none lg:w-[30%] flex flex-col bg-white border-l border-gray-100 overflow-y-auto">
+      <div className="flex-1 flex flex-col bg-white border-l border-gray-100 overflow-y-auto">
 
         {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between px-6 pt-6 pb-4">
-          <Link to="/"><img src="/logobrit.png" alt="BritBooks" className="h-8 object-contain" /></Link>
+          <Link to="/"><img src="/logobrit.png" alt="BritBooks" className="h-16 object-contain" /></Link>
           <Link to="/" className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-700">
             <ArrowLeft className="w-3.5 h-3.5" /> Home
           </Link>
         </div>
 
-        {/* Form fills the full 30% panel — no centering */}
-        <div className="flex-1 flex flex-col px-8 py-10 overflow-y-auto">
+        {/* Form vertically centered in the right panel */}
+        <div className="flex-1 flex flex-col justify-center px-8 py-10 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="w-full flex-1 flex flex-col"
+            className="w-full"
           >
             {/* Heading */}
             <div className="mb-8">
@@ -549,8 +549,8 @@ const SignupPage = () => {
               </motion.div>
             </motion.form>
 
-            {/* Bottom section pushed to end */}
-            <div className="mt-auto pt-6">
+            {/* Divider + social + link — flow right after the form */}
+            <div className="mt-6">
               {/* Divider */}
               <div className="flex items-center gap-3 mb-5">
                 <div className="flex-1 h-px bg-gray-100" />
