@@ -720,7 +720,7 @@ const NewArrivalsPage: React.FC = () => {
         style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-black/30" />
-        <div className="relative z-10 max-w-[1440px] mx-auto pb-10">
+        <div className="relative z-10 w-full pb-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
             <div>
               <span className="text-white font-black uppercase tracking-[0.3em] mb-2 block">

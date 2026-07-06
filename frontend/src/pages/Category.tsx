@@ -81,15 +81,6 @@ export default function BrowsePage() {
   // Active filter count badge
   const activeFilterCount = [condition, priceMin, priceMax].filter(Boolean).length;
 
-  const getRandomHeaderBg = () => {
-    const seed = Math.floor(Math.random() * 10000);
-    return `https://picsum.photos/seed/${seed}/1600/900`;
-  };
-  const [headerBg, setHeaderBg] = useState(getRandomHeaderBg);
-  useEffect(() => {
-    setHeaderBg(getRandomHeaderBg());
-  }, [selectedCategory, selectedSubcategory]);
-
   // ── URL sync ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -491,7 +482,7 @@ export default function BrowsePage() {
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-black/30" />
-          <div className="relative z-10 max-w-[1440px] mx-auto">
+          <div className="relative z-10 w-full">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
               <div>
                 <span className="text-white font-black uppercase tracking-[0.3em] mb-2 block">
@@ -508,7 +499,7 @@ export default function BrowsePage() {
           </div>
         </header>
 
-        <main className="max-w-[1440px] mx-auto px-6 sm:px-8 py-10 md:py-12">
+        <main className="w-full px-6 sm:px-8 py-10 md:py-12">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
 
             {/* ── Sidebar ── */}
