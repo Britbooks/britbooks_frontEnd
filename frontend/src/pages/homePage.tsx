@@ -121,14 +121,14 @@ const CategoryCard = ({
       whileHover={{ scale: 1.07 }}
       className="flex-shrink-0 w-40 h-40 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all relative group cursor-pointer"
     >
-      <img 
+      <img
         src={placeholderImage}
         alt={name}
-        className="w-full h-full object-cover opacity-60"
+        className="w-full h-full object-cover"
         loading="lazy"
       />
 
-      <div className="absolute inset-0 bg-black/90 group-hover:bg-black/70 transition-all duration-300" />
+      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/55 transition-all duration-300" />
       
       <div className="absolute bottom-0 left-0 right-0 p-6 text-white text-left">
         <h3 className="text-2xl font-bold leading-tight drop-shadow-lg">
