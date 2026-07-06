@@ -135,7 +135,7 @@ const ContactPage = () => {
         style={{ backgroundImage: `url(${heroBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/65 to-black/50" />
-        <div className="relative z-10 max-w-5xl mx-auto">
+        <div className="relative z-10 w-full">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
             {/* Left: title */}
             <motion.div {...fadeUp(0)}>
@@ -177,7 +177,7 @@ const ContactPage = () => {
       </header>
 
       {/* ── Main content ─────────────────────────────────────────────── */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-12 pb-16">
+      <main className="flex-1 w-full px-4 sm:px-6 py-12 pb-16">
 
         <div className="grid lg:grid-cols-5 gap-6 items-start">
 
