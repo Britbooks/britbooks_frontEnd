@@ -153,34 +153,25 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
   const navigate = useNavigate();
   const [books, setBooks] = useState<BookCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 640 ? 2 : 5
+  );
 
   const pageCache = useRef<Map<number, BookCardProps[]>>(new Map());
   const hasNextPageCache = useRef<Map<number, boolean>>(new Map());
 
-  // Responsive items per page
-  const getItemsPerPage = () => {
-    if (typeof window === 'undefined') return 5;
-    return window.innerWidth < 640 ? 2 : 5;
-  };
-
+  // Responsive items per page — stable handler, no itemsPerPage dep
   useEffect(() => {
     const handleResize = () => {
-      const newItems = getItemsPerPage();
-      if (newItems !== itemsPerPage) {
-        setItemsPerPage(newItems);
-      }
+      const next = window.innerWidth < 640 ? 2 : 5;
+      setItemsPerPage(prev => prev === next ? prev : next);
     };
-
     window.addEventListener('resize', handleResize);
-    handleResize();
-
     return () => window.removeEventListener('resize', handleResize);
-  }, [itemsPerPage]);
+  }, []);
 
   // Reset when itemsPerPage or fetchParams change
   useEffect(() => {
@@ -188,6 +179,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
     hasNextPageCache.current.clear();
     setCurrentPage(1);
     setBooks([]);
+    setIsLoading(true);
     setHasNextPage(true);
     setError(null);
     loadPage(1);
@@ -199,11 +191,13 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
         setBooks(pageCache.current.get(pageNum)!);
         setHasNextPage(hasNextPageCache.current.get(pageNum) ?? false);
         setCurrentPage(pageNum);
+        setIsLoading(false);
         return;
       }
 
-      const setLoading = pageNum === 1 ? setIsLoading : setIsLoadingMore;
-      setLoading(true);
+      // Always show skeleton on this shelf (clears books, shows skeleton in-place)
+      setBooks([]);
+      setIsLoading(true);
 
       try {
         const { listings: fetchedBooks } = await fetchBooks({
@@ -213,7 +207,6 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
         });
 
         const formatted = formatBooksForHomepage(fetchedBooks || []);
-        // A full page means there are likely more books
         const moreAvailable = formatted.length >= itemsPerPage;
 
         pageCache.current.set(pageNum, formatted);
@@ -227,7 +220,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
         console.error('Failed to load books:', err);
         setError(`Failed to load ${title.toLowerCase()}. Please try again.`);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     },
     [fetchParams, itemsPerPage, title]
@@ -255,10 +248,10 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
   // Render
   // ────────────────────────────────────────────────
 
-  if (isLoading && currentPage === 1) {
+  if (isLoading) {
     return (
       <section className="py-8 animate-on-scroll">
-        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628] mb-6">{title}</h2>
+        <h2 className="text-xl sm:text-2xl font-black text-blue-600 mb-6">{title}</h2>
         <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
           {[...Array(itemsPerPage)].map((_, i) => (
             <div
@@ -301,7 +294,7 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
   if (error) {
     return (
       <section className="py-8 animate-on-scroll">
-        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628] mb-6">{title}</h2>
+        <h2 className="text-xl sm:text-2xl font-black text-blue-600 mb-6">{title}</h2>
         <p className="text-red-600 text-center font-medium animate-pulse">{error}</p>
       </section>
     );
@@ -310,17 +303,17 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
   return (
     <section className="py-8 animate-on-scroll">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628] transition-all duration-500">
+        <h2 className="text-xl sm:text-2xl font-black text-blue-600 transition-all duration-500">
           {title}
         </h2>
 
         <div className="flex items-center gap-4 self-end sm:self-auto">
           <button
             onClick={() => currentPage > 1 && loadPage(currentPage - 1)}
-            disabled={currentPage === 1 || isLoadingMore}
+            disabled={currentPage === 1}
             className={`
-              p-3 bg-white border border-gray-300 rounded-full shadow-sm
-              hover:shadow-lg hover:scale-110 active:scale-95
+              p-3 bg-white border border-blue-200 rounded-full shadow-sm text-blue-600
+              hover:bg-blue-50 hover:shadow-lg hover:scale-110 active:scale-95
               disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed
               transition-all duration-300
             `}
@@ -329,19 +322,19 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
             <ChevronLeft size={24} className="transition-transform duration-300" />
           </button>
 
-          <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
+          <span className="text-sm font-semibold text-blue-600 min-w-[140px] text-center">
             Page {currentPage}{hasNextPage ? '+' : ''}
           </span>
 
           <button
             onClick={handleNext}
-            disabled={(!canGoNext && !shouldViewAll) || isLoadingMore}
+            disabled={!canGoNext && !shouldViewAll}
             className={`
               p-3 border rounded-full shadow-sm
               hover:shadow-lg hover:scale-110 active:scale-95
               disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed
               transition-all duration-300
-              ${shouldViewAll ? 'bg-[#0a1628] border-[#0a1628] text-white' : 'bg-white border-gray-300'}
+              ${shouldViewAll ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-blue-200 text-blue-600 hover:bg-blue-50'}
             `}
             aria-label={shouldViewAll ? `View all ${title}` : 'Next page'}
             title={shouldViewAll ? `View all ${title}` : undefined}
@@ -352,25 +345,10 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
       </div>
 
       {/* Main books grid */}
-      <div
-        className={`
-          grid grid-cols-2 gap-6 md:grid-cols-5
-          ${isLoadingMore ? 'opacity-70' : 'opacity-100'}
-          transition-opacity duration-500
-        `}
-      >
+      <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
         {displayedBooks.map((book, idx) =>
           book ? (
-            <div
-              key={book.id}
-              className={`
-                transform transition-all duration-600 ease-out
-                ${isLoadingMore ? 'opacity-0 translate-y-10 scale-95' : 'opacity-100 translate-y-0 scale-100'}
-              `}
-              style={{ transitionDelay: `${idx * 90}ms` }}
-            >
-              <BookCard {...book} />
-            </div>
+            <BookCard key={book.id} {...book} />
           ) : (
             <div
               key={`placeholder-${idx}`}
@@ -379,35 +357,6 @@ const BookShelf: React.FC<BookShelfProps> = ({ title, fetchParams, viewAllLink }
           )
         )}
       </div>
-
-      {/* Loading more – spooky skeletons again */}
-      {isLoadingMore && (
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-5 mt-10">
-          {[...Array(itemsPerPage)].map((_, idx) => (
-            <div
-              key={`skeleton-${idx}`}
-              className="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-b from-gray-300 to-gray-100 animate-pulse shadow-sm"
-              style={{ animationDelay: `${idx * 140}ms` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-300/35 via-indigo-300/25 to-blue-300/15" />
-              <div className="absolute left-1/2 top-1/5 -translate-x-1/2 w-4 h-3/5 bg-gray-500/70 rounded-full" />
-              <div className="absolute left-[25%] top-[45%] w-2.5 h-4 bg-gray-600/60 rounded-full" />
-              <div className="absolute right-[25%] top-[45%] w-2.5 h-4 bg-gray-600/60 rounded-full" />
-              <div className="absolute top-[18%] left-1/2 -translate-x-1/2 flex gap-5">
-                <div className="w-4 h-4 bg-black/50 rounded-full" />
-                <div className="w-4 h-4 bg-black/50 rounded-full" />
-              </div>
-              <div className="absolute bottom-8 left-5 right-5 space-y-2.5">
-                <div className="h-3.5 bg-gray-500/60 rounded w-4/5" />
-                <div className="h-3 bg-gray-400/50 rounded w-2/3" />
-              </div>
-              <div className="absolute -top-2 -right-2 text-5xl font-black text-white/25 rotate-12 animate-bounce-slow pointer-events-none">
-                boo!
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Empty state */}
       {!isLoading && books.length === 0 && !error && (
@@ -434,26 +383,26 @@ const RecentlyViewedShelf = () => {
   return (
     <section className="py-8 animate-on-scroll">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl sm:text-2xl font-black text-[#0a1628]">Recently Viewed</h2>
+        <h2 className="text-xl sm:text-2xl font-black text-blue-600">Recently Viewed</h2>
 
         {totalPages > 1 && (
           <div className="flex items-center gap-4">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
+              className="p-3 bg-white border border-blue-200 rounded-full shadow text-blue-600 hover:bg-blue-50 hover:shadow-md disabled:opacity-50 transition"
             >
               <ChevronLeft size={24} />
             </button>
 
-            <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
+            <span className="text-sm font-semibold text-blue-600 min-w-[140px] text-center">
               Page {currentPage} of {totalPages}
             </span>
 
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className="p-3 bg-white border rounded-full shadow hover:shadow-md disabled:opacity-50 transition"
+              className="p-3 bg-white border border-blue-200 rounded-full shadow text-blue-600 hover:bg-blue-50 hover:shadow-md disabled:opacity-50 transition"
             >
               <ChevronRight size={24} />
             </button>
@@ -512,7 +461,7 @@ const MobileBookCarousel: React.FC<MobileCarouselProps> = ({ title, fetchParams,
       className="mb-6"
     >
       <div className="flex items-center justify-between px-4 mb-3">
-        <h2 className="text-sm font-black text-[#0a1628]">{title}</h2>
+        <h2 className="text-sm font-black text-blue-600">{title}</h2>
         <Link to={seeAllLink}
           className="text-[10px] font-bold uppercase tracking-widest"
           style={{ color: accentColor }}>
@@ -1000,7 +949,7 @@ const Homepage = () => {
             className="mt-5"
           >
             <div className="flex items-center justify-between px-4 mb-3">
-              <h2 className="text-sm font-black text-[#0a1628]">Browse by Genre</h2>
+              <h2 className="text-sm font-black text-blue-600">Browse by Genre</h2>
               <Link to="/category" className="text-[10px] font-bold text-[#c9a84c] uppercase tracking-widest">All →</Link>
             </div>
             <div className="flex gap-2 overflow-x-auto px-4 pb-2" style={{ scrollbarWidth: 'none' }}>
@@ -1133,7 +1082,7 @@ const Homepage = () => {
               className="mb-5"
             >
               <div className="flex items-center justify-between px-4 mb-3">
-                <h2 className="text-sm font-black text-[#0a1628]">Recently Viewed</h2>
+                <h2 className="text-sm font-black text-blue-600">Recently Viewed</h2>
               </div>
               <div
                 className="flex gap-3 overflow-x-auto px-4 pb-3"
