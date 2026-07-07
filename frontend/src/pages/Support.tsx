@@ -220,6 +220,35 @@ function getIntroLines(text: string): string[] {
 }
 
 // ── Master SmartBotMessage ──────────────────────────────
+function StreamingBotMessage({ text }: { text: string }) {
+  return (
+    <div className="rounded-2xl overflow-hidden shadow-sm border border-red-100 bg-white" style={{ maxWidth: "90%" }}>
+      <div className="flex items-center gap-2 px-3.5 py-2 bg-red-50 border-b border-red-100">
+        <LifeBuoy className="w-3.5 h-3.5 text-red-700" />
+        <span className="text-[11px] font-black text-red-700">Alex is typing</span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <Sparkles className="w-3 h-3 text-amber-400" />
+          <span className="text-[10px] text-gray-400">Alex</span>
+        </div>
+      </div>
+      <div className="bg-white px-4 py-3">
+        {text ? (
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {renderBold(text)}
+            <span className="inline-block w-1.5 h-4 align-[-2px] ml-0.5 bg-red-500 animate-pulse" />
+          </p>
+        ) : (
+          <div className="flex items-center gap-1.5 py-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: "120ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: "240ms" }} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SmartBotMessage({ message, time }: { message: string; time: string }) {
   const type = getResponseType(message);
   const intro = getIntroLines(message);
@@ -566,15 +595,64 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
     const msg = input;
     setInput("");
     if (taRef.current) taRef.current.style.height = "auto";
-    const tempId = `temp_${Date.now()}`;
-    const optimistic = { _id: tempId, senderId: userId, message: msg, createdAt: new Date().toISOString(), status: "sending" };
-    setMessages([...messages, optimistic]);
+
+    const tempUserId = `temp_user_${Date.now()}`;
+    const tempBotId = `temp_bot_${Date.now()}`;
+    const optimisticUser = { _id: tempUserId, senderId: userId, message: msg, createdAt: new Date().toISOString(), status: "sending" };
+    const optimisticBot = { _id: tempBotId, senderId: "bot", senderType: "bot", message: "", createdAt: new Date().toISOString(), status: "streaming" };
+
+    let working = [...messages, optimisticUser, optimisticBot];
+    setMessages(working);
+
     try {
-      const res = await axios.post(`${API_BASE}/send`, { chatId, senderId: userId, message: msg }, { headers });
-      setMessages(res.data.messages || []);
+      const res = await fetch(`${API_BASE}/send-stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ chatId, senderId: userId, message: msg }),
+      });
+      if (!res.ok || !res.body) throw new Error("stream failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let event: string | null = null;
+      let botText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          event = null;
+          let dataStr = "";
+          for (const line of block.split("\n")) {
+            if (line.startsWith("event: ")) event = line.slice(7).trim();
+            else if (line.startsWith("data: ")) dataStr += line.slice(6);
+          }
+          if (!dataStr) continue;
+          let data: any;
+          try { data = JSON.parse(dataStr); } catch { continue; }
+
+          if (event === "user" && data.message) {
+            working = working.map((m: any) => m._id === tempUserId ? { ...data.message, _id: tempUserId } : m);
+            setMessages(working);
+          } else if (event === "chunk" && typeof data.text === "string") {
+            botText += data.text;
+            working = working.map((m: any) => m._id === tempBotId ? { ...m, message: botText } : m);
+            setMessages(working);
+          } else if (event === "done" && Array.isArray(data.messages)) {
+            setMessages(data.messages);
+          } else if (event === "error") {
+            throw new Error(data.message || "stream error");
+          }
+        }
+      }
     } catch {
       toast.error("Failed to send");
-      setMessages(messages.filter((m: any) => m._id !== tempId));
+      setMessages(messages);
       setInput(msg);
     }
   };
@@ -754,6 +832,8 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
                         </div>
                       </div>
                     </div>
+                  ) : msg.status === "streaming" ? (
+                    <StreamingBotMessage text={msg.message} />
                   ) : (
                     /* AI response — rich smart card */
                     <SmartBotMessage message={msg.message} time={fmtDate(msg.createdAt)} />
