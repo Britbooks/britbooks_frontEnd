@@ -31,9 +31,69 @@
   <!-- Tailwind CSS v3 (JIT — supports arbitrary values like bg-[#0a1628]) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Global 75% zoom — emulates browser zoom at 75% for the whole app -->
+  <!-- Global 85% zoom — emulates browser zoom at 85% for the whole app -->
   <style>
     html { zoom: 0.85; }
+
+    /* ── Boot loader (removed after React mounts) ─────────────────── */
+    #app-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+    #app-loader.is-hiding {
+      opacity: 0;
+      visibility: hidden;
+    }
+    #app-loader .brit-logo {
+      width: 168px;
+      height: auto;
+      animation: brit-logo-breathe 2.2s ease-in-out infinite;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    #app-loader .brit-dots {
+      display: flex;
+      gap: 10px;
+      margin-top: 32px;
+    }
+    #app-loader .brit-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      animation: brit-dot-bounce 1.1s ease-in-out infinite;
+    }
+    #app-loader .brit-dots span:nth-child(1) { background: #1e3a8a; animation-delay: 0s;    }
+    #app-loader .brit-dots span:nth-child(2) { background: #dc2626; animation-delay: 0.15s; }
+    #app-loader .brit-dots span:nth-child(3) { background: #1e3a8a; animation-delay: 0.3s;  }
+    #app-loader .brit-tag {
+      margin-top: 22px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #94918a;
+    }
+    @keyframes brit-logo-breathe {
+      0%, 100% { transform: scale(1);    opacity: 1;   }
+      50%      { transform: scale(1.04); opacity: 0.9; }
+    }
+    @keyframes brit-dot-bounce {
+      0%, 80%, 100% { transform: translateY(0);    opacity: 0.35; }
+      40%           { transform: translateY(-9px); opacity: 1;    }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #app-loader .brit-logo,
+      #app-loader .brit-dots span { animation: none; }
+    }
   </style>
 
   <!-- Organization structured data -->
@@ -74,6 +134,11 @@
   <script type="module" src="/src/main.tsx"></script>
 </head>
 <body>
+  <div id="app-loader" aria-hidden="true">
+    <img class="brit-logo" src="/logobritr.png" alt="" />
+    <div class="brit-dots"><span></span><span></span><span></span></div>
+    <p class="brit-tag">Loading your bookshop</p>
+  </div>
   <div id="root"></div>
 </body>
 </html>

@@ -19,3 +19,12 @@ root.render(
     </HelmetProvider>
   </React.StrictMode>
 );
+
+// Fade out the boot loader (defined in index.html) once React has painted.
+requestAnimationFrame(() => {
+  const loader = document.getElementById('app-loader');
+  if (!loader) return;
+  loader.classList.add('is-hiding');
+  loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+  setTimeout(() => loader.remove(), 900);
+});
