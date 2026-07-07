@@ -43,8 +43,7 @@ import TopBar from "../components/Topbar";
 import { useAuth } from "../context/authContext";
 
 const API_BASE = "https://britbooks-api-production-8ebd.up.railway.app/api/chat";
-const VIDEO_SRC =
-  "https://media.istockphoto.com/id/1919183911/video/chatbot-ai-online-assistant-support-symbol-loop-digital-concept.mp4?s=mp4-640x640-is&k=20&c=Y1twA0JDp3uAQPe0Ap5RH3aZTi3yNwy5ThqSZdm5QXM=";
+const VIDEO_SRC = "/bot.mp4";
 
 type View = "inbox" | "newticket" | "chat";
 
@@ -512,6 +511,7 @@ interface SharedChatState {
   threads: any[];
   form: { subject: string; description: string };
   loading: boolean;
+  pendingForm?: { subject: string; description: string } | null;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -526,13 +526,23 @@ interface DesktopChatProps {
 }
 
 function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedChange }: DesktopChatProps) {
-  const { view, chatId, messages, threads, form, loading } = shared;
+  const { view, chatId, messages, threads, loading } = shared;
   const setView = (v: View) => onSharedChange({ view: v });
   const setChatId = (id: string | null) => onSharedChange({ chatId: id });
   const setMessages = (msgs: any[]) => onSharedChange({ messages: msgs });
   const setThreads = (t: any[]) => onSharedChange({ threads: t });
-  const setForm = (f: { subject: string; description: string }) => onSharedChange({ form: f });
   const setLoading = (l: boolean) => onSharedChange({ loading: l });
+
+  // Form lives locally so typing doesn't re-render the whole help page.
+  const [form, setForm] = useState(shared.form || { subject: "", description: "" });
+
+  // Consume prefill from shared state (used by "quick prompt" tiles).
+  useEffect(() => {
+    if (shared.pendingForm) {
+      setForm(shared.pendingForm);
+      onSharedChange({ pendingForm: null });
+    }
+  }, [shared.pendingForm]);
 
   const [input, setInput] = useState("");
   const [threadSearch, setThreadSearch] = useState("");
@@ -1416,20 +1426,36 @@ export default function HelpAndSupportPage() {
 
   // Mobile → navigate to dedicated chat page. Desktop → scroll to embedded panel.
   const openChat = () => {
-    if (window.innerWidth < 640) {
+    if (window.innerWidth < 768) {
       navigate("/help/chat");
     } else {
       chatSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
+  // Quick prompt — pre-fill the new-ticket form so the user just clicks send.
+  const startQuickPrompt = (subject: string, description: string) => {
+    if (window.innerWidth < 768) {
+      navigate("/help/chat", { state: { prefill: { subject, description } } });
+      return;
+    }
+    setChatShared((prev) => ({
+      ...prev,
+      view: "newticket",
+      chatId: null,
+      messages: [],
+      pendingForm: { subject, description },
+    }));
+    setTimeout(() => chatSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+
   const topics = [
-    { icon: Package,    title: "Track an order",     copy: "Check status, dispatch and delivery updates.",  tone: "green"  },
-    { icon: RotateCcw,  title: "Returns & refunds",  copy: "Send it back within 30 days, hassle-free.",     tone: "red"    },
-    { icon: Truck,      title: "Shipping & delivery",copy: "UK & international rates, times and zones.",     tone: "ink"    },
-    { icon: CreditCard, title: "Payment & billing",  copy: "Cards, PayPal, invoices and receipts.",          tone: "sand"   },
-    { icon: UserCircle, title: "Account & sign-in",  copy: "Passwords, profile and email changes.",         tone: "green"  },
-    { icon: BookOpen,   title: "Books & catalogue",  copy: "Editions, ISBNs, conditions and stock.",         tone: "red"    },
+    { icon: Package,    title: "Track an order",     copy: "Check status, dispatch and delivery updates.",  tone: "green", prompt: "Track my recent orders — show me their current status." },
+    { icon: RotateCcw,  title: "Returns & refunds",  copy: "Send it back within 30 days, hassle-free.",     tone: "red",   prompt: "I'd like to start a return. Walk me through the steps." },
+    { icon: Truck,      title: "Shipping & delivery",copy: "UK & international rates, times and zones.",     tone: "ink",   prompt: "What are BritBooks' delivery times and shipping costs?" },
+    { icon: CreditCard, title: "Payment & billing",  copy: "Cards, PayPal, invoices and receipts.",          tone: "sand",  prompt: "Show me my recent payments and receipts." },
+    { icon: UserCircle, title: "Account & sign-in",  copy: "Passwords, profile and email changes.",         tone: "green", prompt: "I need help with my account — profile details or password." },
+    { icon: BookOpen,   title: "Books & catalogue",  copy: "Editions, ISBNs, conditions and stock.",         tone: "red",   prompt: "Can you recommend a book based on what I usually read?" },
   ] as const;
 
   const toneStyles: Record<string, { bg: string; ring: string; icon: string; chip: string }> = {
@@ -1448,73 +1474,101 @@ export default function HelpAndSupportPage() {
           MOBILE LAYOUT
       ═══════════════════════════════════════════════ */}
       <div className="md:hidden">
-        {/* Editorial hero */}
-        <div className="relative px-5 pt-8 pb-10 overflow-hidden">
-          <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#0f3d2e]/5" />
-          <div className="absolute top-24 -left-10 w-40 h-40 rounded-full bg-[#c1272d]/5" />
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#c1272d]" />
-              <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#5b5546]">Help desk</span>
+        {/* Meet Alex — hero (mobile) */}
+        <div className="bg-[#0f3d2e] text-[#f6f2e6] relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#c1272d]/10" />
+          <div className="relative px-5 pt-8 pb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c1272d]" />
+                <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#f6f2e6]/60">The Help Desk</span>
+              </div>
+              <div className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] uppercase tracking-widest font-bold text-emerald-300">Online</span>
+              </div>
             </div>
-            <h1 className="font-serif text-[42px] leading-[1.02] tracking-tight text-[#1a1a1a] mb-3">
-              How can we<br />
-              <span className="italic text-[#0f3d2e]">be of service?</span>
-            </h1>
-            <p className="text-[15px] leading-relaxed text-[#5b5546] mb-6 max-w-xs">
-              Search the archives, browse a topic, or speak with a real human on our team.
+
+            <div className="rounded-3xl overflow-hidden relative aspect-video mb-5 border border-white/10">
+              <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
+                <source src={VIDEO_SRC} type="video/mp4" />
+              </video>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0a2b20] via-[#0a2b20]/20 to-transparent" />
+              <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center font-serif italic text-sm border-2 border-[#0a2b20]">A</div>
+                <div>
+                  <p className="font-serif text-[15px] leading-none">Alex</p>
+                  <p className="text-[10px] text-[#f6f2e6]/70 mt-0.5">Ready to chat</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#c1272d] mb-2">The Assistant</p>
+            <h1 className="font-serif text-4xl leading-[0.98] tracking-tight mb-2">Meet <span className="italic">Alex.</span></h1>
+            <p className="text-[13px] text-[#f6f2e6]/70 mb-4">Your always-on BritBooks assistant</p>
+            <p className="text-sm leading-relaxed text-[#f6f2e6]/85 mb-5">
+              Trained on the entire BritBooks catalogue, our shipping and returns policy, and your account activity — Alex answers, tracks, and takes action in plain English.
             </p>
 
-            <div className="relative mb-4">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a8272]" />
-              <input
-                type="text"
-                placeholder="Search returns, delivery, payments…"
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                className="w-full pl-11 pr-10 py-4 bg-white border border-[#e6dfd0] rounded-full text-sm outline-none focus:border-[#0f3d2e]"
-              />
-              {searchQ && (
-                <button onClick={() => setSearchQ("")} className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <XMarkIcon className="w-4 h-4 text-[#8a8272]" />
-                </button>
-              )}
+            <div className="grid grid-cols-2 gap-2 mb-6">
+              {[
+                { icon: Package,    label: "Track orders" },
+                { icon: RotateCcw,  label: "Start returns" },
+                { icon: BookOpen,   label: "Book picks" },
+                { icon: CreditCard, label: "Payments" },
+                { icon: UserCircle, label: "Account" },
+                { icon: LifeBuoy,   label: "Escalate" },
+              ].map((c, i) => (
+                <div key={i} className="flex items-center gap-2 text-[11px] text-[#f6f2e6]/80 bg-white/[0.06] rounded-xl px-3 py-2 border border-white/10">
+                  <c.icon className="w-3.5 h-3.5 text-[#f6b3b6]" /> {c.label}
+                </div>
+              ))}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={openChat}
-                className="rounded-full py-3.5 px-4 bg-[#0f3d2e] text-[#f6f2e6] text-sm font-bold flex items-center justify-center gap-2"
+                className="rounded-full py-3 px-4 bg-[#c1272d] text-[#faf7f2] text-sm font-bold flex items-center justify-center gap-2"
               >
-                <MessageSquare className="w-4 h-4" /> Start chat
+                <Sparkles className="w-4 h-4" /> Chat with Alex
               </motion.button>
               <motion.a
                 whileTap={{ scale: 0.96 }}
                 href="mailto:customercare@britbooks.co.uk"
-                className="rounded-full py-3.5 px-4 border border-[#1a1a1a] text-[#1a1a1a] text-sm font-bold flex items-center justify-center gap-2"
+                className="rounded-full py-3 px-4 border border-white/20 text-[#f6f2e6] text-sm font-bold flex items-center justify-center gap-2"
               >
-                <Mail className="w-4 h-4" /> Email us
+                <Mail className="w-4 h-4" /> Email
               </motion.a>
             </div>
           </div>
         </div>
 
-        {/* Live now strip */}
-        <div className="mx-5 mb-8 flex items-center gap-3 rounded-2xl bg-[#0f3d2e] text-[#f6f2e6] px-4 py-3">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
-          </span>
-          <p className="text-xs font-semibold flex-1">Support team is online now</p>
-          <span className="text-[10px] uppercase tracking-widest opacity-80">~2 min reply</span>
+        {/* Search */}
+        <div className="px-5 pt-6 pb-2">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a8272]" />
+            <input
+              type="text"
+              placeholder="Search returns, delivery, payments…"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              className="w-full pl-11 pr-10 py-3.5 bg-white border border-[#e6dfd0] rounded-full text-sm outline-none focus:border-[#0f3d2e]"
+            />
+            {searchQ && (
+              <button onClick={() => setSearchQ("")} className="absolute right-4 top-1/2 -translate-y-1/2">
+                <XMarkIcon className="w-4 h-4 text-[#8a8272]" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Topic mosaic */}
-        <div className="px-5 mb-10">
-          <div className="flex items-baseline justify-between mb-4">
-            <p className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#5b5546]">Browse topics</p>
-            <span className="font-serif italic text-[#c1272d] text-sm">choose a lane →</span>
+        {/* Quick prompts */}
+        <div className="px-5 pt-6 mb-8">
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#5b5546]">Chapter one</p>
+            <h2 className="font-serif text-3xl text-[#1a1a1a] mt-1">Quick prompts.</h2>
+            <p className="text-[13px] text-[#5b5546] mt-2">Tap a card and we'll pre-fill the message for you — no typing required.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {topics.map((t, i) => {
@@ -1523,7 +1577,7 @@ export default function HelpAndSupportPage() {
                 <motion.button
                   key={i}
                   whileTap={{ scale: 0.97 }}
-                  onClick={openChat}
+                  onClick={() => startQuickPrompt(t.title, t.prompt)}
                   className={`relative rounded-3xl p-4 text-left ${tone.bg}`}
                 >
                   <div className={`w-9 h-9 rounded-2xl flex items-center justify-center mb-3 ${tone.icon}`}>
@@ -1552,60 +1606,12 @@ export default function HelpAndSupportPage() {
           ))}
         </div>
 
-        {/* Meet Alex — mobile */}
-        <div className="px-5 mb-10">
-          <div className="rounded-3xl bg-[#0f3d2e] text-[#f6f2e6] overflow-hidden relative">
-            <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full bg-[#c1272d]/15" />
-            <div className="relative aspect-video">
-              <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
-                <source src={VIDEO_SRC} type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0f3d2e] via-[#0f3d2e]/30 to-transparent" />
-              <div className="absolute top-4 left-4 inline-flex items-center gap-2 bg-black/40 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] uppercase tracking-widest font-bold">Live</span>
-              </div>
-            </div>
-            <div className="relative p-6 pt-5">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#c1272d] font-bold mb-3">The Assistant</p>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center font-serif italic text-lg">A</div>
-                <div>
-                  <p className="font-serif text-2xl leading-none">Meet Alex.</p>
-                  <p className="text-[11px] text-[#f6f2e6]/60 mt-1">Always-on AI assistant</p>
-                </div>
-              </div>
-              <p className="text-sm leading-relaxed text-[#f6f2e6]/80 mb-4">
-                Trained on the entire BritBooks catalogue and your account activity — Alex can track orders, start returns, recommend a read, and hand off to our support team when needed.
-              </p>
-              <div className="grid grid-cols-2 gap-2 mb-5">
-                {[
-                  { icon: Package,    label: "Track orders" },
-                  { icon: RotateCcw,  label: "Start returns" },
-                  { icon: BookOpen,   label: "Book picks" },
-                  { icon: CreditCard, label: "Payments" },
-                ].map((c, i) => (
-                  <div key={i} className="flex items-center gap-2 text-[11px] text-[#f6f2e6]/80 bg-white/[0.06] rounded-xl px-3 py-2">
-                    <c.icon className="w-3.5 h-3.5 text-[#f6b3b6]" /> {c.label}
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={openChat}
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#c1272d] text-[#faf7f2] text-sm font-bold py-3 rounded-full"
-              >
-                <Sparkles className="w-4 h-4" /> Chat with Alex
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* FAQ */}
 
         <div className="px-5 mb-10">
           <div className="flex items-baseline justify-between mb-5">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#5b5546]">Chapter three</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#5b5546]">Chapter two</p>
               <h2 className="font-serif text-3xl text-[#1a1a1a] mt-1">Answers, at a glance</h2>
             </div>
             {searchQ && (
@@ -1648,166 +1654,32 @@ export default function HelpAndSupportPage() {
           DESKTOP LAYOUT
       ═══════════════════════════════════════════════ */}
       <div className="hidden md:flex sm:flex-col sm:flex-1">
-        {/* Editorial hero */}
-        <section className="relative overflow-hidden">
+        {/* Meet Alex — hero (detailed) */}
+        <section className="relative overflow-hidden bg-[#0f3d2e] text-[#f6f2e6]">
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -top-40 -right-32 w-[520px] h-[520px] rounded-full bg-[#0f3d2e]/[0.04]" />
-            <div className="absolute top-1/3 -left-24 w-[380px] h-[380px] rounded-full bg-[#c1272d]/[0.05]" />
+            <div className="absolute -top-24 -right-24 w-[520px] h-[520px] rounded-full bg-[#c1272d]/10" />
+            <div className="absolute bottom-0 -left-20 w-[380px] h-[380px] rounded-full bg-[#f6f2e6]/[0.04]" />
           </div>
 
-          <div className="relative max-w-7xl mx-auto px-8 pt-16 pb-20">
+          <div className="relative max-w-7xl mx-auto px-8 pt-14 pb-20">
             {/* meta strip */}
-            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.32em] text-[#5b5546] pb-8 border-b border-[#e6dfd0]">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.32em] text-[#f6f2e6]/50 pb-8 border-b border-white/10">
               <div className="flex items-center gap-8">
-                <span className="font-bold">The Help Desk</span>
+                <span className="font-bold text-[#f6f2e6]">The Help Desk</span>
                 <span className="hidden md:inline">Vol. 07 · Answers, kindly assembled</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-bold text-emerald-700">Team online</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-bold text-emerald-300">Team online</span>
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-12 gap-10 mt-14 items-start">
-              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-7">
-                <p className="font-serif italic text-[#c1272d] text-xl mb-6">— Hello there.</p>
-                <h1 className="font-serif text-[72px] xl:text-[92px] leading-[0.94] tracking-tight text-[#1a1a1a] mb-8">
-                  How can we<br />
-                  <span className="italic text-[#0f3d2e]">be of service</span><br />
-                  today?
-                </h1>
-                <p className="text-lg leading-relaxed text-[#5b5546] mb-10 max-w-xl">
-                  Every question deserves a considered reply. Search the archive, follow a chapter,
-                  or ring the bell — our support team will pick up.
-                </p>
-
-                <div className="relative max-w-xl mb-6">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8a8272]" />
-                  <input
-                    type="text"
-                    placeholder="Search returns, delivery, payments, an ISBN…"
-                    value={searchQ}
-                    onChange={(e) => setSearchQ(e.target.value)}
-                    className="w-full pl-16 pr-14 py-5 bg-white border border-[#e6dfd0] rounded-full text-[15px] outline-none focus:border-[#0f3d2e] shadow-[0_1px_0_rgba(0,0,0,0.03)]"
-                  />
-                  {searchQ && (
-                    <button
-                      onClick={() => setSearchQ("")}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#f6f2e6] flex items-center justify-center"
-                    >
-                      <XMarkIcon className="w-4 h-4 text-[#5b5546]" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={openChat}
-                    className="inline-flex items-center gap-2 px-7 py-4 bg-[#0f3d2e] hover:bg-[#0a2e22] text-[#f6f2e6] text-sm font-bold rounded-full transition-colors"
-                  >
-                    <MessageSquare className="w-4 h-4" /> Chat with support
-                  </button>
-                  <a
-                    href="mailto:customercare@britbooks.co.uk"
-                    className="inline-flex items-center gap-2 px-7 py-4 border border-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#faf7f2] text-[#1a1a1a] text-sm font-bold rounded-full transition-colors"
-                  >
-                    <Mail className="w-4 h-4" /> customercare@britbooks.co.uk
-                  </a>
-                </div>
-              </motion.div>
-
-              {/* Newsletter-style callout column */}
-              <motion.aside
-                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                className="lg:col-span-5 lg:pl-8 lg:border-l lg:border-[#e6dfd0]"
-              >
-                <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#5b5546] mb-4">Today's dispatch</p>
-                <div className="space-y-6">
-                  {[
-                    { k: "01", t: "New: track an order without signing in", s: "Enter your order number and postcode for a full timeline." },
-                    { k: "02", t: "30-day returns — no questions asked", s: "Original condition, printable label, refunded within 5 working days." },
-                    { k: "03", t: "Bulk & institution accounts", s: "Volume pricing and dedicated support for schools and businesses." },
-                  ].map((n) => (
-                    <div key={n.k} className="flex gap-5">
-                      <span className="font-serif italic text-2xl text-[#c1272d] leading-none mt-1">{n.k}</span>
-                      <div>
-                        <p className="font-serif text-lg leading-snug text-[#1a1a1a]">{n.t}</p>
-                        <p className="text-sm text-[#5b5546] mt-1 leading-relaxed">{n.s}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.aside>
-            </div>
-          </div>
-        </section>
-
-        {/* Topic mosaic — asymmetric */}
-        <section className="bg-[#f6f2e6] border-y border-[#e6dfd0]">
-          <div className="max-w-7xl mx-auto px-8 py-20">
-            <div className="flex items-end justify-between mb-10">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#5b5546] mb-3">Chapter one</p>
-                <h2 className="font-serif text-5xl text-[#1a1a1a] tracking-tight">Choose a lane.</h2>
-              </div>
-              <p className="text-sm text-[#5b5546] max-w-sm hidden md:block">
-                Six familiar aisles. Tap one to jump straight into a live conversation with our team.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-12 gap-4 auto-rows-[180px]">
-              {topics.map((t, i) => {
-                const tone = toneStyles[t.tone];
-                const spans = [
-                  "col-span-12 md:col-span-5 row-span-2",
-                  "col-span-6 md:col-span-4",
-                  "col-span-6 md:col-span-3",
-                  "col-span-6 md:col-span-3",
-                  "col-span-6 md:col-span-4",
-                  "col-span-12 md:col-span-5",
-                ];
-                return (
-                  <motion.button
-                    key={i}
-                    onClick={openChat}
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.06 }}
-                    whileHover={{ y: -4 }}
-                    className={`${spans[i]} ${tone.bg} rounded-3xl p-7 text-left relative overflow-hidden transition-shadow shadow-sm hover:shadow-xl`}
-                  >
-                    <div className="flex items-start justify-between mb-6">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tone.icon}`}>
-                        <t.icon className="w-5 h-5" />
-                      </div>
-                      <span className={`text-[10px] uppercase tracking-[0.28em] px-3 py-1.5 rounded-full ${tone.chip}`}>
-                        0{i + 1}
-                      </span>
-                    </div>
-                    <p className="font-serif text-2xl leading-tight mb-2">{t.title}</p>
-                    <p className="text-sm opacity-80 leading-relaxed max-w-xs">{t.copy}</p>
-                    <ArrowRightIcon className="absolute bottom-6 right-6 w-5 h-5 opacity-60" />
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Meet Alex — AI assistant */}
-        <section className="bg-[#0f3d2e] text-[#f6f2e6] relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -top-24 -right-24 w-[480px] h-[480px] rounded-full bg-[#c1272d]/10" />
-            <div className="absolute bottom-0 -left-20 w-[360px] h-[360px] rounded-full bg-[#f6f2e6]/[0.04]" />
-          </div>
-          <div className="relative max-w-7xl mx-auto px-8 py-24 grid lg:grid-cols-12 gap-14 items-center">
-            <div className="lg:col-span-5">
+            <div className="grid lg:grid-cols-12 gap-12 mt-12 items-start">
+              {/* Video */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="relative rounded-[2rem] overflow-hidden mb-8 border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]"
+                animate={{ opacity: 1, scale: 1 }}
+                className="lg:col-span-5 relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]"
                 style={{ aspectRatio: "1 / 1" }}
               >
                 <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
@@ -1830,61 +1702,64 @@ export default function HelpAndSupportPage() {
                 </div>
               </motion.div>
 
-              <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#c1272d] mb-4">The Assistant</p>
-              <h2 className="font-serif text-5xl tracking-tight leading-none mb-3">Meet Alex.</h2>
-              <p className="text-sm text-[#f6f2e6]/60 mb-6">Your always-on BritBooks assistant</p>
-              <p className="text-lg leading-relaxed text-[#f6f2e6]/80 mb-8">
-                Alex is our in-house AI assistant — trained on the entire BritBooks catalogue, our shipping and returns policy, and your account activity. Ask anything, any hour, in plain English.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={openChat}
-                  className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#c1272d] hover:bg-[#a51e24] text-[#faf7f2] rounded-full text-sm font-bold transition-colors"
-                >
-                  <Sparkles className="w-4 h-4" /> Chat with Alex
-                </button>
-                <div className="inline-flex items-center gap-2 px-5 py-3.5 bg-white/5 border border-white/10 rounded-full text-xs text-[#f6f2e6]/70">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Trained on BritBooks · updated daily
-                </div>
-              </div>
-            </div>
+              {/* Copy + CTAs + capabilities */}
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="lg:col-span-7"
+              >
+                <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#c1272d] mb-4">The Assistant</p>
+                <h1 className="font-serif text-5xl xl:text-6xl tracking-tight leading-[0.98] mb-4">
+                  Meet <span className="italic">Alex.</span>
+                </h1>
+                <p className="text-[#f6f2e6]/70 text-base mb-5">Your always-on BritBooks assistant</p>
+                <p className="text-base leading-relaxed text-[#f6f2e6]/85 mb-6 max-w-xl">
+                  Trained on the entire BritBooks catalogue, our shipping and returns policy, and your account activity — Alex answers, tracks, and takes action in plain English.
+                </p>
 
-            <div className="lg:col-span-7">
-              <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#f6f2e6]/50 mb-6">What Alex can help with</p>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {[
-                  { icon: Package,    title: "Track your orders",       copy: "Live dispatch, courier and delivery updates — no login required if you have the order number." },
-                  { icon: RotateCcw,  title: "Start a return or refund", copy: "Guided returns flow — Alex checks eligibility, prints a label, and books the pickup." },
-                  { icon: BookOpen,   title: "Recommend a book",         copy: "By author, genre, mood or reading level — from our 2M+ title catalogue." },
-                  { icon: CreditCard, title: "Explain a payment",        copy: "Reconcile invoices, resend receipts, walk you through a refund status." },
-                  { icon: UserCircle, title: "Fix account issues",       copy: "Reset your password, verify identity, update your delivery address safely." },
-                  { icon: LifeBuoy,   title: "Escalate to a human",      copy: "Anything Alex can't confidently resolve is handed to our support team — with full context." },
-                ].map((c, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.05 }}
-                    className="p-5 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors"
+                <div className="flex flex-wrap items-center gap-3 mb-8">
+                  <button
+                    onClick={openChat}
+                    className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#c1272d] hover:bg-[#a51e24] text-[#faf7f2] rounded-full text-sm font-bold transition-colors"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-[#c1272d]/20 text-[#f6b3b6] flex items-center justify-center shrink-0">
-                        <c.icon className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" /> Chat with Alex
+                  </button>
+                  <a
+                    href="mailto:customercare@britbooks.co.uk"
+                    className="inline-flex items-center gap-2 px-6 py-3.5 border border-white/20 hover:bg-white/10 text-[#f6f2e6] text-sm font-bold rounded-full transition-colors"
+                  >
+                    <Mail className="w-4 h-4" /> Email us
+                  </a>
+                </div>
+
+                {/* Detailed capabilities */}
+                <p className="text-[10px] uppercase tracking-[0.32em] font-bold text-[#f6f2e6]/50 mb-4">What Alex can do</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {[
+                    { icon: Package,    title: "Track your orders",       copy: "Dispatch, courier and delivery updates in real time." },
+                    { icon: RotateCcw,  title: "Start a return or refund", copy: "Checks eligibility, prints a label, books the pickup." },
+                    { icon: BookOpen,   title: "Recommend a book",         copy: "By author, genre, mood or reading level." },
+                    { icon: CreditCard, title: "Explain a payment",        copy: "Reconcile invoices, resend receipts, refund status." },
+                    { icon: UserCircle, title: "Fix account issues",       copy: "Passwords, verify identity, update addresses safely." },
+                    { icon: LifeBuoy,   title: "Escalate to a human",      copy: "Hands off to our support team — with full context." },
+                  ].map((c, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/10">
+                      <div className="w-8 h-8 rounded-xl bg-[#c1272d]/20 text-[#f6b3b6] flex items-center justify-center shrink-0">
+                        <c.icon className="w-3.5 h-3.5" />
                       </div>
-                      <div>
-                        <p className="font-serif text-lg leading-tight mb-1">{c.title}</p>
-                        <p className="text-sm text-[#f6f2e6]/65 leading-relaxed">{c.copy}</p>
+                      <div className="min-w-0">
+                        <p className="font-serif text-[15px] leading-tight mb-0.5">{c.title}</p>
+                        <p className="text-[12px] text-[#f6f2e6]/60 leading-snug">{c.copy}</p>
                       </div>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-              <div className="mt-6 flex items-center gap-3 text-xs text-[#f6f2e6]/55">
-                <ShieldCheck className="w-4 h-4 text-emerald-300" />
-                Alex never asks for card details or passwords · replies logged for quality.
-              </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex items-center gap-2 text-[11px] text-[#f6f2e6]/55">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                  Alex never asks for card details or passwords · replies logged for quality.
+                </div>
+              </motion.div>
             </div>
           </div>
         </section>
@@ -1894,7 +1769,7 @@ export default function HelpAndSupportPage() {
           <div className="max-w-7xl mx-auto px-8 py-20">
             <div className="flex items-end justify-between mb-10">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#5b5546] mb-3">Chapter two</p>
+                <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#5b5546] mb-3">Chapter one</p>
                 <h2 className="font-serif text-5xl text-[#1a1a1a] tracking-tight">The correspondence desk.</h2>
                 <p className="text-[#5b5546] text-base mt-3 max-w-xl">
                   Chat with <span className="italic text-[#0f3d2e]">Alex</span> around the clock, or continue a thread with our support team during opening hours.
@@ -1924,8 +1799,65 @@ export default function HelpAndSupportPage() {
           </div>
         </section>
 
-        {/* FAQ — two column editorial */}
+        {/* Quick prompts — pre-fill the help desk without typing */}
         <section className="bg-[#f6f2e6] border-y border-[#e6dfd0]">
+          <div className="max-w-7xl mx-auto px-8 py-20">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#5b5546] mb-3">Chapter two</p>
+                <h2 className="font-serif text-5xl text-[#1a1a1a] tracking-tight">Quick prompts.</h2>
+                <p className="text-[#5b5546] text-base mt-3 max-w-xl">
+                  Pick a lane below and we'll pre-fill the help desk for you — just review and hit send.
+                </p>
+              </div>
+              <p className="text-sm text-[#5b5546] max-w-sm hidden md:block">
+                No typing required. Every prompt starts a fresh thread with Alex.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-12 gap-4 auto-rows-[180px]">
+              {topics.map((t, i) => {
+                const tone = toneStyles[t.tone];
+                const spans = [
+                  "col-span-12 md:col-span-5 row-span-2",
+                  "col-span-6 md:col-span-4",
+                  "col-span-6 md:col-span-3",
+                  "col-span-6 md:col-span-3",
+                  "col-span-6 md:col-span-4",
+                  "col-span-12 md:col-span-5",
+                ];
+                return (
+                  <motion.button
+                    key={i}
+                    onClick={() => startQuickPrompt(t.title, t.prompt)}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.06 }}
+                    whileHover={{ y: -4 }}
+                    className={`${spans[i]} ${tone.bg} rounded-3xl p-7 text-left relative overflow-hidden transition-shadow shadow-sm hover:shadow-xl`}
+                  >
+                    <div className="flex items-start justify-between mb-6">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tone.icon}`}>
+                        <t.icon className="w-5 h-5" />
+                      </div>
+                      <span className={`text-[10px] uppercase tracking-[0.28em] px-3 py-1.5 rounded-full ${tone.chip}`}>
+                        0{i + 1}
+                      </span>
+                    </div>
+                    <p className="font-serif text-2xl leading-tight mb-2">{t.title}</p>
+                    <p className="text-sm opacity-80 leading-relaxed max-w-xs mb-3">{t.copy}</p>
+                    <p className="text-[11px] italic opacity-60 leading-snug max-w-xs">"{t.prompt}"</p>
+                    <ArrowRightIcon className="absolute bottom-6 right-6 w-5 h-5 opacity-60" />
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ — two column editorial */}
+        <section className="bg-[#faf7f2] border-b border-[#e6dfd0]">
           <div className="max-w-7xl mx-auto px-8 py-20">
             <div className="grid lg:grid-cols-12 gap-16">
               <aside className="lg:col-span-4">

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeftIcon,
@@ -167,6 +167,7 @@ const chatBg: React.CSSProperties = {
 export default function SupportChatPage() {
   const { auth } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const userId = auth.user?.userId ?? auth.userId;
   const token = auth.token ?? undefined;
   const authLoading = auth.loading;
@@ -183,6 +184,16 @@ export default function SupportChatPage() {
   const [input, setInput] = useState("");
   const [threadSearch, setThreadSearch] = useState("");
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+
+  // Prefill from a quick-prompt tile passed via router state.
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill;
+    if (prefill?.subject) {
+      setForm({ subject: String(prefill.subject), description: String(prefill.description || "") });
+      setView("newticket");
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
