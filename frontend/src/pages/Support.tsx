@@ -48,6 +48,33 @@ const VIDEO_SRC =
 
 type View = "inbox" | "newticket" | "chat";
 
+function threadTitle(t: any): string {
+  if (t?.subject && String(t.subject).trim()) return String(t.subject).trim();
+  const first =
+    (Array.isArray(t?.messages) &&
+      t.messages.find((m: any) => m?.senderType !== "bot")?.message) ||
+    (Array.isArray(t?.messages) && t.messages[0]?.message) ||
+    "";
+  const text = String(first).trim();
+  const subj = text.match(/^\s*Subject\s*[:\-–]\s*(.+)/im);
+  if (subj?.[1]) {
+    const line = subj[1].split(/\r?\n/)[0].trim();
+    if (line) return line.length > 60 ? line.slice(0, 60).trim() + "…" : line;
+  }
+  const firstLine = text.split(/\r?\n/).find((l) => l.trim()) || "";
+  if (firstLine) return firstLine.length > 60 ? firstLine.slice(0, 60).trim() + "…" : firstLine;
+  return "New conversation";
+}
+
+function threadPreview(t: any): string {
+  const raw = String(t?.lastMessage || "").trim();
+  if (raw) {
+    const cleaned = raw.replace(/^\s*(Subject|Description)\s*[:\-–]\s*/i, "");
+    return cleaned.length > 70 ? cleaned.slice(0, 70).trim() + "…" : cleaned;
+  }
+  return "Tap to view messages";
+}
+
 function fmtDate(iso: string) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -659,7 +686,7 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
 
   const filteredThreads = threads
     .filter((t: any) =>
-      !threadSearch || (t.subject || "").toLowerCase().includes(threadSearch.toLowerCase())
+      !threadSearch || threadTitle(t).toLowerCase().includes(threadSearch.toLowerCase())
     )
     .sort((a: any, b: any) => {
       const ta = new Date(a.lastMessageAt || a.createdAt || 0).getTime();
@@ -995,10 +1022,10 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white text-xs font-black shrink-0 shadow-sm">BB</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{t.subject || "New conversation"}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{threadTitle(t)}</p>
                     <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.lastMessageAt || t.createdAt)}</span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">Tap to view messages</p>
+                  <p className="text-xs text-gray-500 truncate">{threadPreview(t)}</p>
                 </div>
               </button>
             ))
@@ -1166,10 +1193,10 @@ function MobileChatWidget({ userId, token, onClose, newChatTrigger = 0, shared, 
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-xs font-black shrink-0">BB</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-0.5">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{t.subject || "New conversation"}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{threadTitle(t)}</p>
                     <span className="text-[11px] text-gray-400 shrink-0 ml-2">{fmtDate(t.lastMessageAt || t.createdAt)}</span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">Tap to view messages</p>
+                  <p className="text-xs text-gray-500 truncate">{threadPreview(t)}</p>
                 </div>
               </button>
             ))}

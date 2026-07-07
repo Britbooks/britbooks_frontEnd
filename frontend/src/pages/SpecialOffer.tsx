@@ -706,11 +706,22 @@ const SpecialOffersPage = () => {
     : allDealBooks;
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="w-8 h-8 text-gray-300 animate-spin" />
-        <p className="text-sm text-gray-400">Loading deals…</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <img
+        src="/logobritr.png"
+        alt=""
+        className="w-40 h-auto select-none"
+        style={{ animation: "brit-logo-breathe 2.2s ease-in-out infinite" }}
+        draggable={false}
+      />
+      <div className="flex gap-2.5 mt-8">
+        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#1e3a8a", animation: "brit-dot-bounce 1.1s ease-in-out infinite", animationDelay: "0s" }} />
+        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#dc2626", animation: "brit-dot-bounce 1.1s ease-in-out infinite", animationDelay: "0.15s" }} />
+        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#1e3a8a", animation: "brit-dot-bounce 1.1s ease-in-out infinite", animationDelay: "0.3s" }} />
       </div>
+      <p className="mt-5 font-bold uppercase text-[#94918a]" style={{ fontSize: 11, letterSpacing: "0.28em" }}>
+        Unwrapping today's deals
+      </p>
     </div>
   );
 
