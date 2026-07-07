@@ -323,7 +323,7 @@ const TopBar = () => {
       {/* ═══════════════════════════════════════════════
           MOBILE TOPBAR — navy bar + popover menu
       ═══════════════════════════════════════════════ */}
-      <div className="sm:hidden">
+      <div className="md:hidden">
 
         {/* ── Main bar ── */}
         <div
@@ -610,7 +610,7 @@ const TopBar = () => {
       </div>
 
       {/* Top Bar — desktop only */}
-      <div className="hidden sm:block bg-indigo-900 text-white px-4 py-1">
+      <div className="hidden md:block bg-indigo-900 text-white px-4 py-1">
         <div className="container mx-auto flex justify-between items-center text-xs">
           <span>{user ? `Welcome back, ${user.fullName}!` : 'Sign in to explore more!'}</span>
           <nav className="flex space-x-4 md:space-x-6 items-center">
@@ -635,16 +635,16 @@ const TopBar = () => {
       </div>
 
       {/* DESKTOP MIDDLE BAR */}
-      <div className="hidden sm:block bg-white px-1 py-1">
+      <div className="hidden md:block bg-white px-1 py-1">
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center relative">
-          <div className="hidden sm:block absolute top-0 left-0 h-36 sm:h-40 z-10">
+          <div className="hidden md:block absolute top-0 left-0 h-36 sm:h-40 z-10">
             <Link to="/" className="block w-auto h-full">
               <img src="/logobrit.png" alt="BritBooks Logo" className="h-full w-auto object-contain" />
             </Link>
           </div>
-          <div className="hidden sm:block h-24 sm:h-24 w-44 sm:w-60 flex-shrink-0"></div>
+          <div className="hidden md:block h-24 sm:h-24 w-44 xl:w-60 flex-shrink-0"></div>
           {/* ── Animated desktop search ── */}
-          <div className="hidden sm:flex items-center justify-center flex-1 mx-4 mt-2 sm:mt-0" ref={searchRef}>
+          <div className="hidden md:flex items-center justify-center flex-1 mx-4 mt-2 sm:mt-0" ref={searchRef}>
             <motion.div
               ref={searchPillRef}
               animate={{ width: searchFocused ? 560 : 380 }}
@@ -703,36 +703,36 @@ const TopBar = () => {
               </div>
             </motion.div>
           </div>
-          <div className="hidden sm:block text-blue-600 font-bold text-lg mt-2 sm:mt-0 flex items-center gap-2">
-  📧 customercare@britbooks.co.uk  
+          <div className="hidden xl:flex text-blue-600 font-bold text-lg mt-2 sm:mt-0 items-center gap-2">
+  📧 customercare@britbooks.co.uk
 </div>
         </div>
       </div>
 
       {/* Navigation & Modern Mega Modal — desktop only */}
-      <div className="hidden sm:block bg-white border-t border-gray-200 px-4">
+      <div className="hidden md:block bg-white border-t border-gray-200 px-4">
         <div className="container mx-auto flex flex-col sm:flex-row sm:items-center h-12 sm:h-16 relative">
 
           {/* Keep this spacer so logo doesn't overlap nav */}
-          <div className="hidden sm:block h-12 sm:h-16 w-44 sm:w-60 flex-shrink-0"></div>
+          <div className="hidden md:block h-12 sm:h-16 w-44 xl:w-60 flex-shrink-0"></div>
 
-          <nav className="hidden sm:flex flex-1 justify-center items-center font-medium text-gray-600">
+          <nav className="hidden md:flex flex-1 justify-center items-center font-medium text-gray-600">
 
             <div className="flex items-center justify-between w-full max-w-5xl">
 
-              <div className="flex space-x-8">
-                <Link to="/" className={`py-3 ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+              <div className="flex space-x-4 xl:space-x-8">
+                <Link to="/" className={`py-3 whitespace-nowrap ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Home
                 </Link>
 
-                <div 
+                <div
                   className="h-full flex items-center"
                   onMouseEnter={() => setIsCategoryHovered(true)}
                   onMouseLeave={() => setIsCategoryHovered(false)}
                 >
-                  <Link 
-                    to="/category" 
-                    className={`py-3 flex items-center space-x-1 ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
+                  <Link
+                    to="/category"
+                    className={`py-3 flex items-center space-x-1 whitespace-nowrap ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
                   >
                     <span>Shop by Category</span>
                     <ChevronDown className={`transition-transform duration-200 ${isCategoryHovered ? 'rotate-180' : ''}`} />
@@ -848,16 +848,16 @@ const TopBar = () => {
                   </AnimatePresence>
                 </div>
 
-                <Link to="/popular-books" className={`py-3 ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                <Link to="/popular-books" className={`py-3 whitespace-nowrap ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Popular Books
                 </Link>
-                <Link to="/new-arrivals" className={`py-3 ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                <Link to="/new-arrivals" className={`py-3 whitespace-nowrap ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   New Arrivals
                 </Link>
-                <Link to="/bestsellers" className={`py-3 ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                <Link to="/bestsellers" className={`py-3 whitespace-nowrap ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Best Sellers
                 </Link>
-                <Link to="/help" className={`py-3 ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                <Link to="/help" className={`py-3 whitespace-nowrap ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Contact Us
                 </Link>
               </div>

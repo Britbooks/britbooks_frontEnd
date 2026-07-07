@@ -267,7 +267,7 @@ const ClearancePage = () => {
           </div>
 
           {/* Sort pills */}
-          <div className="hidden sm:flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+          <div className="hidden md:flex items-center gap-1 bg-gray-100 rounded-xl p-1">
             {SORTS.map(s => (
               <button
                 key={s.val}
@@ -286,13 +286,13 @@ const ClearancePage = () => {
           {/* Mobile sort button */}
           <button
             onClick={() => setFiltersOpen(v => !v)}
-            className="sm:hidden flex items-center gap-1.5 px-3 py-2 bg-gray-100 rounded-xl text-xs font-bold text-gray-600"
+            className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-gray-100 rounded-xl text-xs font-bold text-gray-600"
           >
             <SlidersHorizontal size={13} /> Sort
           </button>
 
           {/* Result count */}
-          <span className="ml-auto text-xs text-gray-400 font-medium hidden sm:block">
+          <span className="ml-auto text-xs text-gray-400 font-medium hidden md:block">
             {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
           </span>
         </div>
@@ -304,7 +304,7 @@ const ClearancePage = () => {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-gray-100 sm:hidden"
+              className="overflow-hidden border-t border-gray-100 md:hidden"
             >
               <div className="flex gap-2 px-4 py-3">
                 {SORTS.map(s => (
@@ -360,7 +360,7 @@ const ClearancePage = () => {
                 </h2>
               </div>
               {sort === 'discount' && (
-                <span className="text-xs text-gray-400 font-medium hidden sm:block">Sorted by biggest discount first</span>
+                <span className="text-xs text-gray-400 font-medium hidden md:block">Sorted by biggest discount first</span>
               )}
             </div>
 

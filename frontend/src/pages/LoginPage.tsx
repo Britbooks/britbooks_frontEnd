@@ -472,7 +472,7 @@ const LoginPage = () => {
             <motion.div key="totp-mobile"
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl p-7 shadow-2xl">
+              className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl p-7 shadow-2xl">
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-7" />
               <TotpContent totpCode={totpCode} setTotpCode={setTotpCode} handleTotpSubmit={handleTotpSubmit} loading={loading} />
             </motion.div>
@@ -481,7 +481,7 @@ const LoginPage = () => {
             <motion.div key="totp-desktop"
               initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              className="hidden sm:flex fixed inset-0 z-50 items-center justify-center p-4">
+              className="hidden md:flex fixed inset-0 z-50 items-center justify-center p-4">
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10">
                 <TotpContent totpCode={totpCode} setTotpCode={setTotpCode} handleTotpSubmit={handleTotpSubmit} loading={loading} />
               </div>
@@ -506,7 +506,7 @@ const LoginPage = () => {
               key="mobile-sheet"
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl p-7 shadow-2xl"
+              className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-3xl p-7 shadow-2xl"
             >
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-7" />
               <VerifyContent
@@ -527,7 +527,7 @@ const LoginPage = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 10 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              className="hidden sm:flex fixed inset-0 z-50 items-center justify-center p-4"
+              className="hidden md:flex fixed inset-0 z-50 items-center justify-center p-4"
             >
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10">
                 <VerifyContent

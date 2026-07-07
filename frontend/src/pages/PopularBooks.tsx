@@ -220,7 +220,7 @@ const PopularBooksPage: React.FC = () => {
       {/* ═══════════════════════════════════
           MOBILE VIEW (unchanged)
       ═══════════════════════════════════ */}
-      <div className="sm:hidden flex flex-col min-h-screen bg-[#f8f8fb]">
+      <div className="md:hidden flex flex-col min-h-screen bg-[#f8f8fb]">
         <TopBar />
         <div className="sticky top-0 z-40 bg-[#0d1b3e] px-4 pb-0 pt-4 shadow-xl">
           <div className="flex items-start justify-between mb-3">
@@ -352,7 +352,7 @@ const PopularBooksPage: React.FC = () => {
       {/* ═══════════════════════════════════
           DESKTOP VIEW
       ═══════════════════════════════════ */}
-      <div className="hidden sm:block min-h-screen bg-[#f7f4ef]">
+      <div className="hidden md:block min-h-screen bg-[#f7f4ef]">
         <TopBar />
 
         {/* ── Hero Card ── */}

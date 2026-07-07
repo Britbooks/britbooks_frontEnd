@@ -56,7 +56,7 @@ const TopBar = () => {
       
               {/* Hamburger button - only on mobile */}
               <button
-                className="sm:hidden p-2"
+                className="md:hidden p-2"
                 onClick={() => setMenuOpen(!menuOpen)}
               >
                 {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -87,7 +87,7 @@ const TopBar = () => {
           </div>
       
           {/* DESKTOP NAV */}
-          <div className="hidden sm:flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+          <div className="hidden md:flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <Link to="/explore" className="text-gray-600 header-btn text-center sm:text-left">Explore</Link>
             <Link to="/login" className="text-gray-600 header-btn text-center sm:text-left">Login</Link>
             <Link to="/signup" className="bg-red-600 text-white px-6 py-2 rounded-md font-semibold btn-hover-effect text-center sm:text-left w-full sm:w-auto">Sign Up</Link>
@@ -96,7 +96,7 @@ const TopBar = () => {
       
         {/* MOBILE MENU */}
         {menuOpen && (
-          <div className="sm:hidden w-full border-t">
+          <div className="md:hidden w-full border-t">
             <div className="flex flex-col space-y-2 py-4">
               <Link to="/explore" className="text-gray-600 text-center" onClick={() => setMenuOpen(false)}>Explore</Link>
               <Link to="/login" className="text-gray-600 text-center" onClick={() => setMenuOpen(false)}>Login</Link>

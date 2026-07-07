@@ -122,7 +122,7 @@ function InvoiceCard({ inv, index, isOpen, onToggle, onDownload, onViewOrder }: 
             </div>
 
             {/* Items badge — hidden on mobile */}
-            <div className="hidden sm:flex flex-col items-center flex-shrink-0">
+            <div className="hidden md:flex flex-col items-center flex-shrink-0">
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Books</p>
               <div className="flex items-center gap-1">
                 <Bookmark size={11} style={{ color: GOLD }} />

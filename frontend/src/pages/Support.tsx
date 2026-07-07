@@ -1447,7 +1447,7 @@ export default function HelpAndSupportPage() {
       {/* ═══════════════════════════════════════════════
           MOBILE LAYOUT
       ═══════════════════════════════════════════════ */}
-      <div className="sm:hidden">
+      <div className="md:hidden">
         {/* Editorial hero */}
         <div className="relative px-5 pt-8 pb-10 overflow-hidden">
           <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#0f3d2e]/5" />
@@ -1576,7 +1576,7 @@ export default function HelpAndSupportPage() {
                 </div>
               </div>
               <p className="text-sm leading-relaxed text-[#f6f2e6]/80 mb-4">
-                Trained on the entire BritBooks catalogue and your account activity — Alex can track orders, start returns, recommend a read, and hand off to a bookseller when needed.
+                Trained on the entire BritBooks catalogue and your account activity — Alex can track orders, start returns, recommend a read, and hand off to our support team when needed.
               </p>
               <div className="grid grid-cols-2 gap-2 mb-5">
                 {[
@@ -1647,7 +1647,7 @@ export default function HelpAndSupportPage() {
       {/* ═══════════════════════════════════════════════
           DESKTOP LAYOUT
       ═══════════════════════════════════════════════ */}
-      <div className="hidden sm:flex sm:flex-col sm:flex-1">
+      <div className="hidden md:flex sm:flex-col sm:flex-1">
         {/* Editorial hero */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
@@ -1678,7 +1678,7 @@ export default function HelpAndSupportPage() {
                 </h1>
                 <p className="text-lg leading-relaxed text-[#5b5546] mb-10 max-w-xl">
                   Every question deserves a considered reply. Search the archive, follow a chapter,
-                  or ring the bell — one of our booksellers will pick up.
+                  or ring the bell — our support team will pick up.
                 </p>
 
                 <div className="relative max-w-xl mb-6">
@@ -1705,7 +1705,7 @@ export default function HelpAndSupportPage() {
                     onClick={openChat}
                     className="inline-flex items-center gap-2 px-7 py-4 bg-[#0f3d2e] hover:bg-[#0a2e22] text-[#f6f2e6] text-sm font-bold rounded-full transition-colors"
                   >
-                    <MessageSquare className="w-4 h-4" /> Speak to a bookseller
+                    <MessageSquare className="w-4 h-4" /> Chat with support
                   </button>
                   <a
                     href="mailto:customercare@britbooks.co.uk"
@@ -1859,7 +1859,7 @@ export default function HelpAndSupportPage() {
                   { icon: BookOpen,   title: "Recommend a book",         copy: "By author, genre, mood or reading level — from our 2M+ title catalogue." },
                   { icon: CreditCard, title: "Explain a payment",        copy: "Reconcile invoices, resend receipts, walk you through a refund status." },
                   { icon: UserCircle, title: "Fix account issues",       copy: "Reset your password, verify identity, update your delivery address safely." },
-                  { icon: LifeBuoy,   title: "Escalate to a human",      copy: "Anything Alex can't confidently resolve is handed to a bookseller — with full context." },
+                  { icon: LifeBuoy,   title: "Escalate to a human",      copy: "Anything Alex can't confidently resolve is handed to our support team — with full context." },
                 ].map((c, i) => (
                   <motion.div
                     key={i}
@@ -1897,7 +1897,7 @@ export default function HelpAndSupportPage() {
                 <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#5b5546] mb-3">Chapter two</p>
                 <h2 className="font-serif text-5xl text-[#1a1a1a] tracking-tight">The correspondence desk.</h2>
                 <p className="text-[#5b5546] text-base mt-3 max-w-xl">
-                  Chat with <span className="italic text-[#0f3d2e]">Alex</span> around the clock, or continue a thread with a real bookseller during opening hours.
+                  Chat with <span className="italic text-[#0f3d2e]">Alex</span> around the clock, or continue a thread with our support team during opening hours.
                 </p>
               </div>
               <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[#e6dfd0]">
@@ -2024,7 +2024,7 @@ export default function HelpAndSupportPage() {
       <motion.button
         initial={{ scale: 0 }} animate={{ scale: 1 }}
         onClick={openChat}
-        className="fixed bottom-6 right-5 w-14 h-14 bg-[#0f3d2e] rounded-full shadow-xl flex items-center justify-center z-40 sm:hidden"
+        className="fixed bottom-6 right-5 w-14 h-14 bg-[#0f3d2e] rounded-full shadow-xl flex items-center justify-center z-40 md:hidden"
       >
         <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6 text-[#f6f2e6]" />
       </motion.button>

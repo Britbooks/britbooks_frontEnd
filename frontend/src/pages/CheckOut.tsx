@@ -197,7 +197,7 @@ const CheckoutStepper = ({ currentStep }: { currentStep: number }) => {
   return (
     <div className="w-full max-w-2xl mx-auto mb-6 sm:mb-12">
       {/* Mobile stepper */}
-      <div className="flex items-center sm:hidden px-2">
+      <div className="flex items-center md:hidden px-2">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
           const isActive = stepNumber === currentStep;
@@ -223,7 +223,7 @@ const CheckoutStepper = ({ currentStep }: { currentStep: number }) => {
       </div>
 
       {/* Desktop stepper */}
-      <div className="hidden sm:flex items-center justify-between">
+      <div className="hidden md:flex items-center justify-between">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
           const isActive = stepNumber === currentStep;
@@ -318,7 +318,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
   return (
     <>
       {/* ── MOBILE LAYOUT ── */}
-      <div className="sm:hidden pb-40">
+      <div className="md:hidden pb-40">
         {cartItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
             <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mb-5">
@@ -496,7 +496,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
       </div>
 
       {/* ── DESKTOP LAYOUT (unchanged) ── */}
-      <div className="hidden sm:block">
+      <div className="hidden md:block">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Cart</h2>
@@ -1140,7 +1140,7 @@ const ReviewOrder = ({
         )}
 
         {/* CTA — visible inline on desktop, sticky on mobile */}
-        <div className="hidden sm:block">
+        <div className="hidden md:block">
           <button
             onClick={handlePlaceOrder}
             className="w-full py-4 bg-[#c9a84c] text-black font-black rounded-2xl text-sm disabled:bg-gray-200 disabled:text-gray-400"
@@ -1157,7 +1157,7 @@ const ReviewOrder = ({
       </div>
 
       {/* Mobile sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 sm:hidden bg-white border-t border-gray-100 px-4 pt-3 pb-6"
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-100 px-4 pt-3 pb-6"
         style={{ boxShadow: '0 -8px 30px rgba(10,22,40,0.10)' }}>
         <motion.button
           whileTap={{ scale: 0.97 }}

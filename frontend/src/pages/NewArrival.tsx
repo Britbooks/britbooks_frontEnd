@@ -515,7 +515,7 @@ const NewArrivalsPage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════
           MOBILE APP LAYOUT  (hidden on sm+)
       ══════════════════════════════════════════════════════ */}
-      <div className="sm:hidden bg-white min-h-screen">
+      <div className="md:hidden bg-white min-h-screen">
 
         {/* ── Sticky search bar ── */}
         <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
@@ -710,7 +710,7 @@ const NewArrivalsPage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════
           DESKTOP LAYOUT  (hidden on mobile)
       ══════════════════════════════════════════════════════ */}
-      <div className="hidden sm:block">
+      <div className="hidden md:block">
 
       {/* ══════════════════════════════════════════════════════
           HERO

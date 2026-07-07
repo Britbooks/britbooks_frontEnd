@@ -834,7 +834,7 @@ const Homepage = () => {
         {/* ═══════════════════════════════════════════
               MOBILE APP LAYOUT  (hidden on sm+)
             ═══════════════════════════════════════════ */}
-        <div className="sm:hidden" style={{ backgroundColor: '#f0ebe1', minHeight: '100vh' }}>
+        <div className="md:hidden" style={{ backgroundColor: '#f0ebe1', minHeight: '100vh' }}>
 
           {/* ── Animated Hero Carousel ── */}
           <div className="relative overflow-hidden mx-4 mt-26 rounded-3xl shadow-xl" style={{ height: 240 }}>
@@ -1140,7 +1140,7 @@ const Homepage = () => {
             ═══════════════════════════════════════════ */}
 
         {/* ═══ DESKTOP LAYOUT (hidden on mobile) ═══ */}
-        <main className="hidden sm:block container mx-auto px-4 sm:px-8">
+        <main className="hidden md:block container mx-auto px-4 sm:px-8">
           {/* Desktop Hero Section */}
           <section className="relative text-white my-4 sm:my-8 py-12 sm:py-20 px-4 sm:px-12 rounded-lg overflow-hidden">
             <video
@@ -1160,7 +1160,7 @@ const Homepage = () => {
             <div className="relative z-10 text-center sm:text-left">
               <div className="animate-on-scroll">
                 <h1 className="text-2xl sm:text-5xl font-bold leading-tight">
-                  Best Used Book Platform <br className="block sm:hidden" /> in the UK
+                  Best Used Book Platform <br className="block md:hidden" /> in the UK
                 </h1>
                 <p className="text-gray-300 mt-2 text-sm sm:text-base">
                   Discover thousands of quality pre-owned books at unbeatable prices.
@@ -1182,7 +1182,7 @@ const Homepage = () => {
               <h2 className="text-3xl sm:text-5xl font-light leading-tight mb-4 sm:mb-6">
                 Welcome to <span className="font-bold text-blue-900">brit</span>
                 <span className="font-bold text-red-600">books </span>
-                <br className="block sm:hidden" />
+                <br className="block md:hidden" />
                 <span className="font-bold text-gray-900">online books</span> super store
               </h2>
               <p className="text-gray-700 text-base sm:text-lg leading-relaxed">

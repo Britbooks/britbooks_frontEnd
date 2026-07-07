@@ -69,7 +69,7 @@ const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading }: 
     <section className="py-5">
       <p className="text-sm font-black text-[#0a1628] mb-3">{title}</p>
       {/* Mobile skeleton strip */}
-      <div className="flex gap-3 overflow-hidden sm:hidden">
+      <div className="flex gap-3 overflow-hidden md:hidden">
         {Array(4).fill(0).map((_, i) => (
           <div key={i} className="flex-shrink-0 w-28 animate-pulse space-y-2">
             <div className="aspect-[2/3] bg-gray-200 rounded-2xl" />
@@ -96,7 +96,7 @@ const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading }: 
     <section className="py-5">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-black text-[#0a1628] uppercase tracking-wider">{title}</p>
-        <div className="hidden sm:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
             className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-gray-100 disabled:opacity-30">
             <ChevronLeft size={14} />
@@ -110,7 +110,7 @@ const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading }: 
       </div>
 
       {/* Mobile: horizontal scroll */}
-      <div className="sm:hidden -mx-4 px-4 overflow-x-auto flex gap-3 pb-2"
+      <div className="md:hidden -mx-4 px-4 overflow-x-auto flex gap-3 pb-2"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
         {books.map(book => (
           <div key={book.id} className="flex-shrink-0 w-28">
@@ -148,7 +148,7 @@ const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading }: 
    MOBILE LOADING SKELETON
 ───────────────────────────────────────────────────────────────── */
 const MobileSkeleton = () => (
-  <div className="sm:hidden animate-pulse">
+  <div className="md:hidden animate-pulse">
     {/* Hero */}
     <div className="h-72 bg-gray-200" />
     <div className="px-4 pt-5 space-y-3">
@@ -304,7 +304,7 @@ const BrowseCategoryDetail = () => {
       <TopBar />
       <MobileSkeleton />
       {/* Desktop skeleton */}
-      <div className="hidden sm:block container mx-auto px-4 sm:px-8 py-8 animate-pulse">
+      <div className="hidden md:block container mx-auto px-4 sm:px-8 py-8 animate-pulse">
         <div className="flex gap-8">
           <div className="w-1/3 aspect-[2/3] bg-gray-200 rounded-xl" />
           <div className="flex-1 space-y-4 pt-2">
@@ -386,7 +386,7 @@ const BrowseCategoryDetail = () => {
       {/* ══════════════════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════════════════ */}
-      <div className="sm:hidden">
+      <div className="md:hidden">
 
         {/* ── HERO ── */}
         <div className="relative overflow-hidden" style={{ minHeight: 340 }}>
@@ -631,7 +631,7 @@ const BrowseCategoryDetail = () => {
       {/* ══════════════════════════════════════════════════════
           DESKTOP LAYOUT (unchanged)
       ══════════════════════════════════════════════════════ */}
-      <div className="hidden sm:block">
+      <div className="hidden md:block">
         {/* Breadcrumb */}
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

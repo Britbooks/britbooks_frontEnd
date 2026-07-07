@@ -743,7 +743,7 @@ const SpecialOffersPage = () => {
       {/* ══════════════════════════════════════
           MOBILE
       ══════════════════════════════════════ */}
-      <div className="sm:hidden flex flex-col min-h-screen bg-[#f8f8fb]">
+      <div className="md:hidden flex flex-col min-h-screen bg-[#f8f8fb]">
         <TopBar />
 
         {/* Sticky header */}
@@ -874,7 +874,7 @@ const SpecialOffersPage = () => {
       {/* ══════════════════════════════════════
           DESKTOP
       ══════════════════════════════════════ */}
-      <div className="hidden sm:block min-h-screen">
+      <div className="hidden md:block min-h-screen">
         <TopBar />
 
         {/* ── Hero ── */}

@@ -35,7 +35,7 @@ const MyWishlistPage = () => {
       <TopBar />
 
       {/* ── MOBILE LAYOUT ─────────────────────────────────────────── */}
-      <div className="sm:hidden flex-1 flex flex-col pb-28">
+      <div className="md:hidden flex-1 flex flex-col pb-28">
 
         {/* Mobile header */}
         <div className="bg-white border-b border-gray-100 px-4 pt-5 pb-4">
@@ -156,7 +156,7 @@ const MyWishlistPage = () => {
       </div>
 
       {/* ── DESKTOP LAYOUT ────────────────────────────────────────── */}
-      <main className="hidden sm:block flex-1 py-12 sm:py-20">
+      <main className="hidden md:block flex-1 py-12 sm:py-20">
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-8">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b border-gray-200 pb-6">

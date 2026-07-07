@@ -37,7 +37,7 @@ const BookCard: React.FC<BookCardProps> = ({ id, img, title, author, price, cate
   return (
     <>
       {/* ─── MOBILE CARD ─────────────────────────────── */}
-      <div className="sm:hidden w-full flex flex-col">
+      <div className="md:hidden w-full flex flex-col">
         {/* Image block */}
         <Link to={`/browse/${id}`} state={category ? { category } : undefined}
           className="block relative rounded-2xl overflow-hidden bg-gray-100"
@@ -106,7 +106,7 @@ const BookCard: React.FC<BookCardProps> = ({ id, img, title, author, price, cate
 
       {/* ─── DESKTOP CARD ────────────────────────────── */}
       <div
-        className="hidden sm:block relative group w-full text-center
+        className="hidden md:block relative group w-full text-center
         border border-gray-200 rounded-lg p-3
         transform transition-all duration-500
         hover:shadow-xl hover:-translate-y-1

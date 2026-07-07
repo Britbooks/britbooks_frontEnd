@@ -340,7 +340,7 @@ export default function SupportChatPage() {
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => navigate("/help")}
-            className="p-2 -ml-1 rounded-xl hover:bg-white/20 transition-colors hidden sm:block"
+            className="p-2 -ml-1 rounded-xl hover:bg-white/20 transition-colors hidden md:block"
           >
             <ChevronLeftIcon className="w-5 h-5 text-white" />
           </button>
@@ -477,7 +477,7 @@ export default function SupportChatPage() {
         {/* Back button — mobile only */}
         <button
           onClick={goInbox}
-          className="sm:hidden p-2 -ml-1 rounded-xl hover:bg-white/10 transition-colors shrink-0"
+          className="md:hidden p-2 -ml-1 rounded-xl hover:bg-white/10 transition-colors shrink-0"
         >
           <ChevronLeftIcon className="w-5 h-5 text-white" />
         </button>
@@ -608,7 +608,7 @@ export default function SupportChatPage() {
       <div className="bg-[#0a1628] px-4 py-4 shrink-0 flex items-center gap-3 border-b border-white/10">
         <button
           onClick={goInbox}
-          className="sm:hidden p-2 -ml-1 rounded-xl hover:bg-white/10 transition-colors"
+          className="md:hidden p-2 -ml-1 rounded-xl hover:bg-white/10 transition-colors"
         >
           <ChevronLeftIcon className="w-5 h-5 text-white" />
         </button>
@@ -693,7 +693,7 @@ export default function SupportChatPage() {
         <div className={`
           flex-col border-r border-gray-200
           w-full sm:w-80 lg:w-96 shrink-0
-          ${view !== "inbox" ? "hidden sm:flex" : "flex"}
+          ${view !== "inbox" ? "hidden md:flex" : "flex"}
         `}>
           <LeftSidebar />
         </div>
@@ -701,7 +701,7 @@ export default function SupportChatPage() {
         {/* ── RIGHT PANEL ── show on desktop always; on mobile only when not inbox */}
         <div className={`
           flex-1 min-w-0
-          ${view === "inbox" ? "hidden sm:flex" : "flex"}
+          ${view === "inbox" ? "hidden md:flex" : "flex"}
           flex-col
         `}>
           {view === "chat"      && <ChatPanel />}

@@ -308,7 +308,7 @@ export default function BrowsePage() {
       {/* ════════════════════════════════════════════════════════
           MOBILE LAYOUT
       ════════════════════════════════════════════════════════ */}
-      <div className="sm:hidden flex flex-col min-h-screen">
+      <div className="md:hidden flex flex-col min-h-screen">
 
         {/* Mobile header */}
         <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
@@ -471,7 +471,7 @@ export default function BrowsePage() {
       {/* ════════════════════════════════════════════════════════
           DESKTOP LAYOUT
       ════════════════════════════════════════════════════════ */}
-      <div className="hidden sm:block">
+      <div className="hidden md:block">
         {/* Hero header */}
         <header
           className="relative pt-14 pb-12 px-6 md:px-8 overflow-hidden"
