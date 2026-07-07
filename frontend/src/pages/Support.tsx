@@ -185,7 +185,7 @@ function parsePaymentRows(text: string) {
       const stripped = line.replace(/^[•\-*]\s*/, "").replace(/\*\*/g, "");
       const amount = (stripped.match(/£[\d,.]+/) || [""])[0];
       const date = (stripped.match(/\d{1,2}[\s\/]\w+[\s\/]\d{2,4}|\d{2}\/\d{2}\/\d{4}/) || [""])[0];
-      const status = (stripped.match(/success|paid|failed|pending|refunded/i) || ["Unknown"])[0];
+      const status = (stripped.match(/succeed(?:ed)?|success(?:ful)?|paid|complete[d]?|failed|pending|refunded|cancel(?:l?ed)?|processing/i) || ["Unknown"])[0];
       const orderId = (stripped.match(/order #([a-f0-9]+)/i) || [null, null])[1];
       const receipt = /receipt/i.test(stripped);
       return { amount, date, status, orderId, receipt };
@@ -228,14 +228,15 @@ function parseProfileFields(text: string) {
 
 // ── Status badge ────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
-  const s = status.toLowerCase();
-  if (s.includes("success") || s.includes("paid") || s.includes("delivered"))
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200"><CheckCircle className="w-3 h-3" />{status}</span>;
+  const s = (status || "").toLowerCase();
+  const label = status || "Unknown";
+  if (s.includes("succeed") || s.includes("success") || s.includes("paid") || s.includes("complete") || s.includes("delivered"))
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200"><CheckCircle className="w-3 h-3" />{label}</span>;
   if (s.includes("dispatch") || s.includes("out for"))
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200"><Truck className="w-3 h-3" />{status}</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200"><Truck className="w-3 h-3" />{label}</span>;
   if (s.includes("cancel") || s.includes("failed"))
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">✕ {status}</span>;
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">⏳ {status}</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">✕ {label}</span>;
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">⏳ {label}</span>;
 }
 
 // Intro lines (non-bullet, non-data text)
@@ -577,24 +578,29 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Poll active thread so admin/bot replies render without a refresh
+  // Poll active thread so admin/bot replies render without a refresh.
+  // Guards:
+  //  - only apply when the chatId we polled is still the active one
+  //  - only accept incoming.length > local length (never truncate, so
+  //    an in-flight stream with optimistic placeholders isn't wiped)
   useEffect(() => {
     if (view !== "chat" || !chatId) return;
+    const pollingFor = chatId;
     let cancelled = false;
     const tick = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/${chatId}/messages`, { headers });
-        const incoming = res.data?.messages || [];
+        const res = await axios.get(`${API_BASE}/${pollingFor}/messages`, { headers });
         if (cancelled) return;
-        onSharedChange({
-          messages: incoming.length !== messages.length ? incoming : messages,
-        });
-        if (incoming.length !== messages.length) loadThreads();
+        if (shared.chatId !== pollingFor) return;
+        const incoming = res.data?.messages || [];
+        if (incoming.length > messages.length) {
+          onSharedChange({ messages: incoming });
+        }
       } catch { /* silent */ }
     };
     const id = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [view, chatId, messages.length]);
+  }, [view, chatId]);
 
   const openThread = async (id: string) => {
     setLoading(true);
@@ -633,6 +639,8 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
     setInput("");
     if (taRef.current) taRef.current.style.height = "auto";
 
+    const streamChatId = chatId; // freeze the target so switching threads mid-stream doesn't corrupt the new one
+
     const tempUserId = `temp_user_${Date.now()}`;
     const tempBotId = `temp_bot_${Date.now()}`;
     const optimisticUser = { _id: tempUserId, senderId: userId, message: msg, createdAt: new Date().toISOString(), status: "sending" };
@@ -641,11 +649,17 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
     let working = [...messages, optimisticUser, optimisticBot];
     setMessages(working);
 
+    // Only mutate shared messages while the user is still viewing this thread.
+    const applyIfActive = (next: any[]) => {
+      if (shared.chatId !== streamChatId) return;
+      setMessages(next);
+    };
+
     try {
       const res = await fetch(`${API_BASE}/send-stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ chatId, senderId: userId, message: msg }),
+        body: JSON.stringify({ chatId: streamChatId, senderId: userId, message: msg }),
       });
       if (!res.ok || !res.body) throw new Error("stream failed");
 
@@ -675,22 +689,24 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
 
           if (event === "user" && data.message) {
             working = working.map((m: any) => m._id === tempUserId ? { ...data.message, _id: tempUserId } : m);
-            setMessages(working);
+            applyIfActive(working);
           } else if (event === "chunk" && typeof data.text === "string") {
             botText += data.text;
             working = working.map((m: any) => m._id === tempBotId ? { ...m, message: botText } : m);
-            setMessages(working);
+            applyIfActive(working);
           } else if (event === "done" && Array.isArray(data.messages)) {
-            setMessages(data.messages);
+            applyIfActive(data.messages);
           } else if (event === "error") {
             throw new Error(data.message || "stream error");
           }
         }
       }
     } catch {
-      toast.error("Failed to send");
-      setMessages(messages);
-      setInput(msg);
+      if (shared.chatId === streamChatId) {
+        toast.error("Failed to send");
+        setMessages(messages);
+        setInput(msg);
+      }
     }
   };
 
@@ -1101,24 +1117,29 @@ function MobileChatWidget({ userId, token, onClose, newChatTrigger = 0, shared, 
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Poll active thread so admin/bot replies render without a refresh
+  // Poll active thread so admin/bot replies render without a refresh.
+  // Guards:
+  //  - only apply when the chatId we polled is still the active one
+  //  - only accept incoming.length > local length (never truncate, so
+  //    an in-flight stream with optimistic placeholders isn't wiped)
   useEffect(() => {
     if (view !== "chat" || !chatId) return;
+    const pollingFor = chatId;
     let cancelled = false;
     const tick = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/${chatId}/messages`, { headers });
-        const incoming = res.data?.messages || [];
+        const res = await axios.get(`${API_BASE}/${pollingFor}/messages`, { headers });
         if (cancelled) return;
-        onSharedChange({
-          messages: incoming.length !== messages.length ? incoming : messages,
-        });
-        if (incoming.length !== messages.length) loadThreads();
+        if (shared.chatId !== pollingFor) return;
+        const incoming = res.data?.messages || [];
+        if (incoming.length > messages.length) {
+          onSharedChange({ messages: incoming });
+        }
       } catch { /* silent */ }
     };
     const id = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [view, chatId, messages.length]);
+  }, [view, chatId]);
 
   const openThread = async (id: string) => {
     setLoading(true);
@@ -1475,7 +1496,7 @@ export default function HelpAndSupportPage() {
       ═══════════════════════════════════════════════ */}
       <div className="md:hidden">
         {/* Meet Alex — hero (mobile) */}
-        <div className="bg-[#0f3d2e] text-[#f6f2e6] relative overflow-hidden">
+        <div className="bg-[#0f2a4a] text-[#f6f2e6] relative overflow-hidden">
           <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#c1272d]/10" />
           <div className="relative px-5 pt-8 pb-8">
             <div className="flex items-center justify-between mb-6">
@@ -1493,9 +1514,9 @@ export default function HelpAndSupportPage() {
               <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
                 <source src={VIDEO_SRC} type="video/mp4" />
               </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a2b20] via-[#0a2b20]/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#08192f] via-[#08192f]/20 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center font-serif italic text-sm border-2 border-[#0a2b20]">A</div>
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center font-serif italic text-sm border-2 border-[#08192f]">A</div>
                 <div>
                   <p className="font-serif text-[15px] leading-none">Alex</p>
                   <p className="text-[10px] text-[#f6f2e6]/70 mt-0.5">Ready to chat</p>
@@ -1655,18 +1676,17 @@ export default function HelpAndSupportPage() {
       ═══════════════════════════════════════════════ */}
       <div className="hidden md:flex sm:flex-col sm:flex-1">
         {/* Meet Alex — hero (detailed) */}
-        <section className="relative overflow-hidden bg-[#0f3d2e] text-[#f6f2e6]">
+        <section className="relative overflow-hidden bg-[#0f2a4a] text-[#f6f2e6]">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-24 -right-24 w-[520px] h-[520px] rounded-full bg-[#c1272d]/10" />
             <div className="absolute bottom-0 -left-20 w-[380px] h-[380px] rounded-full bg-[#f6f2e6]/[0.04]" />
           </div>
 
-          <div className="relative max-w-7xl mx-auto px-8 pt-14 pb-20">
+          <div className="relative w-full px-8 xl:px-16 2xl:px-24 pt-14 pb-20">
             {/* meta strip */}
             <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.32em] text-[#f6f2e6]/50 pb-8 border-b border-white/10">
               <div className="flex items-center gap-8">
                 <span className="font-bold text-[#f6f2e6]">The Help Desk</span>
-                <span className="hidden md:inline">Vol. 07 · Answers, kindly assembled</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -1679,13 +1699,13 @@ export default function HelpAndSupportPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="lg:col-span-5 relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]"
+                className="lg:col-span-5 relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)] w-full max-w-[440px] justify-self-start"
                 style={{ aspectRatio: "1 / 1" }}
               >
                 <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
                   <source src={VIDEO_SRC} type="video/mp4" />
                 </video>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a2b20] via-[#0a2b20]/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#08192f] via-[#08192f]/20 to-transparent" />
                 <div className="absolute top-5 left-5 right-5 flex items-center justify-between">
                   <div className="inline-flex items-center gap-2 bg-black/40 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -1694,7 +1714,7 @@ export default function HelpAndSupportPage() {
                   <span className="text-[10px] uppercase tracking-widest text-[#f6f2e6]/70 font-bold">AI · v4</span>
                 </div>
                 <div className="absolute bottom-5 left-5 right-5 flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center text-lg font-serif italic text-[#f6f2e6] border-2 border-[#0a2b20]">A</div>
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center text-lg font-serif italic text-[#f6f2e6] border-2 border-[#08192f]">A</div>
                   <div>
                     <p className="font-serif text-[#f6f2e6] text-lg leading-none">Alex</p>
                     <p className="text-[11px] text-[#f6f2e6]/70 mt-1">Ready to chat</p>
