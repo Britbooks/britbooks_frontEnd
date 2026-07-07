@@ -1447,9 +1447,19 @@ export default function HelpAndSupportPage() {
 
         {/* Meet Alex — mobile */}
         <div className="px-5 mb-10">
-          <div className="rounded-3xl bg-[#0f3d2e] text-[#f6f2e6] p-6 relative overflow-hidden">
+          <div className="rounded-3xl bg-[#0f3d2e] text-[#f6f2e6] overflow-hidden relative">
             <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full bg-[#c1272d]/15" />
-            <div className="relative">
+            <div className="relative aspect-video">
+              <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
+                <source src={VIDEO_SRC} type="video/mp4" />
+              </video>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0f3d2e] via-[#0f3d2e]/30 to-transparent" />
+              <div className="absolute top-4 left-4 inline-flex items-center gap-2 bg-black/40 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] uppercase tracking-widest font-bold">Live</span>
+              </div>
+            </div>
+            <div className="relative p-6 pt-5">
               <p className="text-[10px] uppercase tracking-[0.28em] text-[#c1272d] font-bold mb-3">The Assistant</p>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center font-serif italic text-lg">A</div>
@@ -1484,6 +1494,7 @@ export default function HelpAndSupportPage() {
         </div>
 
         {/* FAQ */}
+
         <div className="px-5 mb-10">
           <div className="flex items-baseline justify-between mb-5">
             <div>
@@ -1685,14 +1696,36 @@ export default function HelpAndSupportPage() {
           </div>
           <div className="relative max-w-7xl mx-auto px-8 py-24 grid lg:grid-cols-12 gap-14 items-center">
             <div className="lg:col-span-5">
-              <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#c1272d] mb-4">The Assistant</p>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center text-2xl font-serif italic text-[#f6f2e6] shadow-lg">A</div>
-                <div>
-                  <h2 className="font-serif text-5xl tracking-tight leading-none">Meet Alex.</h2>
-                  <p className="text-sm text-[#f6f2e6]/60 mt-2">Your always-on BritBooks assistant</p>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="relative rounded-[2rem] overflow-hidden mb-8 border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]"
+                style={{ aspectRatio: "1 / 1" }}
+              >
+                <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
+                  <source src={VIDEO_SRC} type="video/mp4" />
+                </video>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a2b20] via-[#0a2b20]/20 to-transparent" />
+                <div className="absolute top-5 left-5 right-5 flex items-center justify-between">
+                  <div className="inline-flex items-center gap-2 bg-black/40 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-[#f6f2e6]">Live · always on</span>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-widest text-[#f6f2e6]/70 font-bold">AI · v4</span>
                 </div>
-              </div>
+                <div className="absolute bottom-5 left-5 right-5 flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#c1272d] to-[#8a1a20] flex items-center justify-center text-lg font-serif italic text-[#f6f2e6] border-2 border-[#0a2b20]">A</div>
+                  <div>
+                    <p className="font-serif text-[#f6f2e6] text-lg leading-none">Alex</p>
+                    <p className="text-[11px] text-[#f6f2e6]/70 mt-1">Ready to chat</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <p className="text-[11px] uppercase tracking-[0.32em] font-bold text-[#c1272d] mb-4">The Assistant</p>
+              <h2 className="font-serif text-5xl tracking-tight leading-none mb-3">Meet Alex.</h2>
+              <p className="text-sm text-[#f6f2e6]/60 mb-6">Your always-on BritBooks assistant</p>
               <p className="text-lg leading-relaxed text-[#f6f2e6]/80 mb-8">
                 Alex is our in-house AI assistant — trained on the entire BritBooks catalogue, our shipping and returns policy, and your account activity. Ask anything, any hour, in plain English.
               </p>
