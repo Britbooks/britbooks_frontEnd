@@ -243,17 +243,83 @@ export default function SupportChatPage() {
   const createTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return toast.error("Please log in first");
-    setLoading(true);
+
+    const subject = form.subject;
+    const description = form.description;
+    const initialText = `Subject: ${subject}\nDescription: ${description || "No description provided"}`;
+
+    // Jump into the chat instantly with an optimistic bubble and a
+    // streaming placeholder so we don't sit on a spinner while Gemini
+    // is thinking.
+    const tempUserId = `temp_user_${Date.now()}`;
+    const tempBotId = `temp_bot_${Date.now()}`;
+    setMessages([
+      { _id: tempUserId, senderId: userId, message: initialText, createdAt: new Date().toISOString(), status: "sending" },
+      { _id: tempBotId, senderId: "bot", senderType: "bot", message: "", createdAt: new Date().toISOString(), status: "streaming" },
+    ]);
+    setChatId(null);
+    setActiveThreadId(null);
+    setView("chat");
+    setForm({ subject: "", description: "" });
+
+    let botText = "";
+
     try {
-      const res = await axios.post(`${API_BASE}/create`, { userId, ...form }, { headers });
-      const newId = res.data._id;
-      setChatId(newId);
-      setActiveThreadId(newId);
-      setMessages(res.data.messages || []);
-      setView("chat");
-      loadThreads();
-    } catch { toast.error("Failed to create ticket"); }
-    finally { setLoading(false); }
+      const res = await fetch(`${API_BASE}/create-stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ userId, subject, description }),
+      });
+      if (!res.ok || !res.body) throw new Error("stream failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let event: string | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          event = null;
+          let dataStr = "";
+          for (const line of block.split("\n")) {
+            if (line.startsWith("event: ")) event = line.slice(7).trim();
+            else if (line.startsWith("data: ")) dataStr += line.slice(6);
+          }
+          if (!dataStr) continue;
+          let data: any;
+          try { data = JSON.parse(dataStr); } catch { continue; }
+
+          if (event === "created" && data.chatId) {
+            setChatId(data.chatId);
+            setActiveThreadId(data.chatId);
+            if (Array.isArray(data.messages) && data.messages.length) {
+              const realUserMsg = data.messages[data.messages.length - 1];
+              setMessages(prev => prev.map(m => m._id === tempUserId ? { ...realUserMsg, _id: tempUserId } : m));
+            }
+            loadThreads();
+          } else if (event === "chunk" && typeof data.text === "string") {
+            botText += data.text;
+            setMessages(prev => prev.map(m => m._id === tempBotId ? { ...m, message: botText } : m));
+          } else if (event === "done" && Array.isArray(data.messages)) {
+            setMessages(data.messages);
+            loadThreads();
+          } else if (event === "error") {
+            throw new Error(data.message || "stream error");
+          }
+        }
+      }
+    } catch {
+      toast.error("Failed to create ticket");
+      setView("newticket");
+      setForm({ subject, description });
+      setMessages([]);
+    }
   };
 
   const send = async () => {

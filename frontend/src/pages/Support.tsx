@@ -619,17 +619,94 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
   const createTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return toast.error("Please log in");
-    setLoading(true);
+
+    const subject = form.subject;
+    const description = form.description;
+    const initialText = `Subject: ${subject}\nDescription: ${description || "No description provided"}`;
+
+    // Flip to chat view IMMEDIATELY with optimistic bubbles so the user
+    // never sees a spinner. The stream fills in the bot reply live.
+    const tempUserId = `temp_user_${Date.now()}`;
+    const tempBotId = `temp_bot_${Date.now()}`;
+    const optimisticUser = { _id: tempUserId, senderId: userId, message: initialText, createdAt: new Date().toISOString(), status: "sending" };
+    const optimisticBot = { _id: tempBotId, senderId: "bot", senderType: "bot", message: "", createdAt: new Date().toISOString(), status: "streaming" };
+
+    onSharedChange({
+      view: "chat",
+      chatId: null,
+      messages: [optimisticUser, optimisticBot],
+    });
+    setForm({ subject: "", description: "" });
+
+    let working: any[] = [optimisticUser, optimisticBot];
+    let createdChatId: string | null = null;
+    const applyIfActive = (next: any[]) => {
+      if (createdChatId && shared.chatId && shared.chatId !== createdChatId) return;
+      setMessages(next);
+    };
+
     try {
-      const res = await axios.post(`${API_BASE}/create`, { userId, ...form }, { headers });
-      setChatId(res.data._id);
-      setMessages(res.data.messages || []);
-      setView("chat");
-      loadThreads();
+      const res = await fetch(`${API_BASE}/create-stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ userId, subject, description }),
+      });
+      if (!res.ok || !res.body) throw new Error("stream failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let event: string | null = null;
+      let botText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          event = null;
+          let dataStr = "";
+          for (const line of block.split("\n")) {
+            if (line.startsWith("event: ")) event = line.slice(7).trim();
+            else if (line.startsWith("data: ")) dataStr += line.slice(6);
+          }
+          if (!dataStr) continue;
+          let data: any;
+          try { data = JSON.parse(dataStr); } catch { continue; }
+
+          if (event === "created" && data.chatId) {
+            createdChatId = data.chatId;
+            onSharedChange({ chatId: createdChatId });
+            if (Array.isArray(data.messages) && data.messages.length) {
+              const realUserMsg = data.messages[data.messages.length - 1];
+              working = working.map((m: any) => m._id === tempUserId ? { ...realUserMsg, _id: tempUserId } : m);
+              applyIfActive(working);
+            }
+            loadThreads();
+          } else if (event === "chunk" && typeof data.text === "string") {
+            botText += data.text;
+            working = working.map((m: any) => m._id === tempBotId ? { ...m, message: botText } : m);
+            applyIfActive(working);
+          } else if (event === "done" && Array.isArray(data.messages)) {
+            applyIfActive(data.messages);
+            loadThreads();
+          } else if (event === "error") {
+            throw new Error(data.message || "stream error");
+          }
+        }
+      }
     } catch {
       toast.error("Failed to create ticket");
-    } finally {
-      setLoading(false);
+      // Restore the form so the user can try again.
+      onSharedChange({
+        view: "newticket",
+        chatId: null,
+        messages: [],
+      });
+      setForm({ subject, description });
     }
   };
 
