@@ -276,7 +276,103 @@ function StreamingBotMessage({ text }: { text: string }) {
   );
 }
 
+type RecommendedBook = { id?: string; title: string; author?: string; category?: string; condition?: string; price?: string; coverImageUrl?: string | null; link?: string | null };
+
+function parseRecommendedBooks(text: string): { books: RecommendedBook[]; strippedText: string } {
+  const match = text.match(/<britbooks-recommendations>([\s\S]*?)<\/britbooks-recommendations>/i);
+  if (!match) return { books: [], strippedText: text };
+  try {
+    const parsed = JSON.parse(match[1]);
+    const books = Array.isArray(parsed) ? parsed.filter(b => b && typeof b === "object" && b.title) : [];
+    const strippedText = text.replace(match[0], "").replace(/\n{3,}/g, "\n\n").trim();
+    return { books, strippedText };
+  } catch {
+    return { books: [], strippedText: text };
+  }
+}
+
+function BookRecommendationCards({ books }: { books: RecommendedBook[] }) {
+  return (
+    <div className="bg-white px-3 py-3 border-t border-amber-50">
+      <div className="grid grid-cols-2 gap-2.5">
+        {books.map((b, i) => {
+          const inner = (
+            <div className="group rounded-xl border border-amber-100 bg-amber-50/40 hover:bg-white hover:shadow-md transition-all overflow-hidden h-full flex flex-col">
+              <div className="aspect-[3/4] bg-gradient-to-br from-amber-100 via-amber-50 to-white relative overflow-hidden">
+                {b.coverImageUrl ? (
+                  <img
+                    src={b.coverImageUrl}
+                    alt={b.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <BookOpen className="w-8 h-8 text-amber-300" />
+                  </div>
+                )}
+                {b.price && (
+                  <span className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-sm text-amber-900 text-[11px] font-black px-2 py-0.5 rounded-full shadow">
+                    {b.price}
+                  </span>
+                )}
+              </div>
+              <div className="p-2.5 flex-1 flex flex-col">
+                <p className="text-[12px] font-black text-gray-900 leading-tight line-clamp-2">{b.title}</p>
+                {b.author && <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">by {b.author}</p>}
+                <div className="mt-auto pt-2 flex items-center gap-1 flex-wrap">
+                  {b.category && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{b.category}</span>
+                  )}
+                  {b.condition && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">{b.condition}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+          return b.link ? (
+            <Link key={i} to={b.link} className="block">{inner}</Link>
+          ) : (
+            <div key={i}>{inner}</div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BookRecommendationsCard({ books, intro, closing, time }: { books: RecommendedBook[]; intro: string; closing: string; time: string }) {
+  return (
+    <div className="rounded-2xl overflow-hidden shadow-sm border border-amber-100 bg-white" style={{ maxWidth: "94%" }}>
+      <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-50 border-b border-amber-100">
+        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center"><BookOpen className="w-4 h-4 text-amber-700" /></div>
+        <div>
+          <p className="text-amber-900 font-black text-sm">Recommended for you</p>
+          <p className="text-amber-500 text-[10px]">{books.length} pick{books.length !== 1 ? "s" : ""} from your reading history</p>
+        </div>
+        <div className="ml-auto flex items-center gap-1"><Sparkles className="w-3 h-3 text-amber-400" /><span className="text-[10px] text-amber-600 font-semibold">Alex</span></div>
+      </div>
+      {intro && <div className="bg-white px-4 py-2.5 text-sm text-gray-700 border-b border-amber-50">{renderBold(intro)}</div>}
+      <BookRecommendationCards books={books} />
+      {closing && <div className="bg-white px-4 py-2.5 text-sm text-gray-700 border-t border-amber-50">{renderBold(closing)}</div>}
+      <div className="bg-white px-4 py-2 flex items-center justify-between border-t border-gray-50">
+        <div className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /><span className="text-[10px] text-emerald-600 font-semibold">BritBooks AI</span></div>
+        <span className="text-[10px] text-gray-400">{time}</span>
+      </div>
+    </div>
+  );
+}
+
 function SmartBotMessage({ message, time }: { message: string; time: string }) {
+  /* ── BOOK RECOMMENDATIONS ── */
+  const recs = parseRecommendedBooks(message);
+  if (recs.books.length > 0) {
+    const parts = recs.strippedText.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+    return <BookRecommendationsCard books={recs.books} intro={parts[0] || ""} closing={parts.slice(1).join("\n\n")} time={time} />;
+  }
+
   const type = getResponseType(message);
   const intro = getIntroLines(message);
 

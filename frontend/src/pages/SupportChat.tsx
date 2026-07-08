@@ -105,7 +105,73 @@ function StreamingBotMessage({ text }: { text: string }) {
   );
 }
 
+type RecommendedBook = { id?: string; title: string; author?: string; category?: string; condition?: string; price?: string; coverImageUrl?: string | null; link?: string | null };
+
+function parseRecommendedBooks(text: string): { books: RecommendedBook[]; strippedText: string } {
+  const match = text.match(/<britbooks-recommendations>([\s\S]*?)<\/britbooks-recommendations>/i);
+  if (!match) return { books: [], strippedText: text };
+  try {
+    const parsed = JSON.parse(match[1]);
+    const books = Array.isArray(parsed) ? parsed.filter(b => b && typeof b === "object" && b.title) : [];
+    return { books, strippedText: text.replace(match[0], "").replace(/\n{3,}/g, "\n\n").trim() };
+  } catch {
+    return { books: [], strippedText: text };
+  }
+}
+
 function SmartBotMessage({ message, time }: { message: string; time: string }) {
+  const recs = parseRecommendedBooks(message);
+  if (recs.books.length > 0) {
+    const parts = recs.strippedText.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+    const introText = parts[0] || "";
+    const closingText = parts.slice(1).join("\n\n");
+    return (
+      <div className="rounded-2xl overflow-hidden shadow-sm border border-amber-100 bg-white" style={{ maxWidth: "92%" }}>
+        <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 border-b border-amber-100">
+          <BookOpen className="w-3.5 h-3.5 text-amber-700" />
+          <span className="text-[11px] font-black text-amber-700">Recommended for you</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-amber-400" />
+            <span className="text-[10px] text-gray-400">Alex</span>
+          </div>
+        </div>
+        {introText && <div className="bg-white px-4 py-2.5 text-sm text-gray-700 border-b border-amber-50">{renderBold(introText)}</div>}
+        <div className="bg-white px-3 py-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            {recs.books.map((b, i) => {
+              const card = (
+                <div className="rounded-xl border border-amber-100 bg-amber-50/40 overflow-hidden h-full flex flex-col">
+                  <div className="aspect-[3/4] bg-gradient-to-br from-amber-100 via-amber-50 to-white relative overflow-hidden">
+                    {b.coverImageUrl ? (
+                      <img src={b.coverImageUrl} alt={b.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-8 h-8 text-amber-300" /></div>
+                    )}
+                    {b.price && <span className="absolute bottom-2 right-2 bg-white/95 text-amber-900 text-[11px] font-black px-2 py-0.5 rounded-full shadow">{b.price}</span>}
+                  </div>
+                  <div className="p-2.5 flex-1 flex flex-col">
+                    <p className="text-[12px] font-black text-gray-900 leading-tight line-clamp-2">{b.title}</p>
+                    {b.author && <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">by {b.author}</p>}
+                    <div className="mt-auto pt-2 flex items-center gap-1 flex-wrap">
+                      {b.category && <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{b.category}</span>}
+                      {b.condition && <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">{b.condition}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+              return b.link ? <a key={i} href={b.link} className="block">{card}</a> : <div key={i}>{card}</div>;
+            })}
+          </div>
+        </div>
+        {closingText && <div className="bg-white px-4 py-2.5 text-sm text-gray-700 border-t border-amber-50">{renderBold(closingText)}</div>}
+        <div className="bg-white px-4 py-2 flex items-center justify-between border-t border-gray-50">
+          <div className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /><span className="text-[10px] text-emerald-600 font-semibold">BritBooks AI</span></div>
+          <span className="text-[10px] text-gray-400">{time}</span>
+        </div>
+      </div>
+    );
+  }
+
   const cat = detectCategory(message);
   const lines = message.split("\n").filter((l) => l.trim());
   return (
