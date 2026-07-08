@@ -248,6 +248,15 @@ function getIntroLines(text: string): string[] {
 
 // ── Master SmartBotMessage ──────────────────────────────
 function StreamingBotMessage({ text }: { text: string }) {
+  // Hide the raw <britbooks-recommendations> block if it's arriving mid-stream —
+  // show a placeholder card grid instead of leaking XML/JSON into the bubble.
+  let visibleText = text;
+  const openIdx = text.indexOf("<britbooks-recommendations>");
+  if (openIdx >= 0) {
+    visibleText = text.slice(0, openIdx).trimEnd();
+  }
+  const loadingCards = openIdx >= 0;
+
   return (
     <div className="rounded-2xl overflow-hidden shadow-sm border border-red-100 bg-white" style={{ maxWidth: "90%" }}>
       <div className="flex items-center gap-2 px-3.5 py-2 bg-red-50 border-b border-red-100">
@@ -259,16 +268,31 @@ function StreamingBotMessage({ text }: { text: string }) {
         </div>
       </div>
       <div className="bg-white px-4 py-3">
-        {text ? (
+        {visibleText || !loadingCards ? (
           <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {renderBold(text)}
-            <span className="inline-block w-1.5 h-4 align-[-2px] ml-0.5 bg-red-500 animate-pulse" />
+            {renderBold(visibleText)}
+            {(!visibleText && !loadingCards) ? "" : (
+              <span className="inline-block w-1.5 h-4 align-[-2px] ml-0.5 bg-red-500 animate-pulse" />
+            )}
           </p>
         ) : (
           <div className="flex items-center gap-1.5 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: "0ms" }} />
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: "120ms" }} />
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: "240ms" }} />
+          </div>
+        )}
+        {loadingCards && (
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            {[0,1,2,3].map(i => (
+              <div key={i} className="rounded-xl border border-amber-100 bg-amber-50/40 overflow-hidden">
+                <div className="aspect-[3/4] bg-gradient-to-br from-amber-100 via-amber-50 to-white animate-pulse" />
+                <div className="p-2 space-y-1">
+                  <div className="h-2 bg-amber-100 rounded animate-pulse" />
+                  <div className="h-2 w-2/3 bg-amber-100 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
