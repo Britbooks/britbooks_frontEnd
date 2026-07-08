@@ -297,7 +297,7 @@ const LoginPage = () => {
   })();
 
   return (
-    <div className="h-screen w-full flex font-sans overflow-hidden">
+    <div className="w-full flex font-sans" style={{ minHeight: "calc(100vh / 0.85)" }}>
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
 
       <AuthBrandPanel variant="login" />

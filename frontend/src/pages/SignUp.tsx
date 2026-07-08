@@ -437,7 +437,7 @@ const SignupPage = () => {
     `w-full ${pl} pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-base text-gray-900 placeholder-gray-400 outline-none focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/10 transition-all`;
 
   return (
-    <div className="h-screen w-full flex font-sans overflow-hidden">
+    <div className="w-full flex font-sans" style={{ minHeight: "calc(100vh / 0.85)" }}>
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: "12px", fontWeight: 600, fontSize: "13px" } }} />
 
       <AuthBrandPanel variant="signup" />
