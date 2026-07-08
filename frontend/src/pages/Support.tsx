@@ -268,12 +268,10 @@ function StreamingBotMessage({ text }: { text: string }) {
         </div>
       </div>
       <div className="bg-white px-4 py-3">
-        {visibleText || !loadingCards ? (
+        {visibleText ? (
           <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
             {renderBold(visibleText)}
-            {(!visibleText && !loadingCards) ? "" : (
-              <span className="inline-block w-1.5 h-4 align-[-2px] ml-0.5 bg-red-500 animate-pulse" />
-            )}
+            <span className="inline-block w-1.5 h-4 align-[-2px] ml-0.5 bg-red-500 animate-pulse" />
           </p>
         ) : (
           <div className="flex items-center gap-1.5 py-1">
