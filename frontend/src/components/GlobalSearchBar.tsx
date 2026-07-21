@@ -45,11 +45,15 @@ const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({
   useEffect(() => {
     if (open && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
+      // getBoundingClientRect returns visual (post-zoom) pixels; portal fixed
+      // styles are interpreted in pre-zoom pixels under html { zoom: 0.85 },
+      // so convert to the logical space to keep the dropdown under the input.
+      const ZOOM = 0.85;
       setDropdownStyle({
         position: "fixed",
-        top: rect.bottom + 6,
-        left: rect.left,
-        width: rect.width,
+        top: (rect.bottom + 6) / ZOOM,
+        left: rect.left / ZOOM,
+        width: rect.width / ZOOM,
         zIndex: 9999,
       });
     }

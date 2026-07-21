@@ -212,7 +212,16 @@ const TopBar = () => {
   const repositionDrop = useCallback(() => {
     if (!searchPillRef.current) return;
     const r = searchPillRef.current.getBoundingClientRect();
-    setSearchDropPos({ top: r.bottom + 6, left: r.left, width: r.width });
+    // getBoundingClientRect returns visual (post-zoom) pixels, but styles on a
+    // portal fixed element are interpreted in pre-zoom pixels under the global
+    // html { zoom: 0.85 }. Convert to the logical space so the dropdown lines
+    // up under the pill instead of drifting left.
+    const ZOOM = 0.85;
+    setSearchDropPos({
+      top: (r.bottom + 6) / ZOOM,
+      left: r.left / ZOOM,
+      width: r.width / ZOOM,
+    });
   }, []);
 
   useEffect(() => {

@@ -55,7 +55,15 @@ const HeroSearchBar: React.FC<Props> = ({
   const reposition = useCallback(() => {
     if (!pillRef.current) return;
     const rect = pillRef.current.getBoundingClientRect();
-    setDropPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+    // getBoundingClientRect returns visual (post-zoom) pixels; portal fixed
+    // styles are interpreted in pre-zoom pixels under html { zoom: 0.85 },
+    // so convert to the logical space to keep the dropdown under the pill.
+    const ZOOM = 0.85;
+    setDropPos({
+      top: (rect.bottom + 8) / ZOOM,
+      left: rect.left / ZOOM,
+      width: rect.width / ZOOM,
+    });
   }, []);
 
   useEffect(() => {
