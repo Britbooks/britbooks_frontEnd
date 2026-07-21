@@ -52,10 +52,11 @@ const Stars = ({ rating = 0, size = 14 }: { rating: number; size?: number }) => 
 /* ─────────────────────────────────────────────────────────────────
    BOOK SHELF (horizontal scroll on mobile, grid on desktop)
 ───────────────────────────────────────────────────────────────── */
-const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading }: {
+const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading, viewAllLink }: {
   title: string;
   books: Book[];
   loading: boolean;
+  viewAllLink?: string;
 }) => {
   const [page, setPage] = useState(1);
   const perPage = 5;
@@ -64,6 +65,7 @@ const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading }: 
 
   const totalPages = Math.ceil(books.length / perPage);
   const visible    = books.slice((page - 1) * perPage, page * perPage);
+  const onLastPage = totalPages > 0 && page === totalPages;
 
   if (loading) return (
     <section className="py-5">
@@ -102,10 +104,29 @@ const BookShelf = ({ title, books: prefetchedBooks, loading: externalLoading }: 
             <ChevronLeft size={14} />
           </button>
           <span className="text-xs text-gray-400 px-1">{page}/{totalPages}</span>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-gray-100 disabled:opacity-30">
-            <ChevronRight size={14} />
-          </button>
+          {onLastPage && viewAllLink ? (
+            <Link
+              to={viewAllLink}
+              title="View all in this category"
+              aria-label="View all in this category"
+              className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-gray-100 text-[#0a1628]"
+            >
+              <ChevronRight size={14} />
+            </Link>
+          ) : (
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-gray-100 disabled:opacity-30">
+              <ChevronRight size={14} />
+            </button>
+          )}
+          {onLastPage && viewAllLink && (
+            <Link
+              to={viewAllLink}
+              className="ml-2 text-[11px] font-bold uppercase tracking-wider text-[#0a1628] hover:underline"
+            >
+              View all
+            </Link>
+          )}
         </div>
       </div>
 
@@ -577,7 +598,12 @@ const BrowseCategoryDetail = () => {
 
         {/* ── RELATED SHELVES ── */}
         <div className="mx-3 mt-4 pb-32 space-y-2">
-          <BookShelf title="You may also like" books={youMayAlso} loading={shelfLoading} />
+          <BookShelf
+            title="You may also like"
+            books={youMayAlso}
+            loading={shelfLoading}
+            viewAllLink={book.category ? `/category?category=${encodeURIComponent(book.category)}` : undefined}
+          />
           <BookShelf title={`More in ${book.category}`} books={moreLike} loading={shelfLoading} />
         </div>
 
@@ -753,7 +779,12 @@ const BrowseCategoryDetail = () => {
             </div>
           </div>
 
-          <BookShelf title="You may also like" books={youMayAlso} loading={shelfLoading} />
+          <BookShelf
+            title="You may also like"
+            books={youMayAlso}
+            loading={shelfLoading}
+            viewAllLink={book.category ? `/category?category=${encodeURIComponent(book.category)}` : undefined}
+          />
           <BookShelf title="Related Products" books={moreLike} loading={shelfLoading} />
         </main>
       </div>
