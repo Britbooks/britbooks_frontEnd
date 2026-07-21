@@ -163,12 +163,12 @@ const ReviewCard = ({
           )}
         </div>
       </div>
-      <div className="pl-10 space-y-0.5">
+      <div className="pl-10 space-y-1 text-left">
         {review.title?.trim() && (
-          <p className="text-sm font-semibold text-gray-700">{review.title.trim()}</p>
+          <p className="text-sm font-semibold text-gray-700 break-words">{review.title.trim()}</p>
         )}
         {review.body?.trim() ? (
-          <p className="text-sm text-gray-600 leading-relaxed">{review.body.trim()}</p>
+          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">{review.body.trim()}</p>
         ) : (
           <p className="text-sm italic text-gray-300">No comment left</p>
         )}
@@ -249,10 +249,10 @@ const SubmitForm = ({
         <button
           type="submit"
           disabled={submitting || rating === 0}
-          className="flex items-center gap-2 bg-[#0a1628] text-black text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 hover:bg-[#1a2d4a] transition-colors"
+          className="inline-flex items-center justify-center gap-2 bg-[#0a1628] text-white text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 hover:bg-[#1a2d4a] transition-colors"
         >
           <Send size={13} />
-          {submitting ? "Submitting…" : "Post Review"}
+          <span>{submitting ? "Submitting…" : "Post Review"}</span>
         </button>
       </div>
     </form>
