@@ -75,9 +75,6 @@ function InvoiceCard({ inv, index, isOpen, onToggle, onDownload, onViewOrder }: 
   inv: Invoice; index: number; isOpen: boolean;
   onToggle: () => void; onDownload: () => void; onViewOrder: () => void;
 }) {
-  const subtotal = inv.total * 0.8333;
-  const vat      = inv.total * 0.1667;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -221,41 +218,31 @@ function InvoiceCard({ inv, index, isOpen, onToggle, onDownload, onViewOrder }: 
                 </div>
               </div>
 
-              {/* ── right: VAT breakdown ── */}
+              {/* ── right: total summary ── */}
               <div
-                className="rounded-xl p-4"
+                className="rounded-xl p-5 flex flex-col justify-center"
                 style={{ background: CREAM, border: "1px solid #E7E3DC" }}
               >
                 <div className="flex items-center gap-2 mb-4">
                   <Receipt size={14} style={{ color: GOLD }} />
                   <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
-                    VAT Receipt
+                    Receipt
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm py-2 border-b border-[#E7E3DC]">
-                    <span className="text-gray-500">Subtotal (excl. VAT)</span>
-                    <span className="font-bold text-gray-800">{fmtGBP(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm py-2 border-b border-[#E7E3DC]">
-                    <span className="text-gray-500">VAT @ 20%</span>
-                    <span className="font-bold text-gray-800">{fmtGBP(vat)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-xs font-black uppercase tracking-wider" style={{ color: NAVY }}>
-                      Total Paid
-                    </span>
-                    <span className="text-xl font-black" style={{ color: NAVY }}>
-                      {fmtGBP(inv.total)}
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                  Total Paid
+                </p>
+                <p className="text-3xl font-black leading-none tabular-nums" style={{ color: NAVY }}>
+                  {fmtGBP(inv.total)}
+                </p>
+                {inv.paidAt && (
+                  <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-[#E7E3DC]">
+                    <ShieldCheck size={11} className="text-emerald-500 flex-shrink-0" />
+                    <span className="text-[11px] text-gray-500">
+                      Payment collected on {fmtDate(inv.paidAt)}
                     </span>
                   </div>
-                </div>
-                <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-[#E7E3DC]">
-                  <ShieldCheck size={11} className="text-emerald-500 flex-shrink-0" />
-                  <span className="text-[10px] text-gray-400">
-                    UK VAT-compliant · BritBooks Ltd · VAT GB 123 456 789
-                  </span>
-                </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -497,7 +484,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* ═══ CONTENT ═══ */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-8 pb-24 -mt-2">
+      <main className="max-w-5xl mx-auto px-4 sm:px-8 pb-24 pt-6">
 
         {/* Search + filter strip */}
         <motion.div
@@ -618,7 +605,7 @@ export default function InvoicesPage() {
           </p>
           <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-semibold">
             <ShieldCheck size={12} className="text-emerald-500" />
-            BritBooks Ltd · VAT GB 123 456 789
+            BritBooks Ltd
           </div>
         </div>
       </main>

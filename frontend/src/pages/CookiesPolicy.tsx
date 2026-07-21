@@ -88,13 +88,13 @@ export default function CookiesPolicyPage() {
       <TopBar />
 
       {/* ── Hero ── */}
-      <div className="relative bg-[#0d1b3e]  text-black px-6 py-16 overflow-hidden">
+      <div className="relative bg-[#0d1b3e] text-white px-6 py-16 overflow-hidden">
         {/* Glow blobs */}
         <div className="absolute -top-24 right-1/4 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 -right-16 w-72 h-72 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Floating cookie + shield illustration — desktop */}
-        <div className="absolute right-10 top-1/2 -translate-y-1/2 hidden lg:block pointer-events-none select-none">
+        <div className="absolute right-10 top-1/2 -translate-y-1/2 hidden md:block pointer-events-none select-none">
           {/* Central cookie */}
           <motion.div
             initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
@@ -167,7 +167,7 @@ export default function CookiesPolicyPage() {
             <div className="w-10 h-5 rounded-full bg-gray-500/50 relative">
               <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow" />
             </div>
-            <span className="text-xs font-semibold text-black">Marketing</span>
+            <span className="text-xs font-semibold text-white/70">Marketing</span>
           </motion.div>
         </div>
 
