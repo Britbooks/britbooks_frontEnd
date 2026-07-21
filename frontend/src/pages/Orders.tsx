@@ -308,9 +308,9 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
               <div className="p-3 bg-indigo-100 rounded-xl">
                 <PackageIcon className="w-7 h-7 text-indigo-600" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Order #{order.id.slice(-8)}
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 font-mono break-all leading-tight">
+                  #{order.id}
                 </h2>
                 <div className="flex items-center gap-2 mt-1.5 text-gray-600">
                   <CalendarIcon className="w-4 h-4" />
@@ -459,15 +459,33 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
   );
 };
 
+// Module-level cache so the list survives a remount (e.g. React Router
+// swapping routes when navigating from /orders → /order/:id).
+const ordersCache: {
+  orders: Order[];
+  currentPage: number;
+  statusFilter: string;
+  totalPages: number;
+  totalOrders: number;
+  loaded: boolean;
+} = {
+  orders: [],
+  currentPage: 1,
+  statusFilter: 'All',
+  totalPages: 1,
+  totalOrders: 0,
+  loaded: false,
+};
+
 // ─── MainContent (Orders List) ───────────────────────────────────────────────
-const MainContent = ({ setOrders }) => {
+const MainContent = ({ setOrders, selectedOrderId, isDetailsOpen }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [orders, setLocalOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalOrders, setTotalOrders] = useState(0);
+  const [statusFilter, setStatusFilter] = useState(ordersCache.statusFilter);
+  const [orders, setLocalOrders] = useState<Order[]>(ordersCache.orders);
+  const [loading, setLoading] = useState(!ordersCache.loaded);
+  const [currentPage, setCurrentPage] = useState(ordersCache.currentPage);
+  const [totalPages, setTotalPages] = useState(ordersCache.totalPages);
+  const [totalOrders, setTotalOrders] = useState(ordersCache.totalOrders);
   const ordersPerPage = 20;
 
   const { auth, logout } = useAuth();
@@ -484,6 +502,12 @@ const MainContent = ({ setOrders }) => {
     { value: 'Cancelled', backend: 'cancelled' },
   ];
 
+  // Push cached orders back to the parent OrdersPage on mount, so the
+  // sidebar's lookup still finds them without waiting for a refetch.
+  useEffect(() => {
+    if (ordersCache.loaded) setOrders(ordersCache.orders);
+  }, [setOrders]);
+
   useEffect(() => {
     const fetchOrders = async () => {
       if (!auth?.token) {
@@ -491,7 +515,15 @@ const MainContent = ({ setOrders }) => {
         return;
       }
 
-      setLoading(true);
+      // Only show the loading skeleton if this is a truly new
+      // page/filter (or the very first load). A pure remount for the
+      // same page+filter reuses the cache and refreshes silently.
+      const cacheHit =
+        ordersCache.loaded &&
+        ordersCache.currentPage === currentPage &&
+        ordersCache.statusFilter === statusFilter;
+      if (!cacheHit) setLoading(true);
+
       try {
         const decoded = jwtDecode<{ userId: string }>(auth.token);
         const userId = decoded.userId;
@@ -531,10 +563,20 @@ const MainContent = ({ setOrders }) => {
             tracking: mapTracking(o),
           }));
 
+          const pages = res.data.pagination?.pages || 1;
+          const total = res.data.pagination?.total || 0;
+
           setLocalOrders(mapped);
           setOrders(mapped);
-          setTotalPages(res.data.pagination?.pages || 1);
-          setTotalOrders(res.data.pagination?.total || 0);
+          setTotalPages(pages);
+          setTotalOrders(total);
+
+          ordersCache.orders = mapped;
+          ordersCache.currentPage = currentPage;
+          ordersCache.statusFilter = statusFilter;
+          ordersCache.totalPages = pages;
+          ordersCache.totalOrders = total;
+          ordersCache.loaded = true;
         }
       } catch (err: any) {
         if (err?.response?.status === 401) {
@@ -571,26 +613,50 @@ const MainContent = ({ setOrders }) => {
   };
 
   return (
-    <main className="flex-1 bg-gray-50 min-h-screen p-5 sm:p-6 lg:p-8">
+    <main
+      className={`flex-1 bg-gradient-to-b from-gray-50 to-white min-h-screen px-5 sm:px-6 lg:px-10 py-8 lg:py-12 transition-[margin] duration-500 ease-out ${
+        isDetailsOpen ? 'lg:mr-[32rem]' : ''
+      }`}
+    >
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8">Your Orders</h1>
-
-        <div className="bg-white rounded-2xl shadow border border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search by order number..."
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-11 pr-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-              />
-              <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        {/* Hero header */}
+        <div className="mb-8 lg:mb-10">
+          <div className="flex items-center gap-2 mb-3 text-[11px] font-bold uppercase tracking-[0.2em]">
+            <span className="text-indigo-600">Account</span>
+            <span className="text-gray-300">/</span>
+            <span className="text-gray-500">Order History</span>
+          </div>
+          <div className="flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight">Your Orders</h1>
+              <p className="text-gray-500 mt-2 text-base lg:text-lg">
+                {loading
+                  ? 'Loading your history…'
+                  : totalOrders === 0
+                    ? 'Your future orders will live here.'
+                    : `${totalOrders} order${totalOrders !== 1 ? 's' : ''} · every purchase, tracked.`}
+              </p>
             </div>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by order number…"
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-12 pr-5 py-3.5 bg-white border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition shadow-sm placeholder-gray-400 text-sm"
+            />
+          </div>
+          <div className="relative sm:w-56">
             <select
               value={statusFilter}
               onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full sm:w-52 py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+              className="w-full appearance-none py-3.5 pl-5 pr-10 bg-white border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition shadow-sm font-medium text-gray-700 text-sm cursor-pointer"
             >
               {statusOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -598,53 +664,113 @@ const MainContent = ({ setOrders }) => {
                 </option>
               ))}
             </select>
+            <svg
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </div>
+        </div>
 
-          {loading ? (
-            <div className="text-center py-16 text-gray-500">Loading your orders...</div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-lg font-medium text-gray-700">
-                {searchQuery ? `No orders match "${searchQuery}"` : "No orders found."}
-              </p>
-              {searchQuery && <p className="mt-3 text-gray-500">Try a different search term.</p>}
+        {/* Orders / states */}
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 animate-pulse">
+                <div className="flex justify-between items-start mb-5">
+                  <div className="space-y-2.5">
+                    <div className="h-5 bg-gray-100 rounded-full w-28" />
+                    <div className="h-3 bg-gray-100 rounded w-64" />
+                  </div>
+                  <div className="text-right space-y-2">
+                    <div className="h-6 bg-gray-100 rounded w-20 ml-auto" />
+                    <div className="h-3 bg-gray-100 rounded w-16 ml-auto" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-7 bg-gray-100 rounded-lg w-24" />
+                  <div className="h-7 bg-gray-100 rounded-lg w-32" />
+                  <div className="h-7 bg-gray-100 rounded-lg w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center mx-auto mb-5">
+              <PackageIcon className="w-8 h-8 text-indigo-400" />
             </div>
-          ) : (
-            <div className="space-y-6">
-              {filteredOrders.map(order => (
+            <p className="text-xl font-semibold text-gray-800">
+              {searchQuery ? `No orders match "${searchQuery}"` : 'No orders yet'}
+            </p>
+            <p className="mt-2 text-gray-500">
+              {searchQuery ? 'Try a different search term.' : "Once you place an order, it'll show up here."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredOrders.map(order => {
+              const isSelected = selectedOrderId === order.id;
+              const totalItems = order.items.reduce((s, i) => s + i.quantity, 0);
+              const orderDate = new Date(order.date).toLocaleDateString('en-GB', {
+                day: 'numeric', month: 'long', year: 'numeric',
+              });
+              return (
                 <div
                   key={order.id}
-                  className="border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+                  className={`group relative bg-white rounded-2xl transition-all duration-300 overflow-hidden ${
+                    isSelected
+                      ? 'ring-2 ring-indigo-500 shadow-xl shadow-indigo-100/60'
+                      : 'border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-200'
+                  }`}
                 >
-                  <div className="px-6 py-5 flex flex-wrap justify-between items-center gap-4 border-b border-gray-100">
-                    <div>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="font-mono font-semibold text-gray-900">#{order.id.slice(-8)}</span>
-                        <span className={`inline-flex px-4 py-1.5 rounded-full text-sm font-semibold uppercase tracking-wide border ${getStatusClass(order.status)}`}>
+                  {isSelected && (
+                    <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-indigo-400 to-indigo-600" />
+                  )}
+
+                  {/* Top: status + date | total */}
+                  <div className="px-7 pt-6 pb-4 flex items-start justify-between gap-6 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${getStatusClass(order.status)}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
                           {order.status}
                         </span>
+                        <span className="text-xs text-gray-400 inline-flex items-center gap-1.5">
+                          <CalendarIcon className="w-3.5 h-3.5" />
+                          {orderDate}
+                        </span>
                       </div>
-                      <p className="mt-2 text-sm text-gray-600">
-                        {new Date(order.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <p className="font-mono text-xs text-gray-500 break-all leading-relaxed">
+                        #{order.id}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-gray-900">£{order.total.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {order.items.reduce((s, i) => s + i.quantity, 0)} item{order.items.reduce((s, i) => s + i.quantity, 0) !== 1 ? 's' : ''}
+                    <div className="text-right shrink-0">
+                      <p className="text-2xl font-bold text-gray-900 tracking-tight tabular-nums">
+                        £{order.total.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5 font-medium">
+                        {totalItems} item{totalItems !== 1 ? 's' : ''}
                       </p>
                     </div>
                   </div>
 
-                  <div className="px-6 py-6">
-                    <div className="flex flex-wrap gap-3 mb-6">
+                  {/* Divider */}
+                  <div className="mx-7 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
+
+                  {/* Bottom: items + CTA */}
+                  <div className="px-7 py-5 flex items-center justify-between gap-5 flex-wrap">
+                    <div className="flex flex-wrap gap-2 flex-1 min-w-0">
                       {order.items.slice(0, 3).map((item, i) => (
-                        <div key={i} className="bg-gray-50 px-4 py-2 rounded-lg text-sm text-gray-700">
-                          {item.title.length > 35 ? item.title.slice(0, 32) + '…' : item.title} ×{item.quantity}
+                        <div key={i} className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg text-xs text-gray-700 max-w-[16rem]">
+                          <span className="truncate">{item.title}</span>
+                          <span className="text-gray-400 font-medium shrink-0">×{item.quantity}</span>
                         </div>
                       ))}
                       {order.items.length > 3 && (
-                        <div className="bg-gray-100 px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <div className="inline-flex items-center bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600">
                           +{order.items.length - 3} more
                         </div>
                       )}
@@ -653,69 +779,84 @@ const MainContent = ({ setOrders }) => {
                     {order.hasDetails && (
                       <Link
                         to={`/order/${order.id}`}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition shadow-sm hover:shadow"
+                        className={`inline-flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-xl transition-all ${
+                          isSelected
+                            ? 'bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200'
+                            : 'bg-gray-900 hover:bg-indigo-600 text-white shadow-sm hover:shadow-lg hover:shadow-indigo-500/20'
+                        }`}
                       >
-                        View Details
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        {isSelected ? 'Viewing' : 'View'}
+                        <svg
+                          className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+                          fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
                       </Link>
                     )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalOrders > 0 && !searchQuery && (
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-500">
+              Page <span className="font-bold text-gray-900">{currentPage}</span> of{' '}
+              <span className="font-bold text-gray-900">{totalPages}</span>
+            </p>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="w-10 h-10 rounded-xl bg-white border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 hover:border-gray-300 transition flex items-center justify-center"
+                aria-label="Previous page"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                let page = i + 1;
+                if (totalPages > 7) {
+                  if (currentPage <= 4) page = i + 1;
+                  else if (currentPage >= totalPages - 3) page = totalPages - 6 + i;
+                  else page = currentPage - 3 + i;
+                }
+                if (page < 1 || page > totalPages) return null;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => paginate(page)}
+                    className={`w-10 h-10 rounded-xl font-semibold text-sm transition ${
+                      currentPage === page
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="w-10 h-10 rounded-xl bg-white border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 hover:border-gray-300 transition flex items-center justify-center"
+                aria-label="Next page"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
-          )}
-
-          {!loading && totalOrders > 0 && !searchQuery && (
-            <div className="mt-12 flex flex-col items-center gap-6">
-              <p className="text-sm text-gray-600">
-                Page <span className="font-bold text-indigo-600">{currentPage}</span> of {totalPages} ({totalOrders} order{totalOrders !== 1 ? 's' : ''})
-              </p>
-
-              <div className="flex items-center gap-2 flex-wrap justify-center">
-                <button
-                  onClick={() => paginate(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-6 py-3 rounded-xl bg-white border border-gray-300 text-gray-700 disabled:opacity-50 hover:bg-gray-50 transition"
-                >
-                  Previous
-                </button>
-
-                {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
-                  let page = i + 1;
-                  if (totalPages > 7) {
-                    if (currentPage <= 4) page = i + 1;
-                    else if (currentPage >= totalPages - 3) page = totalPages - 6 + i;
-                    else page = currentPage - 3 + i;
-                  }
-                  if (page < 1 || page > totalPages) return null;
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => paginate(page)}
-                      className={`w-11 h-11 rounded-xl font-medium transition ${
-                        currentPage === page
-                          ? 'bg-indigo-600 text-white shadow-md'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-
-                <button
-                  onClick={() => paginate(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-6 py-3 rounded-xl bg-white border border-gray-300 text-gray-700 disabled:opacity-50 hover:bg-gray-50 transition"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </main>
   );
@@ -747,7 +888,11 @@ const OrdersPage = () => {
       {location.pathname.startsWith('/item/') ? (
         <ItemDetails orders={orders} />
       ) : (
-        <MainContent setOrders={setOrders} />
+        <MainContent
+          setOrders={setOrders}
+          selectedOrderId={isDetailsOpen ? id ?? null : null}
+          isDetailsOpen={isDetailsOpen}
+        />
       )}
       <OrderDetailsSidebar isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
       <Footer />

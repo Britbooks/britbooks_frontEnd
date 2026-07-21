@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 
 import Homepage from './pages/homePage';
@@ -43,9 +43,24 @@ import { WishlistProvider } from './context/wishlistContext';
 // ScrollToTop component
 const ScrollToTop: React.FC = () => {
   const { pathname } = useLocation();
+  const prevPathname = useRef(pathname);
+
   useEffect(() => {
+    // Treat /orders, /order/:id, and /item/:orderId/:itemIndex as one
+    // logical page — opening the details sidebar shouldn't yank the
+    // scroll back to the top of the orders list.
+    const inOrdersSection = (p: string) =>
+      p === '/orders' || p.startsWith('/order/') || p.startsWith('/item/');
+
+    if (inOrdersSection(prevPathname.current) && inOrdersSection(pathname)) {
+      prevPathname.current = pathname;
+      return;
+    }
+
     window.scrollTo(0, 0);
+    prevPathname.current = pathname;
   }, [pathname]);
+
   return null;
 };
 
@@ -64,9 +79,13 @@ const App: React.FC = () => {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/order/:id" element={<OrdersPage />} />
-              <Route path="/item/:orderId/:itemIndex" element={<OrdersPage />} />
+              {/* Layout route: keep OrdersPage mounted so the list doesn't
+                  refetch when the sidebar opens via /order/:id */}
+              <Route element={<OrdersPage />}>
+                <Route path="/orders" />
+                <Route path="/order/:id" />
+                <Route path="/item/:orderId/:itemIndex" />
+              </Route>
               <Route path="/category" element={<CategoryBrowsePage />} />
               <Route path="/browse/:id" element={<BrowseCategoryDetail />} />
               <Route path="/about" element={<AboutUs />} />
