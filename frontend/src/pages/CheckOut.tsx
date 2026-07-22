@@ -1007,13 +1007,13 @@ const ReviewOrder = ({
       );
 
       if (successResponse.data.success) {
-        const { orderId, total, receiptUrl } = successResponse.data;
+        const { orderId, total: serverTotal, receiptUrl } = successResponse.data;
 
         clearCart();
         setPaymentData(null);
         setSuccessData({
           orderId: orderId || reference,
-          total: total || subtotal + 5,
+          total: Number.isFinite(Number(serverTotal)) ? Number(serverTotal) : total,
           receiptUrl: receiptUrl || null,
         });
 
