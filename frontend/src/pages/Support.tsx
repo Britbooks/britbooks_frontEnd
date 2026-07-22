@@ -673,6 +673,10 @@ function DesktopChatPanel({ userId, token, newChatTrigger = 0, shared, onSharedC
   const loadThreads = useCallback(async () => {
     if (!userId) return;
     try {
+      // Sweep the user's own unused threads (>24h idle, no follow-up)
+      // before loading, so the inbox never shows abandoned ticket
+      // shells. Cron does the same globally at 03:30 UK.
+      await axios.delete(`${API_BASE}/cleanup-unused`, { headers }).catch(() => {});
       const res = await axios.get(`${API_BASE}/user/${userId}`, { headers });
       const d = res.data?.data || res.data?.threads || res.data || [];
       setThreads(Array.isArray(d) ? d : []);
