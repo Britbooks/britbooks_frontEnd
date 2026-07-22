@@ -486,7 +486,7 @@ const MainContent = ({ setOrders, selectedOrderId, isDetailsOpen }) => {
   const [currentPage, setCurrentPage] = useState(ordersCache.currentPage);
   const [totalPages, setTotalPages] = useState(ordersCache.totalPages);
   const [totalOrders, setTotalOrders] = useState(ordersCache.totalOrders);
-  const ordersPerPage = 20;
+  const ordersPerPage = 6;
 
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
