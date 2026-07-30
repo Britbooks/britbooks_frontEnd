@@ -337,11 +337,13 @@ const Addresses: React.FC<AddressesProps> = ({
   const handleAdd = async (formData: any) => {
     const body = { ...formData, isDefault: formData.isDefault || addresses.length === 0 };
     const res = await axios.post(`${API_BASE}/users/${userId}/address`, body, { headers: { Authorization: `Bearer ${authToken}` } });
-    const updated = body.isDefault
-      ? addresses.map(a => ({ ...a, isDefault: false })).concat(res.data)
-      : [...addresses, res.data];
-    setAddresses(updated);
-    if (onSelectAddress) onSelectAddress(res.data);
+    const nextAddresses: Address[] = res.data.addresses ?? [];
+    setAddresses(nextAddresses);
+    // Select the newly added address (last one in the returned list, or the default).
+    const justAdded = body.isDefault
+      ? nextAddresses.find(a => a.isDefault)
+      : nextAddresses[nextAddresses.length - 1];
+    if (onSelectAddress && justAdded) onSelectAddress(justAdded);
   };
 
   const handleEdit = async (formData: any) => {
