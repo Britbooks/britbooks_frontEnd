@@ -64,6 +64,18 @@ interface ShoppingCartViewProps {
 // Reusable small components
 // ──────────────────────────────────────────────
 
+// Anything in this set is treated as "domestic" for shipping purposes.
+// Free UK Standard applies; everything else falls through to the
+// "calculated at checkout" (Royal Mail international) path.
+const UK_COUNTRIES = new Set([
+  'GB', 'UK', 'United Kingdom', 'Great Britain',
+  'England', 'Scotland', 'Wales', 'Northern Ireland',
+]);
+const isUkCountry = (c?: string) => {
+  if (!c) return true; // no country selected yet → assume UK default
+  return UK_COUNTRIES.has(c.trim());
+};
+
 const StarIcon = ({ filled }: { filled: boolean }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -306,14 +318,12 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
     return sum + priceNumber * item.quantity;
   }, 0);
   const discount = appliedCampaign?.discountAmount ?? 0;
-  const effectiveShipping = appliedCampaign?.isFreeShipping ? 0 : cartItems.length > 0 ? 5.0 : 0;
-  const shipping = effectiveShipping;
+  // Standard UK shipping is free on every order. International shipping is
+  // calculated at checkout by the Royal Mail integration on the backend.
+  const shipping = 0;
   const total = Math.max(subtotal - discount, 0) + shipping;
 
-  const freeShippingThreshold = 4;
   const booksInCart = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const shippingProgress = Math.min((booksInCart / freeShippingThreshold) * 100, 100);
-  const booksNeeded = Math.max(0, freeShippingThreshold - booksInCart);
 
   return (
     <>
@@ -332,33 +342,17 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
           </div>
         ) : (
           <>
-            {/* Free shipping bar */}
+            {/* Free-shipping badge — Standard UK shipping is free on every order */}
             <div className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
-              {booksNeeded === 0 ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <Truck size={16} className="text-emerald-600" />
-                  </div>
-                  <p className="text-sm font-bold text-emerald-700">Free delivery unlocked!</p>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Truck size={16} className="text-emerald-600" />
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Truck size={14} className="text-gray-500" />
-                    <p className="text-xs font-semibold text-gray-600">
-                      Add <span className="text-[#0a1628] font-black">{booksNeeded} more book{booksNeeded > 1 ? 's' : ''}</span> for free delivery
-                    </p>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${shippingProgress}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                      className="h-full bg-[#c9a84c] rounded-full"
-                    />
-                  </div>
-                </>
-              )}
+                <div>
+                  <p className="text-sm font-bold text-emerald-700">Free UK delivery on every order</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">International shipping calculated at checkout</p>
+                </div>
+              </div>
             </div>
 
             {/* Cart items */}
@@ -445,9 +439,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
             </div>
             <div className="flex justify-between text-sm text-gray-500 mb-1">
               <span>Shipping</span>
-              <span className={booksNeeded === 0 || appliedCampaign?.isFreeShipping ? "text-emerald-600 font-bold" : "font-bold text-gray-800"}>
-                {booksNeeded === 0 || appliedCampaign?.isFreeShipping ? "FREE" : `£${shipping.toFixed(2)}`}
-              </span>
+              <span className="text-emerald-600 font-bold">FREE</span>
             </div>
             {appliedCampaign && (
               <div className="flex justify-between text-sm text-emerald-600 font-bold mb-1">
@@ -561,10 +553,11 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
                 <div className="flex justify-between"><span>Subtotal</span><span className="font-medium">£{subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span className={`font-medium ${appliedCampaign?.isFreeShipping ? 'text-emerald-600 line-through' : ''}`}>
-                    {appliedCampaign?.isFreeShipping ? 'FREE' : `£${shipping.toFixed(2)}`}
-                  </span>
+                  <span className="font-medium text-emerald-600">FREE</span>
                 </div>
+                <p className="text-[11px] text-gray-400 -mt-1">
+                  Free UK delivery on every order. International shipping calculated at checkout.
+                </p>
                 {appliedCampaign && (
                   <div className="flex justify-between text-emerald-600">
                     <span className="font-medium flex items-center gap-1"><Check size={13} /> {appliedCampaign.title}</span>
@@ -629,6 +622,7 @@ const PaymentForm = ({
   const stripe = useStripe();
   const elements = useElements();
   const { auth, logout } = useAuth();
+  const { cartItems } = useCart();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"credit-card" | "paypal">("credit-card");
   const [error, setError] = useState<string | null>(null);
@@ -644,6 +638,48 @@ const PaymentForm = ({
     postalCode: "",
     country: "GB",
   });
+
+  // Live shipping quote (fetched from /api/shipping/quote when country changes)
+  const [shippingQuote, setShippingQuote] = useState<{ cost: number; source: string } | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
+  const itemCount = cartItems.reduce((n, i) => n + (i.quantity || 1), 0);
+
+  useEffect(() => {
+    const country = shippingAddress.country;
+    // UK / empty → free, no API call needed
+    if (isUkCountry(country)) {
+      setShippingQuote({ cost: 0, source: 'uk-free' });
+      return;
+    }
+    const controller = new AbortController();
+    setQuoteLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await axios.post(
+          `${API_BASE_URL}/shipping/quote`,
+          { country, itemCount, currency: 'GBP' },
+          { signal: controller.signal }
+        );
+        if (res.data?.success) {
+          setShippingQuote({ cost: Number(res.data.shippingCost) || 0, source: res.data.source });
+        } else {
+          setShippingQuote(null);
+        }
+      } catch (err: any) {
+        if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+          console.error('Shipping quote failed', err);
+          setShippingQuote(null);
+        }
+      } finally {
+        setQuoteLoading(false);
+      }
+    }, 350); // debounce while user types the country
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [shippingAddress.country, itemCount]);
 
   const userId = auth.token ? jwtDecode<{ userId: string }>(auth.token)?.userId : null;
 
@@ -731,6 +767,8 @@ const PaymentForm = ({
       setPaymentData({
         token: token.id,
         shippingAddress,
+        shippingCost: shippingQuote?.cost ?? 0,
+        shippingSource: shippingQuote?.source ?? 'unknown',
       });
 
       goToNextStep();
@@ -809,6 +847,26 @@ const PaymentForm = ({
                   </div>
                   <input type="tel" placeholder="Phone Number" value={shippingAddress.phoneNumber} onChange={(e) => setShippingAddress({ ...shippingAddress, phoneNumber: e.target.value })} className={inputClass} required />
                   <input type="text" placeholder="Country" value={shippingAddress.country} onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value })} className={inputClass} required />
+                </div>
+              )}
+
+              {/* Live shipping indicator — reacts to the address country */}
+              {isUkCountry(shippingAddress.country) ? (
+                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                  <Truck size={13} /> Free UK delivery — Standard shipping via Royal Mail
+                </div>
+              ) : quoteLoading ? (
+                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                  <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  Calculating international shipping…
+                </div>
+              ) : shippingQuote ? (
+                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <Truck size={13} /> International shipping — £{shippingQuote.cost.toFixed(2)}
+                </div>
+              ) : (
+                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <Truck size={13} /> International shipping — calculated at checkout
                 </div>
               )}
             </div>
@@ -891,7 +949,9 @@ const ReviewOrder = ({
 
   const subtotal = cartItems.reduce((sum: number, item: any) => sum + (typeof item.price === "string" ? Number(item.price.replace("£", "")) : Number(item.price)) * item.quantity, 0);
   const discount = appliedCampaign?.discountAmount ?? 0;
-  const shipping = appliedCampaign?.isFreeShipping ? 0 : 5.0;
+  // Standard UK shipping is free on every order. International shipping
+  // is quoted live by /api/shipping/quote and travels here via paymentData.
+  const shipping = Number(paymentData?.shippingCost) || 0;
   const total = Math.max(subtotal - discount, 0) + shipping;
 
   const handleImageError = (id: string) => {
@@ -1119,9 +1179,15 @@ const ReviewOrder = ({
           </div>
           <div className="flex justify-between text-sm text-gray-500">
             <span>Shipping</span>
-            <span className={`font-semibold ${appliedCampaign?.isFreeShipping ? 'text-emerald-600' : 'text-gray-800'}`}>
-              {appliedCampaign?.isFreeShipping ? 'FREE' : `£${shipping.toFixed(2)}`}
-            </span>
+            {isUkCountry(paymentData.shippingAddress?.country) ? (
+              <span className="font-semibold text-emerald-600">FREE</span>
+            ) : shipping > 0 ? (
+              <span className="font-semibold text-gray-800">£{shipping.toFixed(2)}</span>
+            ) : (
+              <span className="font-semibold text-amber-600 text-[11px] uppercase tracking-wide">
+                Calculated at checkout
+              </span>
+            )}
           </div>
           {appliedCampaign && (
             <div className="flex justify-between text-sm text-emerald-600">

@@ -19,29 +19,14 @@ const shippingOptions = [
     Icon: Truck,
     label: 'Standard',
     speed: '3–5 Business Days',
-    price: 'From £2.99',
-    highlight: 'Free over £15',
+    price: 'Free',
+    highlight: 'Free on every UK order',
     color: '#c9a84c',
     bullets: [
+      'Free UK delivery on every order — no minimum spend',
       'Dispatched within one business day',
-      'Royal Mail or DPD tracked delivery',
-      'Signature required on orders over £50',
+      'Royal Mail tracked delivery',
       'Available to all UK mainland addresses',
-    ],
-  },
-  {
-    id: 'express',
-    Icon: Zap,
-    label: 'Express',
-    speed: '1–2 Business Days',
-    price: 'From £5.99',
-    highlight: 'Order before 1 pm',
-    color: '#e86c2c',
-    bullets: [
-      'Same-day dispatch Mon–Fri before 1 pm',
-      'DPD delivery with a one-hour window',
-      'Full end-to-end tracking included',
-      'Available on the vast majority of stock',
     ],
   },
   {
@@ -65,37 +50,34 @@ const returnSteps = [
   {
     n: '01',
     Icon: Mail,
-    title: 'Email us',
-    body: <>Email <a href="mailto:customercare@britbooks.co.uk" className="text-[#c9a84c] font-semibold hover:underline">customercare@britbooks.co.uk</a> with your order number and reason for return.</>,
+    title: 'Get in touch',
+    body: <>Email <a href="mailto:customercare@britbooks.co.uk" className="text-[#c9a84c] font-semibold hover:underline">customercare@britbooks.co.uk</a> with your order number and what went wrong.</>,
   },
   {
     n: '02',
     Icon: Package,
-    title: 'Receive your RMA',
-    body: 'We will send a Return Merchandise Authorisation number and full packing instructions within one business day.',
+    title: 'Share a photo',
+    body: 'A quick photo helps us understand the issue and speed things up. Attach it to your email or send it back when we reply.',
   },
   {
     n: '03',
     Icon: RefreshCw,
-    title: 'Ship it back',
-    body: 'Pack the item securely, write the RMA number on the outside, and post within 14 days of receiving it.',
+    title: 'We review',
+    body: 'Our team reviews your request within one business day and confirms the outcome by email.',
   },
   {
     n: '04',
     Icon: CheckCircle,
     title: 'Refund issued',
-    body: 'Once we receive and inspect the item, your refund is processed in 5–7 business days.',
+    body: 'Once approved, your refund is processed in 5–7 business days back to your original payment method.',
   },
 ];
 
 const returnConditions = [
-  'Books must be unused and in resalable condition.',
-  'Return within 30 days of delivery.',
-  'Include your order number or receipt.',
-  'Personalised items cannot be returned.',
-  'You cover return shipping unless the item was damaged or defective.',
-  'Original outbound shipping costs are non-refundable.',
-  'Items returned without an RMA number may face delays or refusal.',
+  'Contact us within 30 days of delivery.',
+  'Include your order number so we can find it quickly.',
+  'A photo of the issue helps us resolve it faster.',
+  'Refunds are issued to your original payment method.',
 ];
 
 /* ─── Floating icon config ───────────────────────────────── */
@@ -215,7 +197,7 @@ const ShippingReturnsPage: React.FC = () => {
         {floatingIcons.map(({ Icon, color, bg, border, x, y, size, delay, dur }, i) => (
           <motion.div
             key={i}
-            className={`absolute hidden lg:flex items-center justify-center rounded-2xl border shadow-lg ${bg} ${border} ${size}`}
+            className={`absolute hidden md:flex items-center justify-center rounded-2xl border shadow-lg ${bg} ${border} ${size}`}
             style={{ left: x, top: y }}
             initial={{ opacity: 0, scale: 0.4 }}
             animate={{ opacity: 1, scale: 1, y: [0, -14, 0], rotate: [0, i % 2 === 0 ? 5 : -5, 0] }}
@@ -286,9 +268,9 @@ const ShippingReturnsPage: React.FC = () => {
             className="flex gap-3 flex-wrap justify-center"
           >
             {[
-              { label: 'Free shipping over £15' },
+              { label: 'Free UK shipping on every order' },
               { label: 'Order by 1pm for same-day dispatch' },
-              { label: '30-day easy returns' },
+              { label: '30-day easy refunds' },
             ].map(({ label }) => (
               <div key={label} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f5f0e8] border border-[#e8e0d0] rounded-full text-xs font-semibold text-[#0a1628]/60">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] shrink-0" />
@@ -306,7 +288,7 @@ const ShippingReturnsPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-start">
 
           {/* ── Sidebar (desktop only) ── */}
-          <aside className="hidden lg:block w-64 xl:w-72 shrink-0 sticky top-6">
+          <aside className="hidden md:block w-64 xl:w-72 shrink-0 sticky top-6">
             <motion.div
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -383,7 +365,7 @@ const ShippingReturnsPage: React.FC = () => {
                 <h2 className="text-2xl lg:text-3xl font-black text-[#0a1628]">How fast will my order arrive?</h2>
               </motion.div>
 
-              <div className="grid sm:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 gap-5">
                 {shippingOptions.map(opt => (
                   <ShippingCard
                     key={opt.id}
@@ -418,44 +400,41 @@ const ShippingReturnsPage: React.FC = () => {
                 <p className="text-[10px] font-black text-[#0a1628]/40 uppercase tracking-widest mb-1.5">30-Day Hassle-Free Returns</p>
                 <h2 className="text-2xl lg:text-3xl font-black text-[#0a1628]">Need to return something?</h2>
                 <p className="text-[#0a1628]/55 text-sm mt-2 max-w-xl">
-                  Return most unused books within 30 days of delivery for a full refund or exchange. Items must be in their original, resalable condition.
+                  If something isn't right, tell us within 30 days of delivery. Just email our team and we'll take care of the refund.
                 </p>
               </motion.div>
 
               {/* Steps */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid sm:grid-cols-2 gap-5">
                 {returnSteps.map((step, idx) => (
                   <motion.div
                     key={step.n}
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, delay: idx * 0.07 }}
-                    className="bg-white rounded-2xl border border-[#e8e0d0] p-5 shadow-sm relative hover:shadow-md transition-shadow"
+                    className="bg-white rounded-2xl border border-[#e8e0d0] p-6 shadow-sm relative hover:shadow-md transition-shadow"
                   >
-                    {idx < returnSteps.length - 1 && (
-                      <div className="hidden lg:block absolute top-8 -right-2 w-4 h-px bg-[#e8e0d0] z-10" />
-                    )}
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <div className="w-8 h-8 rounded-xl bg-[#0a1628] flex items-center justify-center">
+                    <div className="flex items-center gap-3 mb-3.5">
+                      <div className="w-9 h-9 rounded-xl bg-[#0a1628] flex items-center justify-center shrink-0">
                         <step.Icon className="w-4 h-4 text-[#c9a84c]" />
                       </div>
                       <span className="text-[10px] font-black text-[#0a1628]/25 tracking-widest">{step.n}</span>
                     </div>
-                    <p className="font-bold text-[#0a1628] text-sm mb-1.5">{step.title}</p>
-                    <p className="text-xs text-[#0a1628]/55 leading-relaxed">{step.body}</p>
+                    <p className="font-bold text-[#0a1628] text-base mb-2">{step.title}</p>
+                    <p className="text-sm text-[#0a1628]/60 leading-relaxed">{step.body}</p>
                   </motion.div>
                 ))}
               </div>
 
-              {/* Start a Return CTA */}
-              <Link
-                to="/support"
+              {/* Start refund request CTA */}
+              <a
+                href="mailto:customercare@britbooks.co.uk"
                 className="inline-flex items-center gap-2.5 bg-[#c9a84c] hover:bg-[#b8963e] text-[#0a1628] text-sm font-bold px-6 py-3 rounded-xl transition-colors shadow-sm"
               >
                 <Mail className="w-4 h-4" />
-                Start a Return
+                Request a Refund
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
 
               {/* Conditions */}
               <motion.div

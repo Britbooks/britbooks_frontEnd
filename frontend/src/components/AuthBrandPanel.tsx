@@ -87,9 +87,9 @@ const SIGNUP_SLIDES: Slide[] = [
   {
     emoji:    '🚚',
     tag:      'Free UK Delivery',
-    headline: ['Free delivery', 'over £10.'],
-    sub:      'Fast, tracked UK shipping on every eligible order. Books at your door in days.',
-    stat:     { value: '£10', label: 'Order minimum for free shipping' },
+    headline: ['Free delivery', 'on every order.'],
+    sub:      'Fast, tracked UK shipping on every order — no minimum spend. Books at your door in days.',
+    stat:     { value: 'Free', label: 'UK shipping on every order' },
     bg:       'linear-gradient(150deg, #fdf8f0 0%, #eef3fd 55%, #e2ecfe 100%)',
     accent:   NAVY,
     image:    img('britbooks-signup-delivery'),
@@ -130,7 +130,7 @@ const AuthBrandPanel: React.FC<Props> = ({ variant = 'login' }) => {
   const isRed = slide.accent === RED;
 
   return (
-    <div className="hidden lg:flex flex-col relative overflow-hidden select-none"
+    <div className="hidden md:flex flex-col relative overflow-hidden select-none"
       style={{ background: '#fdf8f0', width: '70%', flexShrink: 0 }}>
 
       {/* Slide image (behind the cream tint) */}

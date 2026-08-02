@@ -15,17 +15,17 @@ const sections = [
     Icon: PackageCheck,
     iconColor: 'text-emerald-600',
     iconBg: 'bg-emerald-50',
-    title: 'Return Eligibility',
+    title: 'Refund Eligibility',
     content: (
       <>
         <p className="text-[#0a1628]/60 leading-relaxed mb-4">
-          Most items can be returned within <strong className="text-[#0a1628]">30 days of delivery</strong>. Items should be returned in the same condition they were received.
+          If something isn't right with your order, get in touch within <strong className="text-[#0a1628]">30 days of delivery</strong> and our team will sort out a refund.
         </p>
         <ul className="space-y-2">
           {[
-            'Unused items must be returned unused and undamaged.',
-            'Used items must not show additional wear or damage beyond original condition.',
-            'Items must be returned in their original and resellable condition.',
+            'Contact us within 30 days of delivery.',
+            'Have your order number ready so we can find it quickly.',
+            'A short note (and a photo, if possible) about the issue helps us resolve it faster.',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-2.5 text-sm text-[#0a1628]/70">
               <span className="mt-0.5 w-4 h-4 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/30 flex items-center justify-center shrink-0">
@@ -47,7 +47,7 @@ const sections = [
     content: (
       <>
         <p className="text-[#0a1628]/60 leading-relaxed">
-          Under UK law, you have the right to cancel most orders within <strong className="text-[#0a1628]">14 days</strong> of receiving your item. If you cancel within this period, you may receive a refund. Refunds may be reduced if an item has been used more than necessary to inspect it.
+          Under UK law, you have the right to cancel most orders within <strong className="text-[#0a1628]">14 days</strong> of receiving your item. If you cancel within this period, we will refund you in full — just let us know by email.
         </p>
       </>
     ),
@@ -57,15 +57,16 @@ const sections = [
     Icon: RefreshCw,
     iconColor: 'text-purple-600',
     iconBg: 'bg-purple-50',
-    title: 'How to Return',
+    title: 'How to Request a Refund',
     content: (
       <>
-        <p className="text-[#0a1628]/60 leading-relaxed mb-4">To initiate a return, please use either of the following methods:</p>
+        <p className="text-[#0a1628]/60 leading-relaxed mb-4">Getting a refund is simple — no packaging or postage on your side:</p>
         <ol className="space-y-3">
           {[
-            <>Submit a return request through your <strong className="text-[#0a1628]">account dashboard</strong>.</>,
-            <>Contact our customer support team at <a href="mailto:customercare@britbooks.co.uk" className="text-[#c9a84c] font-semibold hover:underline">customercare@britbooks.co.uk</a> with your order number.</>,
-            'Return options and instructions will be provided by our Customer Care team.',
+            <>Email our team at <a href="mailto:customercare@britbooks.co.uk" className="text-[#c9a84c] font-semibold hover:underline">customercare@britbooks.co.uk</a> with your order number and a short note about the issue.</>,
+            <>Attach a photo if you can — it helps us understand and resolve things faster.</>,
+            <>We review your request within one business day and confirm the outcome by email.</>,
+            <>Once approved, your refund is issued to your original payment method.</>,
           ].map((step, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-[#0a1628]/70">
               <span className="shrink-0 w-6 h-6 rounded-full bg-[#0a1628] flex items-center justify-center text-[10px] font-black text-[#c9a84c]">{i + 1}</span>
@@ -85,10 +86,10 @@ const sections = [
     content: (
       <>
         <p className="text-[#0a1628]/60 leading-relaxed mb-4">
-          If your item is faulty, damaged, or not as described, you may be entitled to a repair, replacement, or full refund. Please contact Customer Care as soon as possible if there is an issue with your order.
+          If your item arrives faulty, damaged, or not as described, contact Customer Care as soon as possible with a photo of the problem. We'll review your case and issue a full refund where BritBooks is responsible.
         </p>
         <p className="text-[#0a1628]/60 leading-relaxed">
-          Where BritBooks accepts responsibility, a prepaid return label or reimbursement of reasonable return postage costs may be provided at our discretion.
+          A replacement may also be offered where stock allows — just let us know which you'd prefer when you get in touch.
         </p>
       </>
     ),
@@ -98,17 +99,16 @@ const sections = [
     Icon: FileText,
     iconColor: 'text-rose-600',
     iconBg: 'bg-rose-50',
-    title: 'Refunds & Return Costs',
+    title: 'Refund Details',
     content: (
       <>
-        <p className="text-[#0a1628]/60 leading-relaxed mb-4">Please keep these conditions in mind:</p>
+        <p className="text-[#0a1628]/60 leading-relaxed mb-4">A few things worth knowing:</p>
         <ul className="space-y-2">
           {[
-            'Customers are responsible for return shipping costs unless the item is faulty, damaged, incorrectly supplied, or eligible for free returns.',
-            'Once a return is received and inspected, refunds are usually processed within 14 days.',
-            'Depending on your bank or payment provider, it may take additional time for funds to appear in your account.',
-            'Refunds will be made using the original payment method where possible.',
-            'BritBooks cannot guarantee the return of items sent by mistake — please ensure you return the correct item.',
+            'Once approved, refunds are usually processed within 5–7 business days.',
+            'Depending on your bank or payment provider, it may take additional time for the funds to appear in your account.',
+            'Refunds are issued to your original payment method wherever possible.',
+            'Original outbound shipping charges (where applicable) are refunded when the fault is on our side.',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-2.5 text-sm text-[#0a1628]/70">
               <span className="mt-0.5 w-4 h-4 rounded-full bg-[#0a1628]/8 border border-[#0a1628]/15 flex items-center justify-center shrink-0">
@@ -129,7 +129,7 @@ const sections = [
     title: 'Contact Us',
     content: (
       <>
-        <p className="text-[#0a1628]/60 leading-relaxed mb-5">Need help with your return? Our UK team is ready to assist.</p>
+        <p className="text-[#0a1628]/60 leading-relaxed mb-5">Need help with a refund? Our UK team is ready to assist.</p>
         <a
           href="mailto:customercare@britbooks.co.uk"
           className="inline-flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8963e] text-[#0a1628] text-sm font-bold px-5 py-3 rounded-xl transition-colors"
@@ -167,7 +167,7 @@ const ReturnPolicyPage = () => {
     <div className="min-h-screen font-sans bg-white">
       <SEOHead
         title="Return Policy"
-        description="BritBooks offers a simple 30-day return policy. Learn how to return books, get refunds, and contact our support team for help."
+        description="BritBooks offers a simple 30-day refund policy. Email us if something isn't right and we'll take care of it — no book to send back."
         canonical="/return-policy"
       />
       <TopBar />
@@ -192,7 +192,7 @@ const ReturnPolicyPage = () => {
         {floatingIcons.map(({ Icon, color, bg, border, x, y, size, delay, dur }, i) => (
           <motion.div
             key={i}
-            className={`absolute hidden lg:flex items-center justify-center rounded-2xl border shadow-lg ${bg} ${border} ${size}`}
+            className={`absolute hidden md:flex items-center justify-center rounded-2xl border shadow-lg ${bg} ${border} ${size}`}
             style={{ left: x, top: y }}
             initial={{ opacity: 0, scale: 0.4 }}
             animate={{ opacity: 1, scale: 1, y: [0, -14, 0], rotate: [0, i % 2 === 0 ? 5 : -5, 0] }}
@@ -245,7 +245,7 @@ const ReturnPolicyPage = () => {
             className="text-4xl lg:text-5xl xl:text-6xl font-black text-[#0a1628] tracking-tight leading-[1.08] mb-4 max-w-2xl"
           >
             Hassle-Free{' '}
-            <span className="text-[#c9a84c]">Return<br className="hidden lg:block" /> Policy</span>
+            <span className="text-[#c9a84c]">Return<br className="hidden md:block" /> Policy</span>
           </motion.h1>
 
           <motion.p
@@ -253,7 +253,7 @@ const ReturnPolicyPage = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="text-[#0a1628]/50 text-base lg:text-lg max-w-md leading-relaxed mb-8"
           >
-            We are here to make returns easy and stress-free. Every book, every time.
+            Something not right? Email us and we'll take care of your refund — no book to send back.
           </motion.p>
 
           {/* stat pills */}
@@ -283,7 +283,7 @@ const ReturnPolicyPage = () => {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-start">
 
           {/* ── Sidebar (desktop only) ── */}
-          <aside className="hidden lg:block w-64 xl:w-72 shrink-0 sticky top-6">
+          <aside className="hidden md:block w-64 xl:w-72 shrink-0 sticky top-6">
             <motion.div
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -413,8 +413,8 @@ const ReturnPolicyPage = () => {
                     <Headphones className="w-5 h-5 text-[#c9a84c]" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-black text-[#c9a84c] text-base mb-0.5">Still unsure about your return?</p>
-                    <p className="text-[#f5f0e8]/45 text-sm">Our team is happy to guide you through the returns process.</p>
+                    <p className="font-black text-[#c9a84c] text-base mb-0.5">Still unsure about your refund?</p>
+                    <p className="text-[#f5f0e8]/45 text-sm">Our team is happy to walk you through it.</p>
                   </div>
                   <a
                     href="mailto:customercare@britbooks.co.uk"
