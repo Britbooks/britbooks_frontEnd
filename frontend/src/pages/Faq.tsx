@@ -176,7 +176,7 @@ const FAQPage = () => {
         {floatingIcons.map(({ Icon, color, bg, border, x, y, size, delay, dur }, i) => (
           <motion.div
             key={i}
-            className={`absolute hidden lg:flex items-center justify-center rounded-2xl border shadow-lg ${bg} ${border} ${size}`}
+            className={`absolute hidden md:flex items-center justify-center rounded-2xl border shadow-lg ${bg} ${border} ${size}`}
             style={{ left: x, top: y }}
             initial={{ opacity: 0, scale: 0.4, y: 20 }}
             animate={{
@@ -242,7 +242,7 @@ const FAQPage = () => {
             className="text-4xl lg:text-5xl xl:text-6xl font-black text-[#0a1628] tracking-tight leading-[1.08] mb-4 max-w-2xl"
           >
             Got a question?{' '}
-            <span className="text-[#c9a84c]">We have<br className="hidden lg:block" /> the answer.</span>
+            <span className="text-[#c9a84c]">We have<br className="hidden md:block" /> the answer.</span>
           </motion.h1>
 
           <motion.p
@@ -314,7 +314,7 @@ const FAQPage = () => {
           <aside className="w-full lg:w-64 xl:w-72 shrink-0 lg:sticky lg:top-6">
 
             {/* mobile: horizontal chips */}
-            <div className="flex gap-2 overflow-x-auto pb-2 lg:hidden no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto pb-2 md:hidden no-scrollbar">
               {allCategories.map(cat => {
                 const meta = cat !== 'All' ? categoryMeta[cat] : null;
                 const isActive = activeCategory === cat;
@@ -341,7 +341,7 @@ const FAQPage = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="hidden lg:block bg-white rounded-3xl border border-[#e8e0d0] shadow-sm overflow-hidden"
+              className="hidden md:block bg-white rounded-3xl border border-[#e8e0d0] shadow-sm overflow-hidden"
             >
               <div className="px-5 pt-5 pb-3 border-b border-[#f0ebe0]">
                 <p className="text-[10px] font-black text-[#0a1628]/30 uppercase tracking-widest">Browse by topic</p>
@@ -487,7 +487,7 @@ const FAQPage = () => {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.35 }}
-              className="mt-8 lg:hidden"
+              className="mt-8 md:hidden"
             >
               <div className="relative bg-[#0a1628] rounded-3xl p-7 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none"
@@ -517,7 +517,7 @@ const FAQPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-8 hidden lg:block"
+              className="mt-8 hidden md:block"
             >
               <div className="relative bg-[#0a1628] rounded-3xl p-8 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none"

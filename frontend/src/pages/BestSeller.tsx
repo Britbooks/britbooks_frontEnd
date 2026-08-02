@@ -437,7 +437,7 @@ const BestsellersPage: React.FC = () => {
         <div className="flex gap-8 xl:gap-12 items-start">
 
           {/* SIDEBAR */}
-          <aside className="hidden lg:flex flex-col gap-2 w-52 xl:w-60 flex-shrink-0 sticky top-24">
+          <aside className="hidden md:flex flex-col gap-2 w-52 xl:w-60 flex-shrink-0 sticky top-24">
             <div className="flex items-center gap-2 mb-3">
               <SlidersHorizontal className="w-4 h-4 text-gray-400" />
               <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Filter by genre</span>

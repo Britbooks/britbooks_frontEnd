@@ -62,7 +62,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-black text-white flex-col fixed top-0 left-0 h-full">
+      <aside className="hidden md:flex w-64 bg-black text-white flex-col fixed top-0 left-0 h-full">
         <div className="px-4 py-2">
           <div className="flex items-center justify-start space-x-2">
             <div className="bg-red-600 text-white font-bold text-2xl w-6 h-6 flex items-center justify-center rounded-md">B</div>
@@ -88,7 +88,7 @@ const Sidebar = () => {
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-black text-white flex justify-around items-center py-2 border-t border-gray-700 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black text-white flex justify-around items-center py-2 border-t border-gray-700 z-50">
         {navLinks.map(link => (
           <Link
             key={link.to}
@@ -112,7 +112,7 @@ const Sidebar = () => {
 
       {/* Mobile Full-Screen Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
+        <div className="md:hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
           <div className="flex justify-between items-center p-4 border-b border-gray-700">
             <div className="flex items-center space-x-2">
               <div className="bg-red-600 text-white font-bold text-2xl w-6 h-6 flex items-center justify-center rounded-md">B</div>

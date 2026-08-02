@@ -412,13 +412,13 @@ const AccountSettingsPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 font-sans">
       <TopBar />
       {/* Mobile skeleton */}
-      <div className="lg:hidden px-4 py-6 space-y-4">
+      <div className="md:hidden px-4 py-6 space-y-4">
         <div className="h-24 bg-gray-200 rounded-2xl animate-pulse" />
         <div className="h-12 bg-gray-200 rounded-2xl animate-pulse" />
         <div className="h-64 bg-gray-200 rounded-2xl animate-pulse" />
       </div>
       {/* Desktop skeleton */}
-      <div className="hidden lg:flex max-w-6xl mx-auto px-6 py-16 gap-8">
+      <div className="hidden md:flex max-w-6xl mx-auto px-6 py-16 gap-8">
         <div className="w-64 shrink-0 space-y-3">
           {[80, 56, 56, 56].map((h, i) => (
             <div key={i} className="bg-gray-200 rounded-2xl animate-pulse" style={{ height: h }} />
@@ -442,7 +442,7 @@ const AccountSettingsPage: React.FC = () => {
       {/* ══════════════════════════════════════════
           MOBILE HEADER (hidden on desktop)
       ══════════════════════════════════════════ */}
-      <div className="lg:hidden bg-white border-b border-gray-100">
+      <div className="md:hidden bg-white border-b border-gray-100">
         {/* Avatar + user info */}
         <div className="px-4 pt-6 pb-4 flex items-center gap-4">
           <div className="relative shrink-0">
@@ -489,7 +489,7 @@ const AccountSettingsPage: React.FC = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-12">
         {/* Desktop page title */}
-        <div className="hidden lg:block mb-10">
+        <div className="hidden md:block mb-10">
           <p className="text-xs font-bold text-red-600 uppercase tracking-widest mb-1">Account</p>
           <h1 className="text-3xl font-black text-gray-900">Settings</h1>
         </div>
@@ -497,7 +497,7 @@ const AccountSettingsPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
 
           {/* ── SIDEBAR (desktop only) ── */}
-          <aside className="hidden lg:block w-64 shrink-0 sticky top-24 space-y-3">
+          <aside className="hidden md:block w-64 shrink-0 sticky top-24 space-y-3">
             {/* Avatar card */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
               <div className="relative shrink-0">
@@ -890,7 +890,7 @@ const AccountSettingsPage: React.FC = () => {
         </div>
 
         {/* Mobile danger zone */}
-        <div className="lg:hidden mt-6 pb-8">
+        <div className="md:hidden mt-6 pb-8">
           <button onClick={() => setModal("delete")}
             className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 transition-all text-sm font-semibold">
             <Trash2 className="w-4 h-4" /> Delete account
@@ -974,7 +974,7 @@ const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 const SaveBar = ({ saving }: { saving: boolean }) => (
   <div className="flex items-center justify-between gap-4">
-    <div className="lg:hidden" />
+    <div className="md:hidden" />
     <button type="submit" disabled={saving}
       className="w-full lg:w-auto inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-red-600 active:scale-[0.98] text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all shadow-md disabled:opacity-60">
       {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save changes'}

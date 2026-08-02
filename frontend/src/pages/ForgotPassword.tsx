@@ -88,7 +88,7 @@ const ForgotPassword: React.FC = () => {
 
       {/* ── LEFT BRAND PANEL ── */}
       <div
-        className="hidden lg:flex lg:w-[46%] xl:w-[42%] flex-col relative overflow-hidden"
+        className="hidden md:flex lg:w-[46%] xl:w-[42%] flex-col relative overflow-hidden"
         style={{ background: "linear-gradient(155deg, #0a1628 0%, #0f2040 55%, #0a1628 100%)" }}
       >
         <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-[0.07]" style={{ background: "#c9a84c", filter: "blur(80px)", transform: "translate(30%,-30%)" }} />
@@ -138,7 +138,7 @@ const ForgotPassword: React.FC = () => {
       <div className="flex-1 flex flex-col bg-white">
 
         {/* Mobile top bar */}
-        <div className="lg:hidden flex items-center justify-between px-6 pt-6 pb-4">
+        <div className="md:hidden flex items-center justify-between px-6 pt-6 pb-4">
           <Link to="/">
             <img src="/logobrit.png" alt="BritBooks" className="h-8 object-contain" />
           </Link>

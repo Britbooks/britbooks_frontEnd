@@ -78,7 +78,7 @@ const MobileFooter = ({ email, setEmail, subscribed, handleSubscribe }: {
   email: string; setEmail: (v: string) => void;
   subscribed: boolean; handleSubscribe: (e: React.FormEvent) => void;
 }) => (
-  <div className="lg:hidden bg-gray-900 text-white">
+  <div className="md:hidden bg-gray-900 text-white">
 
     {/* Brand block */}
     <div className="flex flex-col items-center text-center px-6 pt-10 pb-8 border-b border-gray-800">
@@ -248,7 +248,7 @@ const Footer = () => {
 
       {/* ══ DESKTOP FOOTER ══ */}
       {/* ── Newsletter ── */}
-      <div className="hidden lg:block bg-blue-900 border-b border-blue-800">
+      <div className="hidden md:block bg-blue-900 border-b border-blue-800">
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="font-semibold text-sm md:text-base text-center md:text-left">
@@ -284,7 +284,7 @@ const Footer = () => {
       </div>
 
       {/* ── Main content ── */}
-      <div className="hidden lg:block w-full px-8 md:px-16 xl:px-28 py-20">
+      <div className="hidden md:block w-full px-8 md:px-16 xl:px-28 py-20">
         <div className="flex flex-col lg:flex-row items-start justify-between gap-12 lg:gap-0">
 
           {/* Brand — extreme left */}
@@ -389,7 +389,7 @@ const Footer = () => {
       </div>
 
       {/* ── Bottom bar (desktop only) ── */}
-      <div className="hidden lg:block border-t border-gray-800 bg-gray-900">
+      <div className="hidden md:block border-t border-gray-800 bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-7 flex flex-col md:flex-row items-center justify-between gap-5">
           <p className="text-gray-500 text-xs text-center md:text-left">
             © {new Date().getFullYear()} BritBooks. All rights reserved. Designed by{' '}
