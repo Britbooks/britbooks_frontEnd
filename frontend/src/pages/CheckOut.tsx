@@ -615,19 +615,25 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
 const PaymentForm = ({
   goToNextStep,
   setPaymentData,
+  guestEmail,
+  setGuestEmail,
 }: {
   goToNextStep: () => void;
   setPaymentData: (data: any) => void;
+  guestEmail: string;
+  setGuestEmail: (v: string) => void;
 }) => {
   const stripe = useStripe();
   const elements = useElements();
   const { auth, logout } = useAuth();
   const { cartItems } = useCart();
   const navigate = useNavigate();
+  const isGuest = !auth.token;
   const [activeTab, setActiveTab] = useState<"credit-card" | "paypal">("credit-card");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [useSavedAddress, setUseSavedAddress] = useState(true);
+  // Guests can't have "saved addresses" — force manual entry for them.
+  const [useSavedAddress, setUseSavedAddress] = useState(!isGuest);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [shippingAddress, setShippingAddress] = useState({
@@ -685,9 +691,9 @@ const PaymentForm = ({
 
   useEffect(() => {
     const fetchAddresses = async () => {
+      // Guests skip address lookup entirely — they enter their delivery
+      // address manually below.
       if (!auth.token || !userId) {
-        setError("Please log in to view addresses.");
-        navigate("/login");
         return;
       }
       try {
@@ -750,6 +756,15 @@ const PaymentForm = ({
       setError("Please provide a complete delivery address.");
       return;
     }
+    if (isGuest) {
+      const trimmedEmail = guestEmail.trim();
+      // Basic sanity — we just need something that reaches the receipt
+      // template, the backend re-validates.
+      if (!trimmedEmail || !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+        setError("Please enter a valid email for your order confirmation.");
+        return;
+      }
+    }
 
     setLoading(true);
     setError(null);
@@ -786,6 +801,36 @@ const PaymentForm = ({
     <div className="max-w-2xl mx-auto">
       <h2 className="text-lg sm:text-2xl font-black text-gray-800 text-center mb-5 sm:mb-8">Payment & Delivery</h2>
 
+      {/* Guest email gate — only shown for unauthenticated shoppers. Skips
+          the login redirect entirely; the email carries the receipt. */}
+      {isGuest && (
+        <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-4">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <h3 className="font-black text-sm text-gray-800">Guest checkout</h3>
+            <Link
+              to="/login"
+              state={{ from: "/checkout" }}
+              className="text-xs font-bold text-[#c9a84c] hover:underline"
+            >
+              Have an account? Log in
+            </Link>
+          </div>
+          <div className="px-5 py-4 space-y-2">
+            <input
+              type="email"
+              placeholder="Email for order confirmation"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              className={inputClass}
+              required
+            />
+            <p className="text-[11px] text-gray-400">
+              We'll email your receipt and tracking updates to this address.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Payment method tabs */}
       <div className="flex gap-3 mb-5">
         <button
@@ -817,17 +862,19 @@ const PaymentForm = ({
               <h3 className="font-black text-sm text-gray-800">Delivery Address</h3>
             </div>
             <div className="px-5 py-4">
-              <label className="flex items-center gap-3 cursor-pointer mb-4">
-                <div
-                  onClick={() => setUseSavedAddress(!useSavedAddress)}
-                  className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${useSavedAddress ? "bg-[#0a1628]" : "bg-gray-200"}`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${useSavedAddress ? "left-6" : "left-1"}`} />
-                </div>
-                <span className="text-sm font-semibold text-gray-700">Use saved address</span>
-              </label>
+              {!isGuest && (
+                <label className="flex items-center gap-3 cursor-pointer mb-4">
+                  <div
+                    onClick={() => setUseSavedAddress(!useSavedAddress)}
+                    className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${useSavedAddress ? "bg-[#0a1628]" : "bg-gray-200"}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${useSavedAddress ? "left-6" : "left-1"}`} />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700">Use saved address</span>
+                </label>
+              )}
 
-              {useSavedAddress ? (
+              {useSavedAddress && !isGuest ? (
                 <Addresses
                   addresses={addresses}
                   setAddresses={setAddresses}
@@ -938,10 +985,12 @@ const ReviewOrder = ({
   setPaymentData,
   setSuccessData,
   appliedCampaign,
+  guestEmail,
 }: any) => {
   const navigate = useNavigate();
   const { auth, logout } = useAuth();
   const { clearCart } = useCart();
+  const isGuest = !auth.token;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -966,32 +1015,29 @@ const ReviewOrder = ({
   };
 
   const handlePlaceOrder = async () => {
-    if (!auth.token) {
-      setError("Please log in to place an order.");
-      navigate("/login", { state: { from: "/checkout" } });
-      return;
-    }
-  
     if (loading) return;
-  
+
     setLoading(true);
     setError(null);
-  
+
     try {
-      const decoded = jwtDecode<{ userId: string }>(auth.token);
-      const userId = decoded.userId;
+      const userId = auth.token
+        ? jwtDecode<{ userId: string }>(auth.token).userId
+        : null;
+      const contactEmail = isGuest ? guestEmail : auth.user?.email;
       const newOrderId = `ORDER_${Date.now()}`;
       const items = cartItems.map((item: any) => ({
         title: item.title,
         quantity: item.quantity,
         price: typeof item.price === "string" ? parseFloat(item.price.replace("£", "")) : Number(item.price),
       }));
-  
+
       const response = await axios.post(
         `${API_BASE_URL}/payments/create-payment`,
         {
           userId,
-          email: auth.user?.email,
+          email: contactEmail,
+          isGuest,
           orderId: newOrderId,
           shippingAddress: paymentData.shippingAddress,
           items,
@@ -1003,9 +1049,9 @@ const ReviewOrder = ({
           currency: "gbp",
           token: paymentData.token,
         },
-        {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        }
+        auth.token
+          ? { headers: { Authorization: `Bearer ${auth.token}` } }
+          : {}
       );
   
       const { success, type, message, items: errorItems, clientSecret, reference, status, requiresAction, receiptUrl } = response.data;
@@ -1063,7 +1109,9 @@ const ReviewOrder = ({
       const successResponse = await axios.post(
         `${API_BASE_URL}/payments/success/${reference}`,
         { reference, receiptUrl: receipt || null },
-        { headers: { Authorization: `Bearer ${auth.token}` } }
+        auth.token
+          ? { headers: { Authorization: `Bearer ${auth.token}` } }
+          : {}
       );
 
       if (successResponse.data.success) {
@@ -1077,11 +1125,16 @@ const ReviewOrder = ({
           receiptUrl: receiptUrl || null,
         });
 
-        setTimeout(() => {
-          navigate("/orders", {
-            state: { orderId: orderId || reference, receiptUrl: receiptUrl || null }
-          });
-        }, 5000);
+        // Registered customers get bounced to /orders so they can track;
+        // guests have no order list to view — they stay on the confirmation
+        // modal and rely on the email receipt.
+        if (!isGuest) {
+          setTimeout(() => {
+            navigate("/orders", {
+              state: { orderId: orderId || reference, receiptUrl: receiptUrl || null }
+            });
+          }, 5000);
+        }
       } else {
         setError("Order failed. Please contact support.");
       }
@@ -1254,6 +1307,8 @@ const CheckoutFlow = () => {
   const [step, setStep] = useState(1);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [appliedCampaign, setAppliedCampaign] = useState<AppliedCampaign | null>(null);
+  const [guestEmail, setGuestEmail] = useState("");
+  const isGuest = !auth.token;
   const userId = auth.token ? (() => { try { return jwtDecode<{ userId: string }>(auth.token!).userId; } catch { return null; } })() : null;
   const [successData, setSuccessData] = useState<{
     orderId: string;
@@ -1331,7 +1386,12 @@ const CheckoutFlow = () => {
 
           {step === 2 && (
             <Elements stripe={stripePromise}>
-              <PaymentForm goToNextStep={() => setStep(3)} setPaymentData={setPaymentData} />
+              <PaymentForm
+                goToNextStep={() => setStep(3)}
+                setPaymentData={setPaymentData}
+                guestEmail={guestEmail}
+                setGuestEmail={setGuestEmail}
+              />
             </Elements>
           )}
 
@@ -1343,6 +1403,7 @@ const CheckoutFlow = () => {
               setPaymentData={setPaymentData}
               setSuccessData={setSuccessData}
               appliedCampaign={appliedCampaign}
+              guestEmail={guestEmail}
             />
           ) : step === 3 && successData ? (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[9999] p-4">
@@ -1373,11 +1434,20 @@ const CheckoutFlow = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate("/orders", { state: successData })}
+                  onClick={() =>
+                    isGuest
+                      ? navigate("/")
+                      : navigate("/orders", { state: successData })
+                  }
                   className="w-full bg-[#c9a84c] text-black py-4 rounded-2xl font-black text-sm mb-3"
                 >
-                  View My Order
+                  {isGuest ? "Continue Shopping" : "View My Order"}
                 </button>
+                {isGuest && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    A confirmation has been emailed to {guestEmail || "your inbox"} with your receipt and tracking updates.
+                  </p>
+                )}
 
                 {/* Trustpilot review nudge */}
                 <a
@@ -1394,7 +1464,9 @@ const CheckoutFlow = () => {
                   <span className="text-xs font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">Share your experience on Trustpilot</span>
                 </a>
 
-                <p className="text-xs text-gray-400">Redirecting automatically in 5 seconds…</p>
+                {!isGuest && (
+                  <p className="text-xs text-gray-400">Redirecting automatically in 5 seconds…</p>
+                )}
               </motion.div>
             </div>
           ) : step === 3 ? (
