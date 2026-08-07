@@ -9,6 +9,7 @@ import DashboardPage from './pages/Dashboard';
 import OrdersPage from './pages/Orders';
 import CategoryBrowsePage from './pages/Category';
 import BrowseCategoryDetail from './components/browseCategoryDetails';
+import BookByIsbn from './pages/BookByIsbn';
 import AboutUs from './pages/About';
 import SustainabilityPage from './pages/Sustainability';
 import CareersPage from './pages/Careers';
@@ -33,6 +34,7 @@ import InvoicesPage from './pages/Invoices';
 import CreditSlipsPage from './pages/CreditSlips';
 import NotFoundPage from './pages/NotFound';
 import ForgotPasswordPage from './pages/ForgotPassword';
+import WholesalePage from './pages/Wholesale';
 
 import NotificationModal from './components/NotificationModal';
 import { AuthProvider } from './context/authContext';
@@ -88,6 +90,7 @@ const App: React.FC = () => {
               </Route>
               <Route path="/category" element={<CategoryBrowsePage />} />
               <Route path="/browse/:id" element={<BrowseCategoryDetail />} />
+              <Route path="/book/:isbn" element={<BookByIsbn />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/sustainability" element={<SustainabilityPage />} />
               <Route path="/careers" element={<CareersPage />} />
@@ -112,6 +115,7 @@ const App: React.FC = () => {
               <Route path="/invoices" element={<InvoicesPage />} />
               <Route path="/credits" element={<CreditSlipsPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/wholesale" element={<WholesalePage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </WishlistProvider>

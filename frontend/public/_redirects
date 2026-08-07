@@ -1,1 +1,20 @@
+# Proxy SEO endpoints to the backend so a single source of truth serves
+# the sitemap index, chunked listing sitemaps, and robots.txt. Must come
+# before the SPA catch-all — Netlify processes rules top-to-bottom.
+/sitemap.xml            https://britbooks-api-production-8ebd.up.railway.app/sitemap.xml            200
+/sitemap-static.xml     https://britbooks-api-production-8ebd.up.railway.app/sitemap-static.xml     200
+/sitemap-listings-*.xml https://britbooks-api-production-8ebd.up.railway.app/sitemap-listings-:splat.xml 200
+/robots.txt             https://britbooks-api-production-8ebd.up.railway.app/robots.txt             200
+
+# Proxy product pages to the backend for server-side SEO injection.
+# The backend returns the SPA shell with product-specific title, meta,
+# JSON-LD, and visible content pre-populated. React hydrates on top.
+/browse/*               https://britbooks-api-production-8ebd.up.railway.app/browse/:splat          200
+
+# Canonical per-ISBN book pages. Aggregates every listing sharing the
+# ISBN into one page with an offers table — the target Google should
+# rank instead of the individual /browse/:id listing copies.
+/book/*                 https://britbooks-api-production-8ebd.up.railway.app/book/:splat            200
+
+# SPA catch-all — must remain last.
 /*    /index.html   200

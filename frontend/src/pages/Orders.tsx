@@ -80,6 +80,14 @@ interface TrackingStep {
   completed: boolean;
 }
 
+interface ShipmentInfo {
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  carrier: string | null;
+  shipMethod: string | null;
+  shippedAt: string | null;
+}
+
 interface Order {
   id: string;
   date: string;
@@ -90,6 +98,7 @@ interface Order {
   shippingAddress: ShippingAddress;
   paymentDetails: PaymentDetails;
   tracking: TrackingStep[];
+  shipment?: ShipmentInfo;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -184,6 +193,7 @@ const ItemDetails = ({ orders }) => {
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 const OrderDetailsSidebar = ({ isOpen, onClose }) => {
+  const location = useLocation();
   const { id } = useParams();
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
@@ -239,6 +249,19 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
               paidAt: o.payment?.paidAt,
             },
             tracking: mapTracking(o),
+            // Prefer the per-parcel record (multi-item orders can ship in
+            // separate shipments with their own tracking); fall back to
+            // the legacy singleton shipping.* fields.
+            shipment: (() => {
+              const s = Array.isArray(o.shipments) && o.shipments.length ? o.shipments[0] : null;
+              return {
+                trackingNumber: s?.trackingNumber || o.shipping?.trackingNumber || null,
+                trackingUrl:    s?.trackingUrl    || o.shipping?.trackingUrl    || null,
+                carrier:        s?.carrierName    || o.shipping?.courier        || null,
+                shipMethod:     s?.shipMethod     || null,
+                shippedAt:      s?.shipDate       || o.shipping?.shippedAt      || null,
+              };
+            })(),
           });
         } else {
           setError("Order not found");
@@ -246,7 +269,7 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
       } catch (err: any) {
         if (err?.response?.status === 401) {
           logout();
-          navigate("/login");
+          navigate("/login", { state: { from: location.pathname + location.search } });
         } else {
           setError("Failed to load order details. Please try again.");
         }
@@ -369,6 +392,59 @@ const OrderDetailsSidebar = ({ isOpen, onClose }) => {
             </div>
           </section>
 
+          {/* Delivery Tracking — carrier, tracking number, "Track My Parcel"
+              link. Only shows once the despatch file has landed and populated
+              a tracking number. */}
+          {order.shipment?.trackingNumber && (
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-indigo-100 rounded-lg">
+                  <TruckIcon className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Delivery Tracking</h3>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+                {order.shipment.carrier && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Carrier</p>
+                    <p className="text-gray-900 font-medium">{order.shipment.carrier}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Tracking number</p>
+                  <code className="text-sm bg-white px-4 py-2.5 rounded font-mono break-all block border border-gray-200">
+                    {order.shipment.trackingNumber}
+                  </code>
+                </div>
+                {order.shipment.shipMethod && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Ship method</p>
+                    <p className="text-gray-700">{order.shipment.shipMethod}</p>
+                  </div>
+                )}
+                {order.shipment.shippedAt && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Dispatched</p>
+                    <p className="text-gray-700">
+                      {new Date(order.shipment.shippedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                  </div>
+                )}
+                {order.shipment.trackingUrl && (
+                  <a
+                    href={order.shipment.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    <TruckIcon className="w-5 h-5" />
+                    Track My Parcel
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Items */}
           <section>
             <div className="flex items-center gap-3 mb-6">
@@ -490,6 +566,7 @@ const MainContent = ({ setOrders, selectedOrderId, isDetailsOpen }) => {
 
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const statusOptions = [
     { value: 'All', label: 'All Statuses' },
@@ -581,7 +658,7 @@ const MainContent = ({ setOrders, selectedOrderId, isDetailsOpen }) => {
       } catch (err: any) {
         if (err?.response?.status === 401) {
           logout();
-          navigate('/login');
+          navigate('/login', { state: { from: location.pathname + location.search } });
         }
       } finally {
         setLoading(false);
