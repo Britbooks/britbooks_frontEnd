@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, MapPin, Pencil, Trash2, X, CheckCircle2,
@@ -418,6 +418,7 @@ const Addresses: React.FC<AddressesProps> = ({
 const AddressesPage = () => {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -425,12 +426,13 @@ const AddressesPage = () => {
 
   useEffect(() => {
     const load = async () => {
-      if (!auth.token || !userId) { navigate('/login'); return; }
+      const returnTo = { from: location.pathname + location.search };
+      if (!auth.token || !userId) { navigate('/login', { state: returnTo }); return; }
       try {
         const res = await axios.get(`${API_BASE}/users/${userId}/address`, { headers: { Authorization: `Bearer ${auth.token}` } });
         setAddresses(res.data.addresses || []);
       } catch (err) {
-        if ((err as AxiosError).response?.status === 401) { logout(); navigate('/login'); }
+        if ((err as AxiosError).response?.status === 401) { logout(); navigate('/login', { state: returnTo }); }
       } finally { setLoading(false); }
     };
     load();

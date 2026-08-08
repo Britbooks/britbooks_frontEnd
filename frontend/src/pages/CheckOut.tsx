@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Check,
   X,
@@ -628,6 +628,7 @@ const PaymentForm = ({
   const { auth, logout } = useAuth();
   const { cartItems } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   const isGuest = !auth.token;
   const [activeTab, setActiveTab] = useState<"credit-card" | "paypal">("credit-card");
   const [error, setError] = useState<string | null>(null);
@@ -721,7 +722,7 @@ const PaymentForm = ({
         if (err.response?.status === 401) {
           setError("Session expired. Please log in again.");
           logout();
-          navigate("/login");
+          navigate("/login", { state: { from: location.pathname + location.search } });
         } else {
           setError("Failed to load addresses. Please try again.");
         }
@@ -988,6 +989,7 @@ const ReviewOrder = ({
   guestEmail,
 }: any) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { auth, logout } = useAuth();
   const { clearCart } = useCart();
   const isGuest = !auth.token;
@@ -1091,7 +1093,7 @@ const ReviewOrder = ({
       console.error("Place order error:", err.response?.data || err);
       if (err.response?.status === 401) {
         logout();
-        navigate("/login");
+        navigate("/login", { state: { from: location.pathname + location.search } });
       } else if (err.response?.data?.type === "stock_error") {
         const errorItems = err.response.data.items || [];
         const itemList = errorItems.map((i: any) => `${i.title} (Available: ${i.available})`).join(", ");

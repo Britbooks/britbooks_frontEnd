@@ -20,7 +20,7 @@ declare global {
     fbAsyncInit?: () => void;
   }
 }
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/authContext";
 import { RegisterFormData, JwtPayload } from "../types/auth";
 import toast, { Toaster } from "react-hot-toast";
@@ -274,6 +274,7 @@ const SignupPage = () => {
   const { auth, registerUser, verifyRegistration, loginWithSocial, resendOtp } = context;
   const { loading, error, token } = auth;
   const navigate = useNavigate();
+  const location = useLocation();
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
   const googleTokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
   const googleCallbackRef = useRef<(accessToken: string) => void>(() => {});
@@ -289,14 +290,14 @@ const SignupPage = () => {
       try {
         await loginWithSocial('google', accessToken);
         toast.success('Signed in with Google!');
-        navigate('/', { replace: true });
+        navigate(location.state?.from || '/', { replace: true });
       } catch {
         toast.error('Google sign-in failed. Please try again.');
       } finally {
         setSocialLoading(null);
       }
     };
-  }, [loginWithSocial, navigate]);
+  }, [loginWithSocial, navigate, location.state]);
 
   // Load Google Identity Services SDK and init OAuth2 token client
   useEffect(() => {
@@ -362,7 +363,7 @@ const SignupPage = () => {
         loginWithSocial('facebook', response.authResponse.accessToken)
           .then(() => {
             toast.success('Signed in with Facebook!');
-            navigate('/', { replace: true });
+            navigate(location.state?.from || '/', { replace: true });
           })
           .catch(() => toast.error('Facebook sign-in failed. Please try again.'))
           .finally(() => setSocialLoading(null));
@@ -409,7 +410,7 @@ const SignupPage = () => {
         setVerifyCode("");
         localStorage.removeItem("signupEmail");
         toast.success("Account created! Welcome to BritBooks.");
-        navigate("/");
+        navigate(location.state?.from || "/");
       } else { toast.error(auth.error || "Verification failed."); }
     } catch { toast.error("Verification failed. Please try again."); }
   };

@@ -114,7 +114,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (!isAuthRoute) {
             logoutRef.current();
             toast.error('Your session has expired. Please log in again.', { id: 'session-expired' });
-            navigate('/login', { replace: true });
+            // Preserve the current URL so LoginPage can return the user
+            // there after re-auth. Skip when we're already on /login so
+            // we don't loop back onto ourselves.
+            const current = window.location.pathname + window.location.search;
+            const from = current.startsWith('/login') ? undefined : current;
+            navigate('/login', { replace: true, state: from ? { from } : undefined });
           }
         }
         return Promise.reject(error);
@@ -175,7 +180,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             pendingTotp: false,
           });
           toast.error('Your session has expired. Please log in again.', { id: 'session-expired' });
-          navigate('/login', { replace: true });
+          const current = window.location.pathname + window.location.search;
+          const from = current.startsWith('/login') ? undefined : current;
+          navigate('/login', { replace: true, state: from ? { from } : undefined });
         }
       } else {
         setAuth((prev) => ({ ...prev, loading: false }));

@@ -9,7 +9,7 @@ import {
   Mail, Phone, Eye, EyeOff, Trash2, Activity,
   Check, AlertCircle, ChevronRight, Loader2, Star, BookOpen,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import TopBar from "../components/Topbar";
 import Footer from "../components/footer";
 import { JwtPayload } from "../types/auth";
@@ -215,6 +215,7 @@ const AccountSettingsPage: React.FC = () => {
   const [totpError, setTotpError] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const context = useContext(AuthContext);
   if (!context) throw new Error("AuthContext must be used within AuthProvider");
   const { auth, logout } = context;
@@ -403,7 +404,7 @@ const AccountSettingsPage: React.FC = () => {
 
   /* ── Auth guard ── */
   if (!loading && !auth.token) {
-    navigate('/login', { replace: true });
+    navigate('/login', { replace: true, state: { from: location.pathname + location.search } });
     return null;
   }
 

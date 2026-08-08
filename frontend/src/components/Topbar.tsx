@@ -508,7 +508,10 @@ const TopBar = () => {
                       </>
                     ) : (
                       <div className="flex gap-2 w-full">
-                        <Link to="/login" onClick={toggleMobileMenu}
+                        <Link
+                          to="/login"
+                          state={{ from: location.pathname + location.search }}
+                          onClick={toggleMobileMenu}
                           className="flex-1 flex items-center justify-center gap-1.5 bg-[#c9a84c] text-black font-black text-sm py-2.5 rounded-xl">
                           <LogIn size={14} /> Sign In
                         </Link>
@@ -635,7 +638,7 @@ const TopBar = () => {
               </>
             ) : (
               <>
-                <Link to="/login" className="hover:text-gray-300">Sign In</Link>
+                <Link to="/login" state={{ from: location.pathname + location.search }} className="hover:text-gray-300">Sign In</Link>
                 <Link to="/signup" className="hover:text-gray-300">Register</Link>
               </>
             )}
@@ -727,9 +730,9 @@ const TopBar = () => {
 
           <nav className="hidden md:flex flex-1 justify-center items-center font-medium text-gray-600">
 
-            <div className="flex items-center justify-between w-full max-w-5xl">
+            <div className="flex items-center justify-between w-full max-w-6xl">
 
-              <div className="flex space-x-4 xl:space-x-8">
+              <div className="flex space-x-5 lg:space-x-6 xl:space-x-8">
                 <Link to="/" className={`py-3 whitespace-nowrap ${isActive('/') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Home
                 </Link>
@@ -865,6 +868,9 @@ const TopBar = () => {
                 </Link>
                 <Link to="/bestsellers" className={`py-3 whitespace-nowrap ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Best Sellers
+                </Link>
+                <Link to="/wholesale" className={`py-3 whitespace-nowrap ${isActive('/wholesale') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                  Wholesale
                 </Link>
                 <Link to="/help" className={`py-3 whitespace-nowrap ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Contact Us
