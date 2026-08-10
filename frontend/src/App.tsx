@@ -37,6 +37,7 @@ import ForgotPasswordPage from './pages/ForgotPassword';
 import WholesalePage from './pages/Wholesale';
 
 import NotificationModal from './components/NotificationModal';
+import CookieConsent from './components/CookieConsent';
 import { AuthProvider } from './context/authContext';
 import { CartProvider } from './context/cartContext';
 import { RecentlyViewedProvider } from './context/viewManager';
@@ -75,6 +76,7 @@ const App: React.FC = () => {
             
             <ScrollToTop />
             <NotificationModal />
+            <CookieConsent />
             <Routes>
               <Route path="/" element={<Homepage />} />
               <Route path="/explore" element={<ExplorePage />} />
