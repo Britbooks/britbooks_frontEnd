@@ -869,9 +869,6 @@ const TopBar = () => {
                 <Link to="/bestsellers" className={`py-3 whitespace-nowrap ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Best Sellers
                 </Link>
-                <Link to="/wholesale" className={`py-3 whitespace-nowrap ${isActive('/wholesale') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
-                  Wholesale
-                </Link>
                 <Link to="/help" className={`py-3 whitespace-nowrap ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Contact Us
                 </Link>
