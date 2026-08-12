@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 interface AuthState {
-  user: { userId: string; fullName: string; email: string; role: string } | null;
+  user: { userId: string; fullName: string; email: string; role: string; tourCompleted?: boolean } | null;
   userId: string | null;
   token: string | null;
   loading: boolean;
@@ -157,6 +157,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               fullName: response.data.fullName,
               email: response.data.email,
               role: response.data.role,
+              tourCompleted: response.data.tourCompleted === true,
             },
             userId: response.data._id,
             token: storedToken,

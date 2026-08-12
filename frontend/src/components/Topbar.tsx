@@ -625,7 +625,7 @@ const TopBar = () => {
       <div className="hidden md:block bg-indigo-900 text-white px-4 py-1">
         <div className="container mx-auto flex justify-between items-center text-xs">
           <span>{user ? `Welcome back, ${user.fullName}!` : 'Sign in to explore more!'}</span>
-          <nav className="flex space-x-4 md:space-x-6 items-center">
+          <nav data-tour="account" className="flex space-x-4 md:space-x-6 items-center">
             {user ? (
               <>
                 <Link to="/settings" className="hover:text-gray-300 flex items-center space-x-1">
@@ -659,6 +659,7 @@ const TopBar = () => {
           <div className="hidden md:flex items-center justify-center flex-1 mx-4 mt-2 sm:mt-0" ref={searchRef}>
             <motion.div
               ref={searchPillRef}
+              data-tour="search"
               animate={{ width: searchFocused ? 560 : 380 }}
               transition={{ type: 'spring', stiffness: 320, damping: 28 }}
               style={{ position: 'relative' }}
@@ -744,6 +745,7 @@ const TopBar = () => {
                 >
                   <Link
                     to="/category"
+                    data-tour="categories"
                     className={`py-3 flex items-center space-x-1 whitespace-nowrap ${isActive('/category') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}
                   >
                     <span>Shop by Category</span>
@@ -860,13 +862,13 @@ const TopBar = () => {
                   </AnimatePresence>
                 </div>
 
-                <Link to="/popular-books" className={`py-3 whitespace-nowrap ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                <Link to="/popular-books" data-tour="popular-books" className={`py-3 whitespace-nowrap ${isActive('/popular-books') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Popular Books
                 </Link>
                 <Link to="/new-arrivals" className={`py-3 whitespace-nowrap ${isActive('/new-arrivals') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   New Arrivals
                 </Link>
-                <Link to="/bestsellers" className={`py-3 whitespace-nowrap ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
+                <Link to="/bestsellers" data-tour="bestsellers" className={`py-3 whitespace-nowrap ${isActive('/bestsellers') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
                   Best Sellers
                 </Link>
                 <Link to="/help" className={`py-3 whitespace-nowrap ${isActive('/help') ? 'text-red-600 border-b-2 border-red-600' : 'hover:text-red-600'}`}>
@@ -874,7 +876,7 @@ const TopBar = () => {
                 </Link>
               </div>
 
-              <Link to="/checkout" className="flex items-center space-x-2 text-gray-700 whitespace-nowrap">
+              <Link to="/checkout" data-tour="cart" className="flex items-center space-x-2 text-gray-700 whitespace-nowrap">
                 <ShoppingCartIcon className="h-6 w-6 text-gray-600" />
                 <span>Cart {cartCount} Items</span>
               </Link>
