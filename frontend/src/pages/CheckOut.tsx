@@ -37,6 +37,9 @@ import SEOHead from '../components/SEOHead';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 const API_BASE_URL = "https://britbooks-api-production-8ebd.up.railway.app/api";
 
+// Temporary UI-level checkout pause. Flip to `false` to re-enable checkout.
+const SALES_PAUSED = true;
+
 
 interface AppliedCampaign {
   campaignId: string;
@@ -276,6 +279,15 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
   const [promoCode, setPromoCode] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+
+  const handleProceed = () => {
+    if (SALES_PAUSED) {
+      setShowPauseModal(true);
+      return;
+    }
+    goToNextStep();
+  };
 
   const applyPromoCode = async () => {
     if (!promoCode.trim()) return;
@@ -477,7 +489,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
 
             <motion.button
               whileTap={{ scale: 0.97 }}
-              onClick={goToNextStep}
+              onClick={handleProceed}
               className="w-full py-4 bg-[#c9a84c] text-black font-black rounded-2xl text-sm flex items-center justify-between px-6"
             >
               <span>Proceed to Checkout</span>
@@ -598,7 +610,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
                 </div>
               )}
 
-              <button onClick={goToNextStep} disabled={cartItems.length === 0} className="w-full mt-6 py-4 bg-red-400 text-black font-bold rounded-lg hover:bg-red-200 transition disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">PROCEED TO CHECKOUT</button>
+              <button onClick={handleProceed} disabled={cartItems.length === 0} className="w-full mt-6 py-4 bg-red-400 text-black font-bold rounded-lg hover:bg-red-200 transition disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">PROCEED TO CHECKOUT</button>
             </div>
           </div>
         </div>
@@ -608,6 +620,57 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {showPauseModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4"
+            onClick={() => setShowPauseModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={{ type: "spring", stiffness: 260, damping: 22 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowPauseModal(false)}
+                aria-label="Close"
+                className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition"
+              >
+                <X size={20} />
+              </button>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0">
+                  <Lock size={22} className="text-amber-600" />
+                </div>
+                <div className="flex-1 pt-1">
+                  <h3 className="text-lg md:text-xl font-black text-gray-900 mb-2">
+                    Checkout temporarily unavailable
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    We're completing some technical maintenance and can't take new orders right now.
+                    We'll be back on Monday — thank you for your patience.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowPauseModal(false)}
+                  className="px-5 py-2.5 bg-[#0a1628] text-white text-sm font-bold rounded-xl hover:bg-[#1a2d4f] transition"
+                >
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
