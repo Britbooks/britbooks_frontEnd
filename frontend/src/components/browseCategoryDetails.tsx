@@ -247,6 +247,11 @@ const BrowseCategoryDetail = () => {
         const category = d.category || "General";
         const placeholder = generatePlaceholderImage({ title: d.title, isbn: d.isbn || d.title, category: d.category });
 
+        // Coerce stock to 0 when a listing is unpublished so the existing
+        // OOS UI (banner + disabled cart button) handles both cases —
+        // stops us needing a separate "unavailable" state in every render
+        // check while still showing the details/cover instead of a 404.
+        const effectiveStock = d.isPublished === false ? 0 : (d.stock ?? 1);
         setBook({
           id: bookId,
           title: (d.title || "Untitled").trim().replace(/\s*\(\d+\)$/, ""),
@@ -256,7 +261,8 @@ const BrowseCategoryDetail = () => {
           category,
           condition: d.condition || "Good",
           description: stripHtml(typeof d.notes === "string" ? d.notes : (d.description ?? "")),
-          stock: d.stock ?? 1,
+          stock: effectiveStock,
+          isPublished: d.isPublished !== false,
           rating: d.rating || 4.5,
           isbn: d.isbn || "",
           pages: d.pages || 300,

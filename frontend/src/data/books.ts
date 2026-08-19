@@ -28,6 +28,7 @@ export interface Book {
   releaseDate?: string | Date | null;
   totalSold?: number;
   revenue?: number;
+  isPublished?: boolean;
 }
 
 export interface CategoryNode {
