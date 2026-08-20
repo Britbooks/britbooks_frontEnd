@@ -655,7 +655,7 @@ const ShoppingCartView: React.FC<ShoppingCartViewProps> = ({
                   </h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
                     We're completing some technical maintenance and can't take new orders right now.
-                    We'll be back on Monday — thank you for your patience.
+                    We'll be back shortly — thank you for your patience.
                   </p>
                 </div>
               </div>
